@@ -1,10 +1,40 @@
+using Microsoft.AspNetCore.Components;
+
 namespace HyperRazor.Components.Services;
 
 public interface IHrxSwapService
 {
-    void Queue(string target, string html, string swap = "innerHTML");
+    bool ContentAvailable { get; }
 
-    IReadOnlyList<HrxSwapItem> GetAll();
+    void AddSwappableComponent<TComponent>(
+        string targetId,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null)
+        where TComponent : IComponent;
+
+    void AddSwappableComponent<TComponent>(
+        string targetId,
+        object? parameters = null,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null)
+        where TComponent : IComponent;
+
+    void AddSwappableFragment(
+        string targetId,
+        RenderFragment fragment,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null);
+
+    void AddSwappableContent(
+        string targetId,
+        string html,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null);
+
+    void AddRawContent(string html);
+
+    RenderFragment RenderToFragment(bool clear = false);
 
     void Clear();
 }

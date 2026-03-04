@@ -1,9 +1,11 @@
 using HyperRazor.Components;
+using HyperRazor.Htmx;
 using HyperRazor.Htmx.AspNetCore;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 
 namespace HyperRazor.Rendering;
 
@@ -39,8 +41,10 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         ArgumentNullException.ThrowIfNull(data);
 
         var context = GetHttpContext();
-        var isHtmxRequest = IsHtmxRequestForLayout(context);
+        var request = context.HtmxRequest();
+        var isHtmxRequest = request.IsHtmx && !request.IsHistoryRestoreRequest;
         var modelState = ResolveModelState(context);
+        EnsureVaryForHtmxBranching(context.Response.Headers);
 
         var html = await RenderHostAsync(
             componentType: typeof(TComponent),
@@ -49,6 +53,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             modelState: modelState,
             isPartial: false,
             isHtmxRequest: isHtmxRequest,
+            isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -68,7 +73,9 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         ArgumentNullException.ThrowIfNull(data);
 
         var context = GetHttpContext();
+        var request = context.HtmxRequest();
         var modelState = ResolveModelState(context);
+        EnsureVaryForHtmxBranching(context.Response.Headers);
 
         var html = await RenderHostAsync(
             componentType: typeof(TComponent),
@@ -76,7 +83,8 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             context: context,
             modelState: modelState,
             isPartial: true,
-            isHtmxRequest: true,
+            isHtmxRequest: request.IsHtmx,
+            isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -87,7 +95,9 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         ArgumentNullException.ThrowIfNull(fragments);
 
         var context = GetHttpContext();
+        var request = context.HtmxRequest();
         var modelState = ResolveModelState(context);
+        EnsureVaryForHtmxBranching(context.Response.Headers);
 
         var html = await RenderHostAsync(
             componentType: typeof(HrxFragmentGroup),
@@ -98,7 +108,8 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             context: context,
             modelState: modelState,
             isPartial: true,
-            isHtmxRequest: true,
+            isHtmxRequest: request.IsHtmx,
+            isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -111,6 +122,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         ModelStateDictionary modelState,
         bool isPartial,
         bool isHtmxRequest,
+        bool isHistoryRestoreRequest,
         CancellationToken cancellationToken)
     {
         var hostParameters = new Dictionary<string, object?>
@@ -120,6 +132,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             [nameof(HrxComponentHost.RootComponentType)] = _options.RootComponent,
             [nameof(HrxComponentHost.IsPartial)] = isPartial,
             [nameof(HrxComponentHost.IsHtmxRequest)] = isHtmxRequest,
+            [nameof(HrxComponentHost.IsHistoryRestoreRequest)] = isHistoryRestoreRequest,
             [nameof(HrxComponentHost.UseMinimalLayoutForHtmx)] = _options.UseMinimalLayoutForHtmx,
             [nameof(HrxComponentHost.HttpContext)] = context,
             [nameof(HrxComponentHost.ModelState)] = modelState
@@ -134,10 +147,31 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             ?? throw new InvalidOperationException("No active HttpContext is available for HyperRazor rendering.");
     }
 
-    private static bool IsHtmxRequestForLayout(HttpContext context)
+    private static void EnsureVaryForHtmxBranching(IHeaderDictionary headers)
     {
-        var request = context.HtmxRequest();
-        return request.IsHtmx && !request.IsHistoryRestoreRequest;
+        EnsureVaryBy(headers, HtmxHeaderNames.Request);
+        EnsureVaryBy(headers, HtmxHeaderNames.HistoryRestoreRequest);
+    }
+
+    private static void EnsureVaryBy(IHeaderDictionary headers, string varyHeader)
+    {
+        if (!headers.TryGetValue(HeaderNames.Vary, out var existingVary)
+            || string.IsNullOrWhiteSpace(existingVary))
+        {
+            headers[HeaderNames.Vary] = varyHeader;
+            return;
+        }
+
+        var values = existingVary
+            .ToString()
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (values.Contains(varyHeader, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        headers[HeaderNames.Vary] = $"{existingVary}, {varyHeader}";
     }
 
     private static ModelStateDictionary ResolveModelState(HttpContext context)

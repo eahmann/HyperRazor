@@ -1,6 +1,6 @@
 @inject IHrxSwapService SwapService
 
-@foreach (var item in SwapService.GetAll())
+@if (SwapService.ContentAvailable)
 {
-    <div hx-swap-oob="@($"{item.Swap}:{item.Target}")">@((MarkupString)item.Html)</div>
+    @SwapService.RenderToFragment(clear: true)
 }

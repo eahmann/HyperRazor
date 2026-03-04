@@ -5,7 +5,10 @@
 @if (IsPartial)
 {
     @_componentContent
-    <HrxSwapContent />
+    @if (ShouldRenderSwapContent)
+    {
+        <HrxSwapContent />
+    }
 }
 else
 {
@@ -29,6 +32,9 @@ else
     public bool IsHtmxRequest { get; set; }
 
     [Parameter]
+    public bool IsHistoryRestoreRequest { get; set; }
+
+    [Parameter]
     public bool UseMinimalLayoutForHtmx { get; set; } = true;
 
     [Parameter]
@@ -40,6 +46,7 @@ else
     private Type _resolvedRootComponentType = typeof(HrxApp<HrxMainLayout>);
     private Dictionary<string, object?> _rootParameters = new();
     private RenderFragment _componentContent = _ => { };
+    private bool ShouldRenderSwapContent => IsHtmxRequest && !IsHistoryRestoreRequest;
 
     protected override void OnParametersSet()
     {

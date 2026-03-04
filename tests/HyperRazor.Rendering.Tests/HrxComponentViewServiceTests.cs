@@ -129,6 +129,7 @@ public class HrxComponentViewServiceTests
             options.RootComponent = typeof(HrxApp<HrxMainLayout>);
             options.UseMinimalLayoutForHtmx = true;
         });
+        services.AddOptions<HrxSwapOptions>();
         services.AddScoped<IHrxSwapService, HrxSwapService>();
         services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();
         services.AddScoped<IHrxComponentViewService, HrxComponentViewService>();

@@ -21,6 +21,8 @@ public sealed class HrxOptions
 
     public bool UseMinimalLayoutForHtmx { get; set; } = true;
 
+    public bool AllowRawContentOnNonHtmx { get; set; }
+
     private static void EnsureComponentType(Type type, string argumentName)
     {
         if (!typeof(IComponent).IsAssignableFrom(type))

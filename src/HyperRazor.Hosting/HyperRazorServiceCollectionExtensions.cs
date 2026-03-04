@@ -1,6 +1,7 @@
 using HyperRazor.Components.Services;
 using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace HyperRazor.Hosting;
 
@@ -14,15 +15,16 @@ public static class HyperRazorServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
         services.AddRazorComponents();
-
-        if (configure is null)
-        {
-            services.AddOptions<HrxOptions>();
-        }
-        else
+        services.AddOptions<HrxOptions>();
+        if (configure is not null)
         {
             services.Configure(configure);
         }
+        services.AddOptions<HrxSwapOptions>()
+            .Configure<IOptions<HrxOptions>>((swapOptions, hrxOptions) =>
+            {
+                swapOptions.AllowRawContentOnNonHtmx = hrxOptions.Value.AllowRawContentOnNonHtmx;
+            });
 
         services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();
         services.AddScoped<IHrxComponentViewService, HrxComponentViewService>();

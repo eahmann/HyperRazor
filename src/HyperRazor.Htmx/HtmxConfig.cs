@@ -11,6 +11,8 @@ public sealed class HtmxConfig
 
     public string? DefaultSwapStyle { get; set; }
 
+    public IReadOnlyList<HtmxResponseHandlingRule>? ResponseHandling { get; set; }
+
     public string ToJson()
     {
         return JsonSerializer.Serialize(this, SerializerOptions);
@@ -21,4 +23,13 @@ public sealed class HtmxConfig
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+}
+
+public sealed class HtmxResponseHandlingRule
+{
+    public string Code { get; set; } = string.Empty;
+
+    public bool Swap { get; set; }
+
+    public bool? Error { get; set; }
 }

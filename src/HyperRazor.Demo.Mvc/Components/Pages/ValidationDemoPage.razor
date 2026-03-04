@@ -1,0 +1,37 @@
+<section class="panel">
+    <h2>Form Validation</h2>
+    <p>Demonstrates server-side validation with inline fragment errors and <code>422 Unprocessable Entity</code>.</p>
+</section>
+
+<nav class="demo-nav" aria-label="Feature navigation">
+    <a href="/">Overview</a>
+    <a href="/demos/basic">Server Trigger</a>
+    <a href="/demos/search">Live Search</a>
+    <a href="/demos/redirects">Redirect Headers</a>
+    <a href="/demos/oob">OOB Swaps</a>
+</nav>
+
+<section id="validation-demo" class="panel">
+    <h3>Create User (Validated)</h3>
+    <p class="empty">Try invalid input first, then submit valid input.</p>
+
+    <form
+        id="validation-form"
+        action="/fragments/users/create-validated"
+        hx-post="/fragments/users/create-validated"
+        hx-target="#validation-result"
+        hx-swap="innerHTML"
+        novalidate>
+        <label for="validation-display-name">Display Name</label>
+        <input id="validation-display-name" name="displayName" value="Riley Stone" />
+
+        <label for="validation-email">Email</label>
+        <input id="validation-email" name="email" type="email" value="riley@example.com" />
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="validation-result">
+        <p class="empty">Awaiting submission.</p>
+    </div>
+</section>

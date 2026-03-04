@@ -1,18 +1,53 @@
-@if (_results.Count == 0)
+@if (_pagedResults.Count == 0)
 {
     <p class="empty">No users found.</p>
 }
 else
 {
-    <ul class="users">
-        @foreach (var user in _results)
-        {
-            <li>
-                <strong>@user.DisplayName</strong>
-                <span>@("@" + user.UserName)</span>
-            </li>
-        }
-    </ul>
+    <div class="search-meta" data-search-results="true">
+        <p>
+            Showing @_startIndex-@_endIndex of @_totalCount users.
+            Sort: <code>@_resolvedSort</code>
+        </p>
+    </div>
+
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Display Name</th>
+                <th>Username</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in _pagedResults)
+            {
+                <tr>
+                    <td>@user.DisplayName</td>
+                    <td>@("@" + user.UserName)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="pager">
+        <button
+            type="button"
+            hx-get="@BuildPageUrl(_currentPage - 1)"
+            hx-target="#search-results"
+            hx-swap="innerHTML"
+            disabled="@(_currentPage <= 1)">
+            Previous
+        </button>
+        <span>Page @_currentPage of @_pageCount</span>
+        <button
+            type="button"
+            hx-get="@BuildPageUrl(_currentPage + 1)"
+            hx-target="#search-results"
+            hx-swap="innerHTML"
+            disabled="@(_currentPage >= _pageCount)">
+            Next
+        </button>
+    </div>
 }
 
 @code {
@@ -22,22 +57,93 @@ else
         ("bjohnson", "Bailey Johnson"),
         ("cnguyen", "Casey Nguyen"),
         ("dpatel", "Drew Patel"),
-        ("emartinez", "Emerson Martinez")
+        ("emartinez", "Emerson Martinez"),
+        ("fchen", "Finley Chen"),
+        ("glopez", "Gale Lopez"),
+        ("hthomas", "Harper Thomas"),
+        ("iwilliams", "Indigo Williams"),
+        ("jrobinson", "Jordan Robinson"),
+        ("kclark", "Kai Clark"),
+        ("lramirez", "Logan Ramirez")
     ];
 
     [Parameter]
     public string? Query { get; set; }
 
-    private List<(string UserName, string DisplayName)> _results = [];
+    [Parameter]
+    public string? Sort { get; set; }
+
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    [Parameter]
+    public int PageSize { get; set; } = 4;
+
+    private List<(string UserName, string DisplayName)> _pagedResults = [];
+    private string _resolvedSort = "name-asc";
+    private int _currentPage = 1;
+    private int _pageCount = 1;
+    private int _pageSize = 4;
+    private int _totalCount;
+    private int _startIndex;
+    private int _endIndex;
 
     protected override void OnParametersSet()
     {
         var term = Query?.Trim();
-        _results = string.IsNullOrWhiteSpace(term)
+        var filtered = string.IsNullOrWhiteSpace(term)
             ? Users.ToList()
             : Users
                 .Where(user => user.UserName.Contains(term, StringComparison.OrdinalIgnoreCase)
                     || user.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+
+        _resolvedSort = NormalizeSort(Sort);
+        var ordered = _resolvedSort switch
+        {
+            "name-desc" => filtered.OrderByDescending(user => user.DisplayName).ThenBy(user => user.UserName),
+            "username-asc" => filtered.OrderBy(user => user.UserName).ThenBy(user => user.DisplayName),
+            "username-desc" => filtered.OrderByDescending(user => user.UserName).ThenBy(user => user.DisplayName),
+            _ => filtered.OrderBy(user => user.DisplayName).ThenBy(user => user.UserName)
+        };
+
+        _totalCount = filtered.Count;
+        _pageSize = Math.Clamp(PageSize, 1, 10);
+        _pageCount = Math.Max(1, (int)Math.Ceiling(_totalCount / (double)_pageSize));
+        _currentPage = Math.Clamp(Page, 1, _pageCount);
+
+        _pagedResults = ordered
+            .Skip((_currentPage - 1) * _pageSize)
+            .Take(_pageSize)
+            .ToList();
+
+        if (_totalCount == 0)
+        {
+            _startIndex = 0;
+            _endIndex = 0;
+            return;
+        }
+
+        _startIndex = ((_currentPage - 1) * _pageSize) + 1;
+        _endIndex = _startIndex + _pagedResults.Count - 1;
+    }
+
+    private static string NormalizeSort(string? sort)
+    {
+        return sort?.Trim().ToLowerInvariant() switch
+        {
+            "name-desc" => "name-desc",
+            "username-asc" => "username-asc",
+            "username-desc" => "username-desc",
+            _ => "name-asc"
+        };
+    }
+
+    private string BuildPageUrl(int page)
+    {
+        var safePage = Math.Clamp(page, 1, _pageCount);
+        var query = Uri.EscapeDataString(Query?.Trim() ?? string.Empty);
+        var sort = Uri.EscapeDataString(_resolvedSort);
+        return $"/fragments/users/search?query={query}&sort={sort}&page={safePage}&pageSize={_pageSize}";
     }
 }

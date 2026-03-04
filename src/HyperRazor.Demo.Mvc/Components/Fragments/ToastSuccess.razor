@@ -1,1 +1,6 @@
-<div class="toast success">Saved successfully.</div>
+<div class="toast success">@Message</div>
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = "Saved successfully.";
+}

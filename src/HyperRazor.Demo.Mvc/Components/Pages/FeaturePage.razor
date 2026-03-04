@@ -1,4 +1,37 @@
 <section id="feature-panel" class="panel">
-    <h2>Feature Fragment</h2>
-    <p>Rendered as an SSR component through <code>HrController.View&lt;T&gt;()</code>.</p>
+    <h2>OOB Swaps</h2>
+    <p>Rendered as SSR component markup with one HTMX action updating multiple regions out-of-band.</p>
+</section>
+
+<nav class="demo-nav" aria-label="Feature navigation">
+    <a href="/">Overview</a>
+    <a href="/demos/basic">Server Trigger</a>
+    <a href="/demos/search">Live Search</a>
+    <a href="/demos/redirects">Redirect Headers</a>
+    <a href="/demos/validation">Form Validation</a>
+</nav>
+
+<section class="panel">
+    <h3>OOB Demo</h3>
+    <p>Single HTMX request updates main content plus multiple OOB regions (count, toast, activity, layout inspector).</p>
+    <p>Users: <span id="user-count-shell" class="count-badge">5</span></p>
+
+    <form hx-post="/fragments/users/create" hx-target="#users-list" hx-swap="outerHTML">
+        <label for="displayName">Display Name</label>
+        <input id="displayName" name="displayName" value="Taylor Reed" />
+        <button type="submit">Create User</button>
+    </form>
+
+    <section id="users-list" class="panel">
+        <h3>Latest Created User</h3>
+        <p>No users created in this session.</p>
+    </section>
+
+    <div id="toast-stack" class="toast-stack"></div>
+</section>
+
+<section class="panel">
+    <h3>Activity Feed (OOB)</h3>
+    <p class="empty">Each create request appends a new feed item.</p>
+    <div id="activity-feed" class="activity-feed"></div>
 </section>

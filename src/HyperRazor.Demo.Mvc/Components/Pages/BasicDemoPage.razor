@@ -1,0 +1,46 @@
+<section class="panel">
+    <h2>Server Trigger</h2>
+    <p>Demonstrates fragment swaps plus `HX-Trigger` events from response headers.</p>
+</section>
+
+<nav class="demo-nav" aria-label="Feature navigation">
+    <a href="/">Overview</a>
+    <a href="/demos/search">Live Search</a>
+    <a href="/demos/redirects">Redirect Headers</a>
+    <a href="/demos/validation">Form Validation</a>
+    <a href="/demos/oob">OOB Swaps</a>
+</nav>
+
+<section id="server-trigger-demo" class="panel">
+    <h3>Server Trigger</h3>
+    <p class="empty">Compare trigger payload from action code vs `[HtmxResponse]` attribute.</p>
+
+    <button
+        type="button"
+        hx-get="/fragments/toast/success"
+        hx-target="#toast-region"
+        hx-swap="innerHTML">
+        Trigger Toast (Body Trigger)
+    </button>
+
+    <button
+        type="button"
+        hx-get="/fragments/toast/success-attribute"
+        hx-target="#toast-region"
+        hx-swap="innerHTML">
+        Trigger Toast (Attribute Trigger)
+    </button>
+    <div id="toast-region"></div>
+    <p id="event-log" aria-live="polite">No server events yet.</p>
+</section>
+
+<script>
+    document.body.addEventListener("toast:show", function (event) {
+        var detail = event.detail || {};
+        var message = detail.message || "Server event received.";
+        var log = document.getElementById("event-log");
+        if (log) {
+            log.textContent = message;
+        }
+    });
+</script>

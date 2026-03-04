@@ -1,0 +1,46 @@
+<section class="panel">
+    <h2>Live Search</h2>
+    <p>Demonstrates HTMX query, sort, and pagination against a fragment endpoint.</p>
+</section>
+
+<nav class="demo-nav" aria-label="Feature navigation">
+    <a href="/">Overview</a>
+    <a href="/demos/basic">Server Trigger</a>
+    <a href="/demos/redirects">Redirect Headers</a>
+    <a href="/demos/validation">Form Validation</a>
+    <a href="/demos/oob">OOB Swaps</a>
+</nav>
+
+<section id="live-search-demo" class="panel">
+    <h3>Live User Search</h3>
+    <form
+        id="search-controls"
+        action="/fragments/users/search"
+        hx-get="/fragments/users/search"
+        hx-target="#search-results"
+        hx-swap="innerHTML"
+        hx-trigger="submit, keyup changed delay:250ms from:#search-box, change from:#sort-select">
+        <label for="search-box">Query</label>
+        <input
+            id="search-box"
+            type="search"
+            name="query"
+            placeholder="Type to search..."
+            autocomplete="off" />
+
+        <label for="sort-select">Sort</label>
+        <select id="sort-select" name="sort">
+            <option value="name-asc" selected>Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="username-asc">Username (A-Z)</option>
+            <option value="username-desc">Username (Z-A)</option>
+        </select>
+
+        <input type="hidden" name="page" value="1" />
+        <input type="hidden" name="pageSize" value="4" />
+        <button type="submit">Run Query</button>
+    </form>
+    <div id="search-results">
+        <p>Start typing or change sort to load users.</p>
+    </div>
+</section>

@@ -1,0 +1,15 @@
+<section id="users-list" class="panel">
+    <h3>Latest Created User</h3>
+    <p>
+        <strong>@DisplayName</strong> was created.
+    </p>
+    <p>Total users: @Count</p>
+</section>
+
+@code {
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public int Count { get; set; }
+}

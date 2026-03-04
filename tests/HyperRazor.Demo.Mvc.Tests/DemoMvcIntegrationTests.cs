@@ -105,6 +105,12 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("historyRestoreAsHxRequest", body, StringComparison.Ordinal);
         Assert.Contains("<h2>OOB Swaps</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
+
+        var metaMarker = "name=\"htmx-config\"";
+        var metaStart = body.IndexOf(metaMarker, StringComparison.Ordinal);
+        Assert.True(metaStart >= 0, "Expected htmx-config meta tag in rendered HTML.");
+        var scriptIndex = body.IndexOf("src=\"https://unpkg.com/htmx.org@2.0.4\"", StringComparison.Ordinal);
+        Assert.True(scriptIndex >= 0 && metaStart < scriptIndex, "Expected htmx-config meta to render before htmx.js.");
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
@@ -312,7 +318,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"validated-user-result\"", body, StringComparison.Ordinal);
         Assert.Contains("Display name must be at least 3 characters.", body, StringComparison.Ordinal);
         Assert.Contains("Email must be a valid address.", body, StringComparison.Ordinal);

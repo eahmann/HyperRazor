@@ -101,7 +101,7 @@ public sealed class FragmentsController : HrController
         _swapService.AddSwappableContent(
             targetId: "user-count-shell",
             html: count.ToString(),
-            swapStyle: SwapStyle.OuterHtml);
+            swapStyle: SwapStyle.InnerHtml);
 
         var encodedName = WebUtility.HtmlEncode(normalizedName);
         _swapService.AddSwappableContent(
@@ -228,56 +228,44 @@ public sealed class FragmentsController : HrController
 
     private void QueueInspectorUpdate(string action, string details)
     {
-        _swapService.AddSwappableContent(
+        _swapService.AddSwappableComponent<HxRequestResponseInspector>(
             targetId: "hx-debug-shell",
-            html: BuildHxDebugMarkup(HttpContext, action, details),
+            parameters: BuildInspectorParameters(HttpContext, action, details),
             swapStyle: SwapStyle.OuterHtml);
     }
 
-    private static string BuildHxDebugMarkup(HttpContext context, string action, string details)
+    private static IReadOnlyDictionary<string, object?> BuildInspectorParameters(
+        HttpContext context,
+        string action,
+        string details)
     {
-        static string ReadHeader(IHeaderDictionary headers, string key)
-        {
-            if (!headers.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
-            {
-                return "(none)";
-            }
-
-            return WebUtility.HtmlEncode(value.ToString());
-        }
-
         var request = context.Request.Headers;
         var response = context.Response.Headers;
-        var requestPath = WebUtility.HtmlEncode($"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}");
+        var route = $"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}";
 
-        var actionText = WebUtility.HtmlEncode(action);
-        var detailText = WebUtility.HtmlEncode(details);
+        return new Dictionary<string, object?>
+        {
+            [nameof(HxRequestResponseInspector.ActionName)] = action,
+            [nameof(HxRequestResponseInspector.Details)] = details,
+            [nameof(HxRequestResponseInspector.Route)] = route,
+            [nameof(HxRequestResponseInspector.HxRequest)] = ReadHeader(request, HtmxHeaderNames.Request),
+            [nameof(HxRequestResponseInspector.HxTarget)] = ReadHeader(request, HtmxHeaderNames.Target),
+            [nameof(HxRequestResponseInspector.HxTrigger)] = ReadHeader(request, HtmxHeaderNames.Trigger),
+            [nameof(HxRequestResponseInspector.HxCurrentUrl)] = ReadHeader(request, HtmxHeaderNames.CurrentUrl),
+            [nameof(HxRequestResponseInspector.HxTriggerResponse)] = ReadHeader(response, HtmxHeaderNames.TriggerResponse),
+            [nameof(HxRequestResponseInspector.HxRedirect)] = ReadHeader(response, HtmxHeaderNames.Redirect),
+            [nameof(HxRequestResponseInspector.HxLocation)] = ReadHeader(response, HtmxHeaderNames.Location),
+            [nameof(HxRequestResponseInspector.StatusCode)] = context.Response.StatusCode
+        };
+    }
 
-        return $"""
-            <h3>HX Request/Response Inspector</h3>
-            <p>Latest action: <strong>{actionText}</strong>.</p>
-            <p>{detailText}</p>
-            <div class="debug-grid">
-                <section>
-                    <h4>Request Headers</h4>
-                    <ul class="debug-list">
-                        <li><code>Route</code>: {requestPath}</li>
-                        <li><code>{HtmxHeaderNames.Request}</code>: {ReadHeader(request, HtmxHeaderNames.Request)}</li>
-                        <li><code>{HtmxHeaderNames.Target}</code>: {ReadHeader(request, HtmxHeaderNames.Target)}</li>
-                        <li><code>{HtmxHeaderNames.Trigger}</code>: {ReadHeader(request, HtmxHeaderNames.Trigger)}</li>
-                        <li><code>{HtmxHeaderNames.CurrentUrl}</code>: {ReadHeader(request, HtmxHeaderNames.CurrentUrl)}</li>
-                    </ul>
-                </section>
-                <section>
-                    <h4>Response Headers</h4>
-                    <ul class="debug-list">
-                        <li><code>{HtmxHeaderNames.TriggerResponse}</code>: {ReadHeader(response, HtmxHeaderNames.TriggerResponse)}</li>
-                        <li><code>{HtmxHeaderNames.Redirect}</code>: {ReadHeader(response, HtmxHeaderNames.Redirect)}</li>
-                        <li><code>{HtmxHeaderNames.Location}</code>: {ReadHeader(response, HtmxHeaderNames.Location)}</li>
-                        <li>Status: 200</li>
-                    </ul>
-                </section>
-            </div>
-            """;
+    private static string ReadHeader(IHeaderDictionary headers, string key)
+    {
+        if (!headers.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+        {
+            return "(none)";
+        }
+
+        return value.ToString();
     }
 }

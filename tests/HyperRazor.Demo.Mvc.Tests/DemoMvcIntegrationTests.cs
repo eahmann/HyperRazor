@@ -293,6 +293,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#activity-feed", body, StringComparison.Ordinal);
         Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("create-user", body, StringComparison.Ordinal);

@@ -1,0 +1,62 @@
+@using HyperRazor.Htmx
+@using Microsoft.AspNetCore.Http
+
+<h3>HX Request/Response Inspector</h3>
+<p>Latest action: <strong>@ActionName</strong>.</p>
+<p>@Details</p>
+<div class="debug-grid">
+    <section>
+        <h4>Request Headers</h4>
+        <ul class="debug-list">
+            <li><code>Route</code>: @Route</li>
+            <li><code>@HtmxHeaderNames.Request</code>: @HxRequest</li>
+            <li><code>@HtmxHeaderNames.Target</code>: @HxTarget</li>
+            <li><code>@HtmxHeaderNames.Trigger</code>: @HxTrigger</li>
+            <li><code>@HtmxHeaderNames.CurrentUrl</code>: @HxCurrentUrl</li>
+        </ul>
+    </section>
+    <section>
+        <h4>Response Headers</h4>
+        <ul class="debug-list">
+            <li><code>@HtmxHeaderNames.TriggerResponse</code>: @HxTriggerResponse</li>
+            <li><code>@HtmxHeaderNames.Redirect</code>: @HxRedirect</li>
+            <li><code>@HtmxHeaderNames.Location</code>: @HxLocation</li>
+            <li>Status: @StatusCode</li>
+        </ul>
+    </section>
+</div>
+
+@code {
+    [Parameter]
+    public string ActionName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Details { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Route { get; set; } = string.Empty;
+
+    [Parameter]
+    public string HxRequest { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxTarget { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxTrigger { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxCurrentUrl { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxTriggerResponse { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxRedirect { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxLocation { get; set; } = "(none)";
+
+    [Parameter]
+    public int StatusCode { get; set; } = StatusCodes.Status200OK;
+}

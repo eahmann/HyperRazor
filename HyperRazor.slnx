@@ -2,4 +2,16 @@
   <Folder Name="/docs/">
     <File Path="plan-phase-1.md" />
   </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/HyperRazor.Demo.Api/HyperRazor.Demo.Api.csproj" />
+    <Project Path="src/HyperRazor.Demo.Mvc/HyperRazor.Demo.Mvc.csproj" />
+    <Project Path="src/HyperRazor.Htmx.AspNetCore/HyperRazor.Htmx.AspNetCore.csproj" />
+    <Project Path="src/HyperRazor.Htmx.Components/HyperRazor.Htmx.Components.csproj" />
+    <Project Path="src/HyperRazor.Htmx/HyperRazor.Htmx.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HyperRazor.Demo.Mvc.Tests/HyperRazor.Demo.Mvc.Tests.csproj" />
+    <Project Path="tests/HyperRazor.Htmx.AspNetCore.Tests/HyperRazor.Htmx.AspNetCore.Tests.csproj" />
+    <Project Path="tests/HyperRazor.Htmx.Tests/HyperRazor.Htmx.Tests.csproj" />
+  </Folder>
 </Solution>

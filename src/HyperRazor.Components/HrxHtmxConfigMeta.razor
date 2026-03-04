@@ -1,4 +1,3 @@
-@using System.Text.Encodings.Web
 @inject HtmxConfig HtmxConfig
 
-<meta name="htmx-config" content="@HtmlEncoder.Default.Encode(HtmxConfig.ToJson())" />
+<meta name="htmx-config" content="@HtmxConfig.ToJson()" />

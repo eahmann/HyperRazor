@@ -136,7 +136,6 @@ public sealed class FragmentsController : HrController
 
         if (errors.Count > 0)
         {
-            HttpContext.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
             HttpContext.HtmxResponse().Trigger("form:invalid", new
             {
                 errorCount = errors.Count

@@ -1,0 +1,16 @@
+@typeparam TLayout where TLayout : IComponent
+
+<HrxLayout TLayout="TLayout" IsHtmxRequest="IsHtmxRequest" UseMinimalLayoutForHtmx="UseMinimalLayoutForHtmx">
+    @Body
+</HrxLayout>
+
+@code {
+    [Parameter]
+    public RenderFragment? Body { get; set; }
+
+    [Parameter]
+    public bool IsHtmxRequest { get; set; }
+
+    [Parameter]
+    public bool UseMinimalLayoutForHtmx { get; set; } = true;
+}

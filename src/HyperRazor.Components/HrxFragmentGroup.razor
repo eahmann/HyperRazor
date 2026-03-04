@@ -1,0 +1,12 @@
+@if (Fragments is not null)
+{
+    @foreach (var fragment in Fragments)
+    {
+        @fragment
+    }
+}
+
+@code {
+    [Parameter]
+    public RenderFragment[]? Fragments { get; set; }
+}

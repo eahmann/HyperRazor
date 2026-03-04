@@ -1,40 +1,28 @@
-using System.Text;
+using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Htmx.AspNetCore;
+using HyperRazor.Mvc;
+using HyperRazor.Mvc.Filters;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HyperRazor.Demo.Mvc.Controllers;
 
 [ApiController]
 [Route("fragments")]
-public sealed class FragmentsController : ControllerBase
+public sealed class FragmentsController : HrController
 {
-    private static readonly (string UserName, string DisplayName)[] Users =
-    [
-        ("asmith", "Alex Smith"),
-        ("bjohnson", "Bailey Johnson"),
-        ("cnguyen", "Casey Nguyen"),
-        ("dpatel", "Drew Patel"),
-        ("emartinez", "Emerson Martinez")
-    ];
-
     [HttpGet("users/search")]
-    public IActionResult SearchUsers([FromQuery] string? query)
+    [HtmxRequest]
+    public Task<IResult> SearchUsers([FromQuery] string? query, CancellationToken cancellationToken)
     {
-        var term = query?.Trim();
-        var results = string.IsNullOrWhiteSpace(term)
-            ? Users
-            : Users.Where(user =>
-                user.UserName.Contains(term, StringComparison.OrdinalIgnoreCase)
-                || user.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
-
-        return Content(BuildUsersList(results), "text/html");
+        return PartialView<UserSearchResults>(new { Query = query }, cancellationToken);
     }
 
     [HttpGet("toast/success")]
-    public IActionResult ToastSuccess()
+    [HtmxResponse(Trigger = "toast:show")]
+    public Task<IResult> ToastSuccess(CancellationToken cancellationToken)
     {
-        HttpContext.HtmxResponse().Trigger("toast:show", new { message = "Saved successfully." });
-        return Content("<div class=\"toast success\">Saved successfully.</div>", "text/html");
+        return PartialView<ToastSuccess>(cancellationToken: cancellationToken);
     }
 
     [HttpPost("navigation/soft")]
@@ -49,28 +37,5 @@ public sealed class FragmentsController : ControllerBase
     {
         HttpContext.HtmxResponse().Redirect("/");
         return NoContent();
-    }
-
-    private static string BuildUsersList(IEnumerable<(string UserName, string DisplayName)> users)
-    {
-        var items = users.ToArray();
-        if (items.Length == 0)
-        {
-            return "<p class=\"empty\">No users found.</p>";
-        }
-
-        var builder = new StringBuilder("<ul class=\"users\">");
-        foreach (var user in items)
-        {
-            builder
-                .Append("<li><strong>")
-                .Append(System.Net.WebUtility.HtmlEncode(user.DisplayName))
-                .Append("</strong> <span>@")
-                .Append(System.Net.WebUtility.HtmlEncode(user.UserName))
-                .Append("</span></li>");
-        }
-
-        builder.Append("</ul>");
-        return builder.ToString();
     }
 }

@@ -1,0 +1,34 @@
+@typeparam TLayout where TLayout : IComponent
+
+@if (IsHtmxRequest)
+{
+    if (UseMinimalLayoutForHtmx)
+    {
+        <HrxMinimalLayout>
+            @ChildContent
+        </HrxMinimalLayout>
+    }
+    else
+    {
+        <HrxEmptyLayout>
+            @ChildContent
+        </HrxEmptyLayout>
+    }
+}
+else
+{
+    <LayoutView Layout="typeof(TLayout)">
+        @ChildContent
+    </LayoutView>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool IsHtmxRequest { get; set; }
+
+    [Parameter]
+    public bool UseMinimalLayoutForHtmx { get; set; } = true;
+}

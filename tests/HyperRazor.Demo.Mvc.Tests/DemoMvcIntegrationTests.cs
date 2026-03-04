@@ -41,6 +41,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Feature Fragment", body, StringComparison.Ordinal);
         Assert.DoesNotContain("app-shell", body, StringComparison.Ordinal);
+        Assert.Equal("text/html; charset=utf-8", response.Content.Headers.ContentType?.ToString());
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -71,6 +72,32 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("toast", body, StringComparison.OrdinalIgnoreCase);
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.TriggerResponse, out var values));
         Assert.Contains("toast:show", string.Join(',', values), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SearchUsers_RequiresHtmxRequest()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/fragments/users/search?query=alex");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SearchUsers_WithHxRequest_ReturnsPartialHtml()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/fragments/users/search?query=alex");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Alex Smith", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("app-shell", body, StringComparison.Ordinal);
+        Assert.Equal("text/html; charset=utf-8", response.Content.Headers.ContentType?.ToString());
     }
 
     [Fact]

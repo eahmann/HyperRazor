@@ -1,0 +1,43 @@
+@if (_results.Count == 0)
+{
+    <p class="empty">No users found.</p>
+}
+else
+{
+    <ul class="users">
+        @foreach (var user in _results)
+        {
+            <li>
+                <strong>@user.DisplayName</strong>
+                <span>@("@" + user.UserName)</span>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private static readonly (string UserName, string DisplayName)[] Users =
+    [
+        ("asmith", "Alex Smith"),
+        ("bjohnson", "Bailey Johnson"),
+        ("cnguyen", "Casey Nguyen"),
+        ("dpatel", "Drew Patel"),
+        ("emartinez", "Emerson Martinez")
+    ];
+
+    [Parameter]
+    public string? Query { get; set; }
+
+    private List<(string UserName, string DisplayName)> _results = [];
+
+    protected override void OnParametersSet()
+    {
+        var term = Query?.Trim();
+        _results = string.IsNullOrWhiteSpace(term)
+            ? Users.ToList()
+            : Users
+                .Where(user => user.UserName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || user.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+    }
+}

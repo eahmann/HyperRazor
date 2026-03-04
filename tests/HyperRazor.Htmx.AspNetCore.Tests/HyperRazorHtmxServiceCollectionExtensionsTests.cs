@@ -7,6 +7,22 @@ namespace HyperRazor.Htmx.AspNetCore.Tests;
 public class HyperRazorHtmxServiceCollectionExtensionsTests
 {
     [Fact]
+    public void AddHtmx_RegistersConfiguredSingleton()
+    {
+        var services = new ServiceCollection();
+
+        services.AddHtmx(config =>
+        {
+            config.SelfRequestsOnly = false;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var config = provider.GetRequiredService<HtmxConfig>();
+
+        Assert.False(config.SelfRequestsOnly);
+    }
+
+    [Fact]
     public void AddHyperRazorHtmx_RegistersConfiguredSingleton()
     {
         var services = new ServiceCollection();

@@ -26,6 +26,21 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
     }
 
     [Fact]
+    public async Task UseHtmxVary_AddsVaryHeader_ForHtmlResponses()
+    {
+        await using var app = await BuildApp(async context =>
+        {
+            context.Response.ContentType = "text/html";
+            await context.Response.WriteAsync("<p>ok</p>");
+        }, useAlias: true);
+
+        var client = app.GetTestClient();
+        var response = await client.GetAsync("/test");
+
+        Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task UseHyperRazorHtmxVary_AppendsToExistingVaryHeader()
     {
         await using var app = await BuildApp(async context =>
@@ -57,7 +72,7 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
         Assert.DoesNotContain(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static async Task<WebApplication> BuildApp(RequestDelegate endpoint)
+    private static async Task<WebApplication> BuildApp(RequestDelegate endpoint, bool useAlias = false)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -67,7 +82,14 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
         builder.WebHost.UseTestServer();
 
         var app = builder.Build();
-        app.UseHyperRazorHtmxVary();
+        if (useAlias)
+        {
+            app.UseHtmxVary();
+        }
+        else
+        {
+            app.UseHyperRazorHtmxVary();
+        }
 
         app.MapGet("/test", endpoint);
 

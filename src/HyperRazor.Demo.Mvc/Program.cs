@@ -1,9 +1,17 @@
+using HyperRazor.Components;
+using HyperRazor.Components.Layouts;
+using HyperRazor.Hosting;
 using HyperRazor.Htmx.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddHyperRazorHtmx(htmx =>
+builder.Services.AddHyperRazor(options =>
+{
+    options.RootComponent = typeof(HrxApp<HrxMainLayout>);
+    options.UseMinimalLayoutForHtmx = true;
+});
+builder.Services.AddHtmx(htmx =>
 {
     htmx.SelfRequestsOnly = true;
     htmx.HistoryRestoreAsHxRequest = false;
@@ -22,7 +30,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseHyperRazorHtmxVary();
+app.UseHyperRazor();
 
 app.MapControllers();
 

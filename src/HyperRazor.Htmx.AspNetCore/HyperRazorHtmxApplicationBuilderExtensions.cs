@@ -7,6 +7,11 @@ namespace HyperRazor.Htmx.AspNetCore;
 
 public static class HyperRazorHtmxApplicationBuilderExtensions
 {
+    public static IApplicationBuilder UseHtmxVary(this IApplicationBuilder app)
+    {
+        return app.UseHyperRazorHtmxVary();
+    }
+
     public static IApplicationBuilder UseHyperRazorHtmxVary(this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);

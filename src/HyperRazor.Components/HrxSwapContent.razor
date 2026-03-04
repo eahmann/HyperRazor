@@ -1,0 +1,6 @@
+@inject IHrxSwapService SwapService
+
+@foreach (var item in SwapService.GetAll())
+{
+    <div hx-swap-oob="@($"{item.Swap}:{item.Target}")">@((MarkupString)item.Html)</div>
+}

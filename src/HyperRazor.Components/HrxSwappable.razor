@@ -1,0 +1,12 @@
+<div hx-swap-oob="@($"{Swap}:{Target}")">@ChildContent</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Target { get; set; } = default!;
+
+    [Parameter]
+    public string Swap { get; set; } = "innerHTML";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

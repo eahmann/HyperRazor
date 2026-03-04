@@ -1,0 +1,89 @@
+@using HyperRazor.Components.Layouts
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc.ModelBinding
+
+@if (IsPartial)
+{
+    @_componentContent
+    <HrxSwapContent />
+}
+else
+{
+    <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Type ComponentType { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyDictionary<string, object?>? ComponentParameters { get; set; }
+
+    [Parameter]
+    public bool IsPartial { get; set; }
+
+    [Parameter]
+    public Type? RootComponentType { get; set; }
+
+    [Parameter]
+    public bool IsHtmxRequest { get; set; }
+
+    [Parameter]
+    public bool UseMinimalLayoutForHtmx { get; set; } = true;
+
+    [Parameter]
+    public HttpContext? HttpContext { get; set; }
+
+    [Parameter]
+    public ModelStateDictionary? ModelState { get; set; }
+
+    private Type _resolvedRootComponentType = typeof(HrxApp<HrxMainLayout>);
+    private Dictionary<string, object?> _rootParameters = new();
+    private RenderFragment _componentContent = _ => { };
+
+    protected override void OnParametersSet()
+    {
+        _resolvedRootComponentType = RootComponentType ?? typeof(HrxApp<HrxMainLayout>);
+        _componentContent = BuildComponentTree();
+
+        _rootParameters = new Dictionary<string, object?>
+        {
+            ["Body"] = _componentContent,
+            ["IsHtmxRequest"] = IsHtmxRequest,
+            ["UseMinimalLayoutForHtmx"] = UseMinimalLayoutForHtmx
+        };
+    }
+
+    private RenderFragment BuildComponentTree()
+    {
+        return builder =>
+        {
+            builder.OpenComponent<CascadingValue<HttpContext?>>(0);
+            builder.AddAttribute(1, nameof(CascadingValue<HttpContext?>.Value), HttpContext);
+            builder.AddAttribute(2, nameof(CascadingValue<HttpContext?>.IsFixed), true);
+            builder.AddAttribute(3, nameof(CascadingValue<HttpContext?>.ChildContent), (RenderFragment)(contextBuilder =>
+            {
+                contextBuilder.OpenComponent<CascadingValue<ModelStateDictionary?>>(0);
+                contextBuilder.AddAttribute(1, nameof(CascadingValue<ModelStateDictionary?>.Value), ModelState);
+                contextBuilder.AddAttribute(2, nameof(CascadingValue<ModelStateDictionary?>.IsFixed), true);
+                contextBuilder.AddAttribute(3, nameof(CascadingValue<ModelStateDictionary?>.ChildContent), (RenderFragment)(contentBuilder =>
+                {
+                    contentBuilder.OpenComponent(0, ComponentType);
+
+                    if (ComponentParameters is not null)
+                    {
+                        var sequence = 1;
+                        foreach (var parameter in ComponentParameters)
+                        {
+                            contentBuilder.AddAttribute(sequence++, parameter.Key, parameter.Value);
+                        }
+                    }
+
+                    contentBuilder.CloseComponent();
+                }));
+                contextBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        };
+    }
+}

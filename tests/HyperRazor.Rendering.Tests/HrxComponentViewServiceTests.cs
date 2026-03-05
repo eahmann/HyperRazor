@@ -148,6 +148,7 @@ public class HrxComponentViewServiceTests
             options.UseMinimalLayoutForHtmx = true;
         });
         services.AddOptions<HrxSwapOptions>();
+        services.AddSingleton<IHrxLayoutFamilyResolver, HrxLayoutFamilyResolver>();
         services.AddScoped<IHrxHeadService, HrxHeadService>();
         services.AddScoped<IHrxSwapService, HrxSwapService>();
         services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();

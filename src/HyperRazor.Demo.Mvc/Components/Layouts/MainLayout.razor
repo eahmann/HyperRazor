@@ -1,6 +1,10 @@
 @inherits LayoutComponentBase
+@attribute [HrxLayoutFamily("main")]
+
+<SectionContent SectionName="AppHeaderNav">
+    <DemoNavLinks />
+</SectionContent>
 
 <section class="main-layout-shell">
-    <DemoNavLinks />
     @Body
 </section>

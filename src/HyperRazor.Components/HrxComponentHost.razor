@@ -3,32 +3,34 @@
 @using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.Mvc.ModelBinding
 
-<CascadingValue Value="HttpContext" IsFixed="true">
-    <CascadingValue Value="ModelState" IsFixed="true">
-        @if (IsPartial)
-        {
-            @_componentContent
-            @if (ShouldRenderHeadContent)
+<CascadingValue Value="ShellContext" IsFixed="true">
+    <CascadingValue Value="HttpContext" IsFixed="true">
+        <CascadingValue Value="ModelState" IsFixed="true">
+            @if (IsPartial)
             {
-                <HrxHeadContent />
+                @_componentContent
+                @if (ShouldRenderHeadContent)
+                {
+                    <HrxHeadContent />
+                }
+                @if (ShouldRenderSwapContent)
+                {
+                    <HrxSwapContent />
+                }
             }
-            @if (ShouldRenderSwapContent)
+            else
             {
-                <HrxSwapContent />
+                <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
+                @if (ShouldRenderHeadContent)
+                {
+                    <HrxHeadContent />
+                }
+                @if (ShouldRenderSwapContent)
+                {
+                    <HrxSwapContent />
+                }
             }
-        }
-        else
-        {
-            <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
-            @if (ShouldRenderHeadContent)
-            {
-                <HrxHeadContent />
-            }
-            @if (ShouldRenderSwapContent)
-            {
-                <HrxSwapContent />
-            }
-        }
+        </CascadingValue>
     </CascadingValue>
 </CascadingValue>
 
@@ -59,6 +61,9 @@
 
     [Parameter]
     public ModelStateDictionary? ModelState { get; set; }
+
+    [Parameter]
+    public HrxShellContext? ShellContext { get; set; }
 
     private Type _resolvedRootComponentType = typeof(HrxApp<HrxAppLayout>);
     private Dictionary<string, object?> _rootParameters = new();

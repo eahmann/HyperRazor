@@ -35,6 +35,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.Boosted, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.LayoutFamily, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -220,7 +222,70 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task Basic_WithHxRequest_ReturnsMainLayoutWithTopNav()
+    public async Task LayoutSwap_WithBoostedRequestAndMainFamily_PromotesToShellSwap()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/layout-swap");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add(HtmxHeaderNames.Boosted, "true");
+        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "main");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Retarget, out var retargetValues));
+        Assert.Equal("#hrx-app-shell", retargetValues.Single());
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reswap, out var reswapValues));
+        Assert.Equal("outerHTML", reswapValues.Single());
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
+        Assert.Equal("#hrx-app-shell", reselectValues.Single());
+        Assert.Contains("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrx-layout-family=\"side\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Basic_WithBoostedRequestAndMainFamily_DoesNotPromoteLayoutBoundary()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/basic");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add(HtmxHeaderNames.Boosted, "true");
+        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "main");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Retarget));
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reswap));
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reselect));
+        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
+        Assert.Contains("<h2>Server Trigger</h2>", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LayoutSwap_WithNonBoostedRequest_DoesNotPromoteLayoutBoundary()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/layout-swap");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "main");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Retarget));
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reswap));
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reselect));
+        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"side-nav-layout-shell\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Basic_WithHxRequest_ReturnsMainLayoutFragmentWithoutHeaderNav()
     {
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/basic");
@@ -231,8 +296,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("<h2>Server Trigger</h2>", body, StringComparison.Ordinal);
-        Assert.Contains("class=\"app-nav\"", body, StringComparison.Ordinal);
-        Assert.Contains("href=\"/demos/layout-swap\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("hx-swap-oob", body, StringComparison.Ordinal);
     }
 

@@ -15,15 +15,18 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
 
     private readonly IHrxHtmlRendererAdapter _renderer;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHrxLayoutFamilyResolver _layoutFamilyResolver;
     private readonly HrxOptions _options;
 
     public HrxComponentViewService(
         IHrxHtmlRendererAdapter renderer,
         IHttpContextAccessor httpContextAccessor,
+        IHrxLayoutFamilyResolver layoutFamilyResolver,
         IOptions<HrxOptions> options)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _layoutFamilyResolver = layoutFamilyResolver ?? throw new ArgumentNullException(nameof(layoutFamilyResolver));
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
     }
 
@@ -43,8 +46,37 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         var context = GetHttpContext();
         var request = context.HtmxRequest();
         var isHtmxRequest = request.RequestType == HtmxRequestType.Partial;
+        var routeLayoutFamily = _layoutFamilyResolver.ResolveForPageComponent(typeof(TComponent));
+        var shellContext = new HrxShellContext(routeLayoutFamily);
         var modelState = ResolveModelState(context);
         EnsureVaryForHtmxBranching(context.Response.Headers);
+
+        var promotionMode = ResolvePromotionMode(
+            request: request,
+            context: context,
+            routeLayoutFamily: routeLayoutFamily);
+
+        if (promotionMode == HrxLayoutBoundaryPromotionMode.Redirect)
+        {
+            context.HtmxResponse().Redirect(GetRequestPathAndQuery(context.Request));
+            return Results.Content(string.Empty, HtmlContentType);
+        }
+
+        if (promotionMode == HrxLayoutBoundaryPromotionMode.Refresh)
+        {
+            context.HtmxResponse().Refresh();
+            return Results.Content(string.Empty, HtmlContentType);
+        }
+
+        var shouldRenderShellForPromotion = promotionMode == HrxLayoutBoundaryPromotionMode.ShellSwap;
+        if (shouldRenderShellForPromotion)
+        {
+            context.HtmxResponse()
+                .Retarget(_options.LayoutBoundary.ShellTargetSelector)
+                .Reswap(_options.LayoutBoundary.ShellSwapStyle)
+                .Reselect(_options.LayoutBoundary.ShellReselectSelector);
+            isHtmxRequest = false;
+        }
 
         var html = await RenderHostAsync(
             componentType: typeof(TComponent),
@@ -54,6 +86,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             isPartial: false,
             isHtmxRequest: isHtmxRequest,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
+            shellContext: shellContext,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -85,6 +118,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             isPartial: true,
             isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
+            shellContext: null,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -110,6 +144,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             isPartial: true,
             isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
+            shellContext: null,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -123,6 +158,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         bool isPartial,
         bool isHtmxRequest,
         bool isHistoryRestoreRequest,
+        HrxShellContext? shellContext,
         CancellationToken cancellationToken)
     {
         var hostParameters = new Dictionary<string, object?>
@@ -135,7 +171,8 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             [nameof(HrxComponentHost.IsHistoryRestoreRequest)] = isHistoryRestoreRequest,
             [nameof(HrxComponentHost.UseMinimalLayoutForHtmx)] = _options.UseMinimalLayoutForHtmx,
             [nameof(HrxComponentHost.HttpContext)] = context,
-            [nameof(HrxComponentHost.ModelState)] = modelState
+            [nameof(HrxComponentHost.ModelState)] = modelState,
+            [nameof(HrxComponentHost.ShellContext)] = shellContext
         };
 
         return _renderer.RenderAsync(typeof(HrxComponentHost), hostParameters, cancellationToken);
@@ -147,11 +184,20 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             ?? throw new InvalidOperationException("No active HttpContext is available for HyperRazor rendering.");
     }
 
-    private static void EnsureVaryForHtmxBranching(IHeaderDictionary headers)
+    private void EnsureVaryForHtmxBranching(IHeaderDictionary headers)
     {
         EnsureVaryBy(headers, HtmxHeaderNames.Request);
         EnsureVaryBy(headers, HtmxHeaderNames.RequestType);
         EnsureVaryBy(headers, HtmxHeaderNames.HistoryRestoreRequest);
+
+        var layoutBoundaryOptions = _options.LayoutBoundary;
+        if (!layoutBoundaryOptions.Enabled || !layoutBoundaryOptions.AddVaryHeader)
+        {
+            return;
+        }
+
+        EnsureVaryBy(headers, layoutBoundaryOptions.LayoutFamilyHeaderName);
+        EnsureVaryBy(headers, HtmxHeaderNames.Boosted);
     }
 
     private static void EnsureVaryBy(IHeaderDictionary headers, string varyHeader)
@@ -184,5 +230,64 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         }
 
         return new ModelStateDictionary();
+    }
+
+    private HrxLayoutBoundaryPromotionMode ResolvePromotionMode(
+        HtmxRequest request,
+        HttpContext context,
+        string routeLayoutFamily)
+    {
+        var options = _options.LayoutBoundary;
+        if (!options.Enabled || options.PromotionMode == HrxLayoutBoundaryPromotionMode.Off)
+        {
+            return HrxLayoutBoundaryPromotionMode.Off;
+        }
+
+        if (!request.IsPartialRequest || request.IsHistoryRestoreRequest)
+        {
+            return HrxLayoutBoundaryPromotionMode.Off;
+        }
+
+        if (options.OnlyBoostedRequests && !request.IsBoosted)
+        {
+            return HrxLayoutBoundaryPromotionMode.Off;
+        }
+
+        var clientLayoutFamily = ResolveClientLayoutFamily(request, context, routeLayoutFamily, options.LayoutFamilyHeaderName);
+        if (string.IsNullOrWhiteSpace(clientLayoutFamily))
+        {
+            return options.PromotionMode;
+        }
+
+        return string.Equals(clientLayoutFamily, routeLayoutFamily, StringComparison.OrdinalIgnoreCase)
+            ? HrxLayoutBoundaryPromotionMode.Off
+            : options.PromotionMode;
+    }
+
+    private static string? ResolveClientLayoutFamily(
+        HtmxRequest request,
+        HttpContext context,
+        string routeLayoutFamily,
+        string requestHeaderName)
+    {
+        if (context.Request.Headers.TryGetValue(requestHeaderName, out var headerValue)
+            && !string.IsNullOrWhiteSpace(headerValue.ToString()))
+        {
+            return headerValue.ToString().Trim();
+        }
+
+        // Fallback when current URL matches requested URL and the client header is unavailable.
+        if (request.CurrentUrl is not null
+            && request.CurrentUrl.AbsolutePath.Equals(context.Request.Path.Value, StringComparison.OrdinalIgnoreCase))
+        {
+            return routeLayoutFamily;
+        }
+
+        return null;
+    }
+
+    private static string GetRequestPathAndQuery(HttpRequest request)
+    {
+        return $"{request.PathBase}{request.Path}{request.QueryString}";
     }
 }

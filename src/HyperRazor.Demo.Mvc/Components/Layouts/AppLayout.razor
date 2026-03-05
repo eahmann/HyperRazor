@@ -16,26 +16,30 @@
     <link rel="stylesheet" href="/app.css" hx-preserve="true" />
 </head>
 <body
-    id="hrx-app-shell"
     data-hrx-antiforgery-meta="@HtmxConfig.AntiforgeryMetaName"
     data-hrx-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
     data-hrx-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
     hx-ext="@(HtmxConfig.EnableHeadSupport ? "head-support" : null)">
-    <header id="app-shell">
-        <div class="app-title-row">
-            <p class="app-kicker">HTMX + SSR Playground</p>
-            <h1>HyperRazor</h1>
-            <p class="app-tagline">
-                Focused, inspectable examples that show how server-driven UI updates behave in real requests.
-            </p>
-        </div>
-    </header>
+    <div id="hrx-app-shell" data-hrx-layout-family="@CurrentLayoutFamily">
+        <header id="app-shell">
+            <div class="app-title-row">
+                <p class="app-kicker">HTMX + SSR Playground</p>
+                <h1>HyperRazor</h1>
+                <p class="app-tagline">
+                    Focused, inspectable examples that show how server-driven UI updates behave in real requests.
+                </p>
+            </div>
+            <div class="app-header-nav-region">
+                <SectionOutlet SectionName="AppHeaderNav" />
+            </div>
+        </header>
 
-    <main id="hrx-main-layout" class="layout">
-        @Body
-    </main>
+        <main id="hrx-main-layout" class="layout">
+            @Body
+        </main>
+    </div>
 
-    <section class="panel panel--inspector">
+    <section id="hrx-inspector-shell" class="panel panel--inspector">
         <div id="hx-debug-shell">
             <h3>HX Request/Response Inspector</h3>
             <p class="empty">Run HTMX actions to inspect the latest request and response headers.</p>
@@ -47,3 +51,12 @@
     </section>
 </body>
 </html>
+
+@code {
+    [CascadingParameter]
+    public HrxShellContext? ShellContext { get; set; }
+
+    private string CurrentLayoutFamily => string.IsNullOrWhiteSpace(ShellContext?.LayoutFamily)
+        ? "main"
+        : ShellContext.LayoutFamily;
+}

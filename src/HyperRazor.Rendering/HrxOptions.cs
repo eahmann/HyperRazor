@@ -23,6 +23,8 @@ public sealed class HrxOptions
 
     public bool AllowRawContentOnNonHtmx { get; set; }
 
+    public HrxLayoutBoundaryOptions LayoutBoundary { get; set; } = new();
+
     private static void EnsureComponentType(Type type, string argumentName)
     {
         if (!typeof(IComponent).IsAssignableFrom(type))

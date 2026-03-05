@@ -85,6 +85,26 @@
         headers[headerName] = token;
     }
 
+    function applyLayoutFamilyHeader(event) {
+        var detail = event && event.detail ? event.detail : null;
+        var headers = resolveHeaders(detail);
+        if (!headers) {
+            return;
+        }
+
+        var shell = document.querySelector("#hrx-app-shell");
+        if (!shell) {
+            return;
+        }
+
+        var family = shell.getAttribute("data-hrx-layout-family");
+        if (!family || family.trim().length === 0) {
+            return;
+        }
+
+        headers["X-Hrx-Layout-Family"] = family.trim();
+    }
+
     function ensureHeadSupport() {
         var body = document.body;
         if (!body) {
@@ -115,6 +135,8 @@
 
         body.addEventListener("htmx:configRequest", applyAntiforgery);
         body.addEventListener("htmx:config:request", applyAntiforgery);
+        body.addEventListener("htmx:configRequest", applyLayoutFamilyHeader);
+        body.addEventListener("htmx:config:request", applyLayoutFamilyHeader);
         ensureHeadSupport();
     }
 

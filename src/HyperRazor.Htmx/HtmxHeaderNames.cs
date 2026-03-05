@@ -12,6 +12,7 @@ public static class HtmxHeaderNames
     public const string CurrentUrl = "HX-Current-URL";
     public const string Boosted = "HX-Boosted";
     public const string HistoryRestoreRequest = "HX-History-Restore-Request";
+    public const string LayoutFamily = "X-Hrx-Layout-Family";
 
     // Response headers
     public const string Redirect = "HX-Redirect";

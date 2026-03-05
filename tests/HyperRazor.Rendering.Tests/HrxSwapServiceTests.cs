@@ -4,8 +4,14 @@ using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.RenderTree;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace HyperRazor.Rendering.Tests;
 
@@ -80,7 +86,60 @@ public class HrxSwapServiceTests
         Assert.False(service.ContentAvailable);
     }
 
-    private static HrxSwapService CreateService(bool isHtmx, bool allowRawContentOnNonHtmx = false)
+    [Fact]
+    public void ContentItemsUpdated_RaisesOnAddAndClear()
+    {
+        var service = CreateService(isHtmx: true);
+        var updates = 0;
+        service.ContentItemsUpdated += (_, _) => updates++;
+
+        service.AddSwappableContent("toast-item", "Created");
+        service.AddRawContent("<p>Raw</p>");
+        service.Clear();
+
+        Assert.Equal(3, updates);
+    }
+
+    [Fact]
+    public async Task RenderToString_WithHtmxRequest_IncludesSwappableMarkup()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        var environment = new TestWebHostEnvironment();
+        services.AddSingleton<IWebHostEnvironment>(environment);
+        services.AddSingleton<IHostEnvironment>(environment);
+        services.AddRazorComponents();
+        using var provider = services.BuildServiceProvider();
+        var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+
+        var service = CreateService(
+            isHtmx: true,
+            serviceProvider: provider,
+            loggerFactory: loggerFactory);
+        service.AddSwappableContent("toast-item", "Created");
+
+        var html = await service.RenderToString();
+
+        Assert.Contains("hx-swap-oob=", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"toast-item\"", html, StringComparison.Ordinal);
+        Assert.Contains("Created", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RenderToString_WithoutRendererDependencies_Throws()
+    {
+        var service = CreateService(isHtmx: true);
+        service.AddSwappableContent("toast-item", "Created");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RenderToString());
+    }
+
+    private static HrxSwapService CreateService(
+        bool isHtmx,
+        bool allowRawContentOnNonHtmx = false,
+        IServiceProvider? serviceProvider = null,
+        ILoggerFactory? loggerFactory = null)
     {
         var context = new DefaultHttpContext();
         if (isHtmx)
@@ -97,6 +156,11 @@ public class HrxSwapServiceTests
         {
             AllowRawContentOnNonHtmx = allowRawContentOnNonHtmx
         });
+
+        if (serviceProvider is not null && loggerFactory is not null)
+        {
+            return new HrxSwapService(accessor, options, serviceProvider, loggerFactory);
+        }
 
         return new HrxSwapService(accessor, options);
     }
@@ -117,6 +181,21 @@ public class HrxSwapServiceTests
     {
         [Parameter]
         public string Message { get; set; } = string.Empty;
+    }
+
+    private sealed class TestWebHostEnvironment : IWebHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "HyperRazor.Rendering.Tests";
+
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+
+        public string WebRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public string EnvironmentName { get; set; } = Environments.Development;
+
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }
 

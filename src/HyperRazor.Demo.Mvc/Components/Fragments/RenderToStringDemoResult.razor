@@ -1,0 +1,23 @@
+<section id="render-to-string-demo-result" class="panel">
+    <h3>RenderToString Result</h3>
+    <p>
+        <strong>@DisplayName</strong> was created as user <strong>#@Count</strong> via
+        <code>IHrxSwapService.RenderToString(clear: true)</code>.
+    </p>
+    <p>Generated OOB markup length: <strong>@MarkupLength</strong> characters.</p>
+    <pre class="rendered-markup-preview">@MarkupPreview</pre>
+</section>
+
+@code {
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public int Count { get; set; }
+
+    [Parameter]
+    public int MarkupLength { get; set; }
+
+    [Parameter]
+    public string MarkupPreview { get; set; } = string.Empty;
+}

@@ -51,7 +51,7 @@ This document lists optional items that were intentionally not completed during 
   - Current endpoint still demonstrates server-side validation and HTMX fragment updates.
 - Follow-up target:
   - Add a second endpoint/page variant returning `422` for invalid form submits.
-  - Document tradeoffs (`semantic HTTP` vs `clean console UX`).Upda
+  - Document tradeoffs (`semantic HTTP` vs `clean console UX`).
 
 ## Out-of-Scope Items (Not Phase 2.1 Optional)
 

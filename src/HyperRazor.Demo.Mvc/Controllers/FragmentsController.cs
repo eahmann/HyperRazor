@@ -6,7 +6,6 @@ using HyperRazor.Mvc;
 using HyperRazor.Mvc.Filters;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace HyperRazor.Demo.Mvc.Controllers;
 
@@ -89,26 +88,7 @@ public sealed class FragmentsController : HrController
             : displayName.Trim();
         var count = Interlocked.Increment(ref _userCount);
 
-        _swapService.AddSwappableComponent<ToastSuccess>(
-            targetId: $"toast-{count}",
-            parameters: new Dictionary<string, object?>
-            {
-                [nameof(Components.Fragments.ToastSuccess.Message)] = $"Created {normalizedName}."
-            },
-            swapStyle: SwapStyle.BeforeEnd,
-            selector: "#toast-stack");
-
-        _swapService.AddSwappableContent(
-            targetId: "user-count-shell",
-            html: count.ToString(),
-            swapStyle: SwapStyle.InnerHtml);
-
-        var encodedName = WebUtility.HtmlEncode(normalizedName);
-        _swapService.AddSwappableContent(
-            targetId: $"activity-{count}",
-            html: $"<div class=\"activity-item\"><strong>{encodedName}</strong> created (#{count}).</div>",
-            swapStyle: SwapStyle.BeforeEnd,
-            selector: "#activity-feed");
+        QueueUserCreatedSwaps(normalizedName, count, includeUsersList: false);
 
         HttpContext.HtmxResponse().Trigger("users:created", new
         {
@@ -121,6 +101,45 @@ public sealed class FragmentsController : HrController
             details: $"Created {normalizedName} (#{count}).");
 
         return PartialView<UserCreateResult>(new { DisplayName = normalizedName, Count = count }, cancellationToken);
+    }
+
+    [HttpPost("users/create-rendered")]
+    [HtmxRequest]
+    public async Task<IResult> CreateUserRendered([FromForm] string? displayName, CancellationToken cancellationToken)
+    {
+        var normalizedName = string.IsNullOrWhiteSpace(displayName)
+            ? "New User"
+            : displayName.Trim();
+        var count = Interlocked.Increment(ref _userCount);
+
+        QueueUserCreatedSwaps(normalizedName, count, includeUsersList: true);
+
+        HttpContext.HtmxResponse().Trigger("users:created", new
+        {
+            name = normalizedName,
+            count,
+            source = "render-to-string"
+        });
+
+        QueueInspectorUpdate(
+            action: "create-user-rendered",
+            details: $"Created {normalizedName} (#{count}) via IHrxSwapService.RenderToString(clear: true).");
+
+        var oobMarkup = await _swapService.RenderToString(clear: true, cancellationToken);
+        var preview = BuildRenderToStringPreview(oobMarkup);
+
+        return await PartialView(
+            cancellationToken,
+            builder =>
+            {
+                builder.OpenComponent<RenderToStringDemoResult>(0);
+                builder.AddAttribute(1, nameof(RenderToStringDemoResult.DisplayName), normalizedName);
+                builder.AddAttribute(2, nameof(RenderToStringDemoResult.Count), count);
+                builder.AddAttribute(3, nameof(RenderToStringDemoResult.MarkupLength), oobMarkup.Length);
+                builder.AddAttribute(4, nameof(RenderToStringDemoResult.MarkupPreview), preview);
+                builder.CloseComponent();
+            },
+            builder => builder.AddMarkupContent(0, oobMarkup));
     }
 
     [HttpPost("users/create-validated")]
@@ -226,12 +245,74 @@ public sealed class FragmentsController : HrController
         return errors;
     }
 
+    private void QueueUserCreatedSwaps(string normalizedName, int count, bool includeUsersList)
+    {
+        if (includeUsersList)
+        {
+            _swapService.AddSwappableComponent<UserCreateResult>(
+                targetId: "users-list",
+                parameters: new Dictionary<string, object?>
+                {
+                    [nameof(UserCreateResult.DisplayName)] = normalizedName,
+                    [nameof(UserCreateResult.Count)] = count
+                },
+                swapStyle: SwapStyle.OuterHtml);
+        }
+
+        _swapService.AddSwappableComponent<ToastSuccess>(
+            targetId: $"toast-{count}",
+            parameters: new Dictionary<string, object?>
+            {
+                [nameof(Components.Fragments.ToastSuccess.Message)] = $"Created {normalizedName}."
+            },
+            swapStyle: SwapStyle.BeforeEnd,
+            selector: "#toast-stack");
+
+        _swapService.AddSwappableComponent<UserCountValue>(
+            targetId: "user-count-shell",
+            parameters: new Dictionary<string, object?>
+            {
+                [nameof(UserCountValue.Count)] = count
+            },
+            swapStyle: SwapStyle.InnerHtml);
+
+        _swapService.AddSwappableComponent<ActivityFeedItem>(
+            targetId: $"activity-{count}",
+            parameters: new Dictionary<string, object?>
+            {
+                [nameof(ActivityFeedItem.DisplayName)] = normalizedName,
+                [nameof(ActivityFeedItem.Count)] = count
+            },
+            swapStyle: SwapStyle.BeforeEnd,
+            selector: "#activity-feed");
+    }
+
     private void QueueInspectorUpdate(string action, string details)
     {
         _swapService.AddSwappableComponent<HxRequestResponseInspector>(
             targetId: "hx-debug-shell",
             parameters: BuildInspectorParameters(HttpContext, action, details),
             swapStyle: SwapStyle.OuterHtml);
+    }
+
+    private static string BuildRenderToStringPreview(string markup)
+    {
+        if (string.IsNullOrWhiteSpace(markup))
+        {
+            return "(empty)";
+        }
+
+        const int maxLength = 480;
+        var compact = markup
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace('\n', ' ');
+
+        if (compact.Length <= maxLength)
+        {
+            return compact;
+        }
+
+        return $"{compact[..maxLength]}...";
     }
 
     private static IReadOnlyDictionary<string, object?> BuildInspectorParameters(

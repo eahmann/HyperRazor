@@ -1,8 +1,10 @@
 using HyperRazor.Components;
 using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace HyperRazor.Components.Services;
@@ -17,12 +19,29 @@ public sealed class HrxSwapService : IHrxSwapService
     private readonly List<HrxSwapItem> _items = [];
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly HrxSwapOptions _options;
+    private readonly IServiceProvider? _services;
+    private readonly ILoggerFactory? _loggerFactory;
 
     public HrxSwapService(IHttpContextAccessor httpContextAccessor, IOptions<HrxSwapOptions> options)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
+        _services = null;
+        _loggerFactory = null;
     }
+
+    public HrxSwapService(
+        IHttpContextAccessor httpContextAccessor,
+        IOptions<HrxSwapOptions> options,
+        IServiceProvider services,
+        ILoggerFactory loggerFactory)
+        : this(httpContextAccessor, options)
+    {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+    }
+
+    public event EventHandler? ContentItemsUpdated;
 
     public bool ContentAvailable => _items.Count > 0;
 
@@ -44,6 +63,7 @@ public sealed class HrxSwapService : IHrxSwapService
             Selector: NormalizeSelector(selector),
             Fragment: fragment,
             RawHtml: null));
+        NotifyContentItemsUpdated();
     }
 
     public void AddSwappableComponent<TComponent>(
@@ -76,6 +96,7 @@ public sealed class HrxSwapService : IHrxSwapService
             Selector: NormalizeSelector(selector),
             Fragment: fragment,
             RawHtml: null));
+        NotifyContentItemsUpdated();
     }
 
     public void AddSwappableContent(
@@ -96,6 +117,7 @@ public sealed class HrxSwapService : IHrxSwapService
             Selector: NormalizeSelector(selector),
             Fragment: fragment,
             RawHtml: null));
+        NotifyContentItemsUpdated();
     }
 
     public void AddRawContent(string html)
@@ -107,6 +129,7 @@ public sealed class HrxSwapService : IHrxSwapService
             Selector: null,
             Fragment: null,
             RawHtml: html ?? string.Empty));
+        NotifyContentItemsUpdated();
     }
 
     public RenderFragment RenderToFragment(bool clear = false)
@@ -121,7 +144,7 @@ public sealed class HrxSwapService : IHrxSwapService
 
         if (clear)
         {
-            Clear();
+            ClearInternal(notify: false);
         }
 
         return builder =>
@@ -151,7 +174,36 @@ public sealed class HrxSwapService : IHrxSwapService
         };
     }
 
-    public void Clear() => _items.Clear();
+    public async Task<string> RenderToString(bool clear = false, CancellationToken cancellationToken = default)
+    {
+        if (_services is null || _loggerFactory is null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(RenderToString)} requires {nameof(IServiceProvider)} and {nameof(ILoggerFactory)} to be available.");
+        }
+
+        var fragment = RenderToFragment(clear: clear);
+
+        var parameters = new Dictionary<string, object?>
+        {
+            [nameof(HrxFragmentGroup.Fragments)] = new RenderFragment[] { fragment }
+        };
+
+        await using var renderer = new HtmlRenderer(_services, _loggerFactory);
+        return await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var rendered = await renderer.RenderComponentAsync<HrxFragmentGroup>(
+                ParameterView.FromDictionary(parameters));
+            return rendered.ToHtmlString();
+        });
+    }
+
+    public void Clear()
+    {
+        ClearInternal(notify: true);
+    }
 
     private HtmxRequest GetCurrentRequest()
     {
@@ -239,6 +291,25 @@ public sealed class HrxSwapService : IHrxSwapService
     private static string? NormalizeSelector(string? selector)
     {
         return string.IsNullOrWhiteSpace(selector) ? null : selector.Trim();
+    }
+
+    private void NotifyContentItemsUpdated()
+    {
+        ContentItemsUpdated?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ClearInternal(bool notify)
+    {
+        if (_items.Count == 0)
+        {
+            return;
+        }
+
+        _items.Clear();
+        if (notify)
+        {
+            NotifyContentItemsUpdated();
+        }
     }
 }
 

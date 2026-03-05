@@ -1,0 +1,11 @@
+<div class="activity-item">
+    <strong>@DisplayName</strong> created (#@Count).
+</div>
+
+@code {
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public int Count { get; set; }
+}

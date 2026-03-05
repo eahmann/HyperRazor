@@ -22,9 +22,24 @@
         <button type="submit">Create User</button>
     </form>
 
+    <form
+        id="render-to-string-form"
+        hx-post="/fragments/users/create-rendered"
+        hx-target="#render-to-string-demo-result"
+        hx-swap="outerHTML">
+        <label for="displayNameRendered">Display Name (RenderToString path)</label>
+        <input id="displayNameRendered" name="displayName" value="Morgan Lake" />
+        <button type="submit">Create User via RenderToString</button>
+    </form>
+
     <section id="users-list" class="panel">
         <h3>Latest Created User</h3>
         <p>No users created in this session.</p>
+    </section>
+
+    <section id="render-to-string-demo-result" class="panel">
+        <h3>RenderToString Result</h3>
+        <p class="empty">Submit "Create User via RenderToString" to exercise the string-rendering OOB path.</p>
     </section>
 
     <div id="toast-stack" class="toast-stack"></div>

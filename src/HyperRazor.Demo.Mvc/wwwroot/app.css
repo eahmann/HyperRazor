@@ -207,6 +207,17 @@ button:hover {
     margin-bottom: 0.4rem;
 }
 
+.rendered-markup-preview {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #f8fafc;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+}
+
 .debug-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

@@ -105,6 +105,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("historyRestoreAsHxRequest", body, StringComparison.Ordinal);
         Assert.Contains("<h2>OOB Swaps</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/fragments/users/create-rendered\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"render-to-string-demo-result\"", body, StringComparison.Ordinal);
 
         var metaMarker = "name=\"htmx-config\"";
         var metaStart = body.IndexOf(metaMarker, StringComparison.Ordinal);
@@ -302,6 +304,34 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         var oobCount = body.Split("hx-swap-oob=", StringSplitOptions.None).Length - 1;
         Assert.True(oobCount >= 4, $"Expected at least four OOB swaps, but found {oobCount}.");
+    }
+
+    [Fact]
+    public async Task CreateUserRendered_WithHxRequest_ReturnsPreviewAndOobUpdatesFromStringRenderer()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create-rendered");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Casey Quinn"
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"render-to-string-demo-result\"", body, StringComparison.Ordinal);
+        Assert.Contains("IHrxSwapService.RenderToString(clear: true)", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("beforeend:#activity-feed", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("create-user-rendered", body, StringComparison.Ordinal);
+
+        var oobCount = body.Split("hx-swap-oob=", StringSplitOptions.None).Length - 1;
+        Assert.True(oobCount >= 5, $"Expected at least five OOB swaps, but found {oobCount}.");
     }
 
     [Fact]

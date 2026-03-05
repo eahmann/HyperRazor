@@ -4,6 +4,8 @@ namespace HyperRazor.Components.Services;
 
 public interface IHrxSwapService
 {
+    event EventHandler? ContentItemsUpdated;
+
     bool ContentAvailable { get; }
 
     void AddSwappableComponent<TComponent>(
@@ -35,6 +37,8 @@ public interface IHrxSwapService
     void AddRawContent(string html);
 
     RenderFragment RenderToFragment(bool clear = false);
+
+    Task<string> RenderToString(bool clear = false, CancellationToken cancellationToken = default);
 
     void Clear();
 }

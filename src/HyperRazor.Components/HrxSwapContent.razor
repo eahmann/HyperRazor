@@ -1,6 +1,24 @@
+@implements IDisposable
 @inject IHrxSwapService SwapService
 
 @if (SwapService.ContentAvailable)
 {
     @SwapService.RenderToFragment(clear: true)
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        SwapService.ContentItemsUpdated += OnContentItemsUpdated;
+    }
+
+    public void Dispose()
+    {
+        SwapService.ContentItemsUpdated -= OnContentItemsUpdated;
+    }
+
+    private void OnContentItemsUpdated(object? sender, EventArgs args)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
 }

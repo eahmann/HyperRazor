@@ -1,44 +1,25 @@
+@inject HtmxConfig HtmxConfig
 @inherits LayoutComponentBase
 
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" hx-preserve="true" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" hx-preserve="true" />
     <title>HyperRazor</title>
     <HrxHtmxConfigMeta />
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <link rel="stylesheet" href="/app.css" />
+    <HrxAntiforgeryMeta />
+    <script src="/_content/HyperRazor.Client/vendor/htmx/htmx-2.0.4.min.js" hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/vendor/htmx/head-support-2.0.2.js" hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/hyperrazor.htmx.js" defer hx-preserve="true"></script>
+    <link rel="stylesheet" href="/_content/HyperRazor.Client/hyperrazor.css" hx-preserve="true" />
 </head>
-<body id="hrx-app-shell">
-    @* Global chrome for every demo page. Keep IDs stable for HTMX redirect demos/tests. *@
-    <header id="app-shell">
-        <div class="app-title-row">
-            <p class="app-kicker">HTMX + SSR Playground</p>
-            <h1>HyperRazor</h1>
-            <p class="app-tagline">
-                Focused, inspectable examples that show how server-driven UI updates behave in real requests.
-            </p>
-        </div>
-
-        @* Primary app navigation remains shared across all routes. *@
-        <nav
-            class="app-nav"
-            aria-label="Demo navigation"
-            hx-boost="true"
-            hx-target="#hrx-main-layout"
-            hx-swap="innerHTML show:window:top"
-            hx-push-url="true">
-            <a href="/">Overview</a>
-            <a href="/demos/basic">Server Trigger</a>
-            <a href="/demos/search">Live Search</a>
-            <a href="/demos/redirects">Redirect Headers</a>
-            <a href="/demos/validation">Form Validation</a>
-            <a href="/demos/oob">OOB Swaps</a>
-        </nav>
-    </header>
-
-    @* Main layout/body content is rendered by child layout/components. *@
+<body
+    id="hrx-app-shell"
+    data-hrx-antiforgery-meta="@HtmxConfig.AntiforgeryMetaName"
+    data-hrx-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
+    data-hrx-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
+    hx-ext="@(HtmxConfig.EnableHeadSupport ? "head-support" : null)">
     @Body
 </body>
 </html>

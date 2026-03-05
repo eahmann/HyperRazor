@@ -28,6 +28,7 @@ public static class HyperRazorServiceCollectionExtensions
 
         services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();
         services.AddScoped<IHrxComponentViewService, HrxComponentViewService>();
+        services.AddScoped<IHrxHeadService, HrxHeadService>();
         services.AddScoped<IHrxSwapService, HrxSwapService>();
 
         return services;

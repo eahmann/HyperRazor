@@ -8,8 +8,6 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\HyperRazor.Client\HyperRazor.Client.csproj" />
-    <ProjectReference Include="..\HyperRazor.Htmx\HyperRazor.Htmx.csproj" />
   </ItemGroup>
 
 </Project>

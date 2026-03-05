@@ -22,7 +22,9 @@ public static class HyperRazorHtmxHttpContextExtensions
             headers[header.Key] = header.Value.ToString();
         }
 
-        return HyperRazor.Htmx.HtmxRequest.FromHeaders(headers);
+        var config = context.RequestServices?.GetService(typeof(HtmxConfig)) as HtmxConfig;
+        var clientProfile = config?.ClientProfile ?? HtmxClientProfile.Htmx2Defaults;
+        return HyperRazor.Htmx.HtmxRequest.FromHeaders(headers, clientProfile);
     }
 
     public static HtmxResponseWriter HtmxResponse(this HttpContext context)

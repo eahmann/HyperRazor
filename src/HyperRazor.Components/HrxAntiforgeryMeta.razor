@@ -1,0 +1,29 @@
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery? Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+@inject HtmxConfig HtmxConfig
+
+@if (!string.IsNullOrWhiteSpace(_requestToken))
+{
+    <meta name="@HtmxConfig.AntiforgeryMetaName" content="@_requestToken" hx-preserve="true" />
+}
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    private string? _requestToken;
+
+    protected override void OnParametersSet()
+    {
+        _requestToken = null;
+        var context = HttpContext ?? HttpContextAccessor.HttpContext;
+        if (context is null || Antiforgery is null)
+        {
+            return;
+        }
+
+        var tokens = Antiforgery.GetAndStoreTokens(context);
+        _requestToken = tokens.RequestToken;
+    }
+}

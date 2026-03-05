@@ -9,6 +9,21 @@ public sealed class HtmxConfig
 
     public bool HistoryRestoreAsHxRequest { get; set; } = false;
 
+    [JsonIgnore]
+    public HtmxClientProfile ClientProfile { get; set; } = HtmxClientProfile.Htmx2Defaults;
+
+    [JsonIgnore]
+    public bool EnableHeadSupport { get; set; }
+
+    [JsonIgnore]
+    public bool EnableDiagnosticsInDevelopment { get; set; } = true;
+
+    [JsonIgnore]
+    public string AntiforgeryMetaName { get; set; } = "hrx-antiforgery";
+
+    [JsonIgnore]
+    public string AntiforgeryHeaderName { get; set; } = "RequestVerificationToken";
+
     public bool? AllowNestedOobSwaps { get; set; }
 
     public string? DefaultSwapStyle { get; set; }

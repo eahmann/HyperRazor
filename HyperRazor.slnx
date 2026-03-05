@@ -4,6 +4,7 @@
     <File Path="plan-phase-2.md" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/HyperRazor.Client/HyperRazor.Client.csproj" />
     <Project Path="src/HyperRazor.Components/HyperRazor.Components.csproj" />
     <Project Path="src/HyperRazor.Demo.Api/HyperRazor.Demo.Api.csproj" />
     <Project Path="src/HyperRazor.Demo.Mvc/HyperRazor.Demo.Mvc.csproj" />

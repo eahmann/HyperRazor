@@ -6,7 +6,7 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrxOptions
 {
-    private Type _rootComponent = typeof(HrxApp<HrxMainLayout>);
+    private Type _rootComponent = typeof(HrxApp<HrxAppLayout>);
 
     public Type RootComponent
     {

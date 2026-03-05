@@ -1,19 +1,36 @@
 @using HyperRazor.Components.Layouts
+@using Microsoft.AspNetCore.Components.Rendering
 @using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.Mvc.ModelBinding
 
-@if (IsPartial)
-{
-    @_componentContent
-    @if (ShouldRenderSwapContent)
-    {
-        <HrxSwapContent />
-    }
-}
-else
-{
-    <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
-}
+<CascadingValue Value="HttpContext" IsFixed="true">
+    <CascadingValue Value="ModelState" IsFixed="true">
+        @if (IsPartial)
+        {
+            @_componentContent
+            @if (ShouldRenderHeadContent)
+            {
+                <HrxHeadContent />
+            }
+            @if (ShouldRenderSwapContent)
+            {
+                <HrxSwapContent />
+            }
+        }
+        else
+        {
+            <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
+            @if (ShouldRenderHeadContent)
+            {
+                <HrxHeadContent />
+            }
+            @if (ShouldRenderSwapContent)
+            {
+                <HrxSwapContent />
+            }
+        }
+    </CascadingValue>
+</CascadingValue>
 
 @code {
     [Parameter, EditorRequired]
@@ -43,14 +60,15 @@ else
     [Parameter]
     public ModelStateDictionary? ModelState { get; set; }
 
-    private Type _resolvedRootComponentType = typeof(HrxApp<HrxMainLayout>);
+    private Type _resolvedRootComponentType = typeof(HrxApp<HrxAppLayout>);
     private Dictionary<string, object?> _rootParameters = new();
     private RenderFragment _componentContent = _ => { };
+    private bool ShouldRenderHeadContent => IsHtmxRequest && !IsHistoryRestoreRequest;
     private bool ShouldRenderSwapContent => IsHtmxRequest && !IsHistoryRestoreRequest;
 
     protected override void OnParametersSet()
     {
-        _resolvedRootComponentType = RootComponentType ?? typeof(HrxApp<HrxMainLayout>);
+        _resolvedRootComponentType = RootComponentType ?? typeof(HrxApp<HrxAppLayout>);
         _componentContent = BuildComponentTree();
 
         _rootParameters = new Dictionary<string, object?>
@@ -65,32 +83,52 @@ else
     {
         return builder =>
         {
-            builder.OpenComponent<CascadingValue<HttpContext?>>(0);
-            builder.AddAttribute(1, nameof(CascadingValue<HttpContext?>.Value), HttpContext);
-            builder.AddAttribute(2, nameof(CascadingValue<HttpContext?>.IsFixed), true);
-            builder.AddAttribute(3, nameof(CascadingValue<HttpContext?>.ChildContent), (RenderFragment)(contextBuilder =>
-            {
-                contextBuilder.OpenComponent<CascadingValue<ModelStateDictionary?>>(0);
-                contextBuilder.AddAttribute(1, nameof(CascadingValue<ModelStateDictionary?>.Value), ModelState);
-                contextBuilder.AddAttribute(2, nameof(CascadingValue<ModelStateDictionary?>.IsFixed), true);
-                contextBuilder.AddAttribute(3, nameof(CascadingValue<ModelStateDictionary?>.ChildContent), (RenderFragment)(contentBuilder =>
-                {
-                    contentBuilder.OpenComponent(0, ComponentType);
-
-                    if (ComponentParameters is not null)
-                    {
-                        var sequence = 1;
-                        foreach (var parameter in ComponentParameters)
-                        {
-                            contentBuilder.AddAttribute(sequence++, parameter.Key, parameter.Value);
-                        }
-                    }
-
-                    contentBuilder.CloseComponent();
-                }));
-                contextBuilder.CloseComponent();
-            }));
-            builder.CloseComponent();
+            RenderComponentWithOptionalLayout(builder, ComponentType, ComponentParameters);
         };
+    }
+
+    private static void RenderComponentWithOptionalLayout(
+        RenderTreeBuilder builder,
+        Type componentType,
+        IReadOnlyDictionary<string, object?>? parameters)
+    {
+        var layoutAttribute = (LayoutAttribute?)Attribute.GetCustomAttribute(
+            componentType,
+            typeof(LayoutAttribute),
+            inherit: true);
+        var layoutType = layoutAttribute?.LayoutType;
+
+        if (layoutType is null)
+        {
+            RenderComponent(builder, componentType, parameters);
+            return;
+        }
+
+        builder.OpenComponent<LayoutView>(0);
+        builder.AddAttribute(1, nameof(LayoutView.Layout), layoutType);
+        builder.AddAttribute(2, nameof(LayoutView.ChildContent), (RenderFragment)(childBuilder =>
+        {
+            RenderComponent(childBuilder, componentType, parameters);
+        }));
+        builder.CloseComponent();
+    }
+
+    private static void RenderComponent(
+        RenderTreeBuilder builder,
+        Type componentType,
+        IReadOnlyDictionary<string, object?>? parameters)
+    {
+        builder.OpenComponent(0, componentType);
+
+        if (parameters is not null)
+        {
+            var sequence = 1;
+            foreach (var parameter in parameters)
+            {
+                builder.AddAttribute(sequence++, parameter.Key, parameter.Value);
+            }
+        }
+
+        builder.CloseComponent();
     }
 }

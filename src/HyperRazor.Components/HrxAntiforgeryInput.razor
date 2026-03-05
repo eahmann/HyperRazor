@@ -1,0 +1,26 @@
+@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.Extensions.Options
+@inject IAntiforgery? Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IOptions<AntiforgeryOptions> AntiforgeryOptions
+
+@if (!string.IsNullOrWhiteSpace(_requestToken))
+{
+    <input type="hidden" name="@AntiforgeryOptions.Value.FormFieldName" value="@_requestToken" />
+}
+
+@code {
+    private string? _requestToken;
+
+    protected override void OnParametersSet()
+    {
+        _requestToken = null;
+        var context = HttpContextAccessor.HttpContext;
+        if (context is null || Antiforgery is null)
+        {
+            return;
+        }
+
+        _requestToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
+    }
+}

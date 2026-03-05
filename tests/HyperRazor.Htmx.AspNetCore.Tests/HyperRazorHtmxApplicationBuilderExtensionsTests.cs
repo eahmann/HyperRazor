@@ -23,6 +23,8 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
         var response = await client.GetAsync("/test");
 
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -38,6 +40,8 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
         var response = await client.GetAsync("/test");
 
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -55,6 +59,8 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
 
         Assert.Contains("Accept-Encoding", response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -70,6 +76,8 @@ public class HyperRazorHtmxApplicationBuilderExtensionsTests
         var response = await client.GetAsync("/test");
 
         Assert.DoesNotContain(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
     private static async Task<WebApplication> BuildApp(RequestDelegate endpoint, bool useAlias = false)

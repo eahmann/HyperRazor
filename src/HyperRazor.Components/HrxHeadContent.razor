@@ -1,0 +1,24 @@
+@implements IDisposable
+@inject IHrxHeadService HeadService
+
+@if (HeadService.ContentAvailable)
+{
+    @HeadService.RenderToFragment(clear: true)
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        HeadService.ContentItemsUpdated += OnContentItemsUpdated;
+    }
+
+    public void Dispose()
+    {
+        HeadService.ContentItemsUpdated -= OnContentItemsUpdated;
+    }
+
+    private void OnContentItemsUpdated(object? sender, EventArgs args)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+}

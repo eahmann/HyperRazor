@@ -9,6 +9,7 @@ public static class HyperRazorApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        app.UseHyperRazorDiagnostics();
         return app.UseHyperRazorHtmxVary();
     }
 }

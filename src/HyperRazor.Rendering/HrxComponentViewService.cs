@@ -42,7 +42,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
 
         var context = GetHttpContext();
         var request = context.HtmxRequest();
-        var isHtmxRequest = request.IsHtmx && !request.IsHistoryRestoreRequest;
+        var isHtmxRequest = request.RequestType == HtmxRequestType.Partial;
         var modelState = ResolveModelState(context);
         EnsureVaryForHtmxBranching(context.Response.Headers);
 
@@ -83,7 +83,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             context: context,
             modelState: modelState,
             isPartial: true,
-            isHtmxRequest: request.IsHtmx,
+            isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
             cancellationToken: cancellationToken);
 
@@ -108,7 +108,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             context: context,
             modelState: modelState,
             isPartial: true,
-            isHtmxRequest: request.IsHtmx,
+            isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
             cancellationToken: cancellationToken);
 
@@ -150,6 +150,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
     private static void EnsureVaryForHtmxBranching(IHeaderDictionary headers)
     {
         EnsureVaryBy(headers, HtmxHeaderNames.Request);
+        EnsureVaryBy(headers, HtmxHeaderNames.RequestType);
         EnsureVaryBy(headers, HtmxHeaderNames.HistoryRestoreRequest);
     }
 

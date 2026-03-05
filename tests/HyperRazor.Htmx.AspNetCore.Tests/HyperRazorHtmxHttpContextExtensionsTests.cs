@@ -17,6 +17,7 @@ public class HyperRazorHtmxHttpContextExtensionsTests
 
         Assert.True(request.IsHtmx);
         Assert.Equal("#main", request.Target);
+        Assert.Equal(HtmxRequestType.Partial, request.RequestType);
     }
 
     [Fact]

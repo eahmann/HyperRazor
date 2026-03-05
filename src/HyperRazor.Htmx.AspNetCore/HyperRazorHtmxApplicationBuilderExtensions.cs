@@ -22,7 +22,7 @@ public static class HyperRazorHtmxApplicationBuilderExtensions
             {
                 if (IsHtmlResponse(context.Response))
                 {
-                    EnsureVaryByHtmxRequest(context.Response.Headers);
+                    EnsureVaryByHtmxBranching(context.Response.Headers);
                 }
 
                 return Task.CompletedTask;
@@ -43,12 +43,19 @@ public static class HyperRazorHtmxApplicationBuilderExtensions
         return contentType.StartsWith("text/html", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void EnsureVaryByHtmxRequest(IHeaderDictionary headers)
+    private static void EnsureVaryByHtmxBranching(IHeaderDictionary headers)
+    {
+        EnsureVaryBy(headers, HtmxHeaderNames.Request);
+        EnsureVaryBy(headers, HtmxHeaderNames.RequestType);
+        EnsureVaryBy(headers, HtmxHeaderNames.HistoryRestoreRequest);
+    }
+
+    private static void EnsureVaryBy(IHeaderDictionary headers, string varyHeader)
     {
         if (!headers.TryGetValue(HeaderNames.Vary, out var existingVary)
             || string.IsNullOrWhiteSpace(existingVary))
         {
-            headers[HeaderNames.Vary] = HtmxHeaderNames.Request;
+            headers[HeaderNames.Vary] = varyHeader;
             return;
         }
 
@@ -56,11 +63,11 @@ public static class HyperRazorHtmxApplicationBuilderExtensions
             .ToString()
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        if (values.Contains(HtmxHeaderNames.Request, StringComparer.OrdinalIgnoreCase))
+        if (values.Contains(varyHeader, StringComparer.OrdinalIgnoreCase))
         {
             return;
         }
 
-        headers[HeaderNames.Vary] = $"{existingVary}, {HtmxHeaderNames.Request}";
+        headers[HeaderNames.Vary] = $"{existingVary}, {varyHeader}";
     }
 }

@@ -27,8 +27,11 @@ public class HrxComponentViewServiceTests
         var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        Assert.Contains("id=\"app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
+        Assert.Contains(HtmxHeaderNames.Request, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -44,7 +47,7 @@ public class HrxComponentViewServiceTests
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrx-minimal-shell\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"app-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -60,7 +63,22 @@ public class HrxComponentViewServiceTests
         var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        Assert.Contains("id=\"app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task View_WithHtmx4FullRequestType_RendersFullShell()
+    {
+        await using var fixture = await CreateFixtureAsync(headers =>
+        {
+            headers[HtmxHeaderNames.RequestType] = "full";
+        });
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -73,7 +91,7 @@ public class HrxComponentViewServiceTests
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"app-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"hrx-minimal-shell\"", html, StringComparison.Ordinal);
     }
 
@@ -126,10 +144,11 @@ public class HrxComponentViewServiceTests
         });
         services.Configure<HrxOptions>(options =>
         {
-            options.RootComponent = typeof(HrxApp<HrxMainLayout>);
+            options.RootComponent = typeof(HrxApp<HrxAppLayout>);
             options.UseMinimalLayoutForHtmx = true;
         });
         services.AddOptions<HrxSwapOptions>();
+        services.AddScoped<IHrxHeadService, HrxHeadService>();
         services.AddScoped<IHrxSwapService, HrxSwapService>();
         services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();
         services.AddScoped<IHrxComponentViewService, HrxComponentViewService>();

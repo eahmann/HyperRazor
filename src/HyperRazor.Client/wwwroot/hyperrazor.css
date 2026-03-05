@@ -1,0 +1,18 @@
+.hrx-indicator {
+    display: none;
+    margin-left: 0.5rem;
+    font-size: 0.9rem;
+    color: #0a7268;
+}
+
+.htmx-request .hrx-indicator,
+.hrx-indicator.htmx-request {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.hrx-busy {
+    opacity: 0.65;
+    pointer-events: none;
+}

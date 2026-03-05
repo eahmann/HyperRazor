@@ -4,7 +4,9 @@ public static class HtmxHeaderNames
 {
     // Request headers
     public const string Request = "HX-Request";
+    public const string RequestType = "HX-Request-Type";
     public const string Target = "HX-Target";
+    public const string Source = "HX-Source";
     public const string Trigger = "HX-Trigger";
     public const string TriggerName = "HX-Trigger-Name";
     public const string CurrentUrl = "HX-Current-URL";

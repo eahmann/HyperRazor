@@ -179,6 +179,55 @@ pre {
     font-size: 0.95rem;
 }
 
+.side-layout-shell {
+    padding: 0.95rem;
+}
+
+.side-layout-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 0.9rem;
+}
+
+.side-layout-nav {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+    box-shadow: 0 8px 20px rgba(16, 38, 71, 0.09);
+    align-self: start;
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.side-layout-nav h3 {
+    margin: 0.2rem 0 0;
+}
+
+.side-layout-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.1rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.3rem 0.6rem;
+    background: #fff;
+    color: var(--ink-strong);
+    text-decoration: none;
+}
+
+.side-layout-nav a:hover {
+    border-color: #99b4de;
+    box-shadow: 0 6px 12px rgba(18, 35, 63, 0.11);
+}
+
+.side-layout-content .panel:last-child {
+    margin-bottom: 0;
+}
+
 .feature-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -279,8 +328,47 @@ button:disabled {
     color: #0f594f;
 }
 
+.toast.error {
+    background: #fff1f0;
+    border: 1px solid #f04438;
+    color: #7a271a;
+}
+
 .toast-stack {
     min-height: 2.5rem;
+}
+
+.status-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.status-result {
+    border-left: 6px solid #99b4de;
+}
+
+.inline-form {
+    display: inline-flex;
+    margin-right: 0.45rem;
+}
+
+.status-401 {
+    border-left-color: #f59e0b;
+}
+
+.status-403 {
+    border-left-color: #f97316;
+}
+
+.status-404 {
+    border-left-color: #6366f1;
+}
+
+.status-500 {
+    border-left-color: #ef4444;
 }
 
 .users-table {
@@ -406,6 +494,14 @@ button:disabled {
     .panel {
         border-radius: 13px;
         padding: 0.95rem;
+    }
+
+    .side-layout-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .side-layout-nav {
+        position: static;
     }
 
     button {

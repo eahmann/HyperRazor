@@ -17,7 +17,15 @@
     </p>
 
     @* Standard flow: main fragment response + OOB queue from HrxSwapContent. *@
-    <form hx-post="/fragments/users/create" hx-target="#users-list" hx-swap="outerHTML">
+    <form
+        action="/fragments/users/create"
+        hx-post="/fragments/users/create"
+        hx-target="#users-list"
+        hx-swap="outerHTML focus-scroll:true"
+        hx-indicator="#oob-indicator"
+        hx-disabled-elt="find button">
+        <HrxAntiforgeryInput />
+
         <label for="displayName">Display Name</label>
         <input id="displayName" name="displayName" value="Taylor Reed" />
         <button type="submit">Create User</button>
@@ -26,13 +34,20 @@
     @* Alternate flow: controller calls IHrxSwapService.RenderToString(clear: true). *@
     <form
         id="render-to-string-form"
+        action="/fragments/users/create-rendered"
         hx-post="/fragments/users/create-rendered"
         hx-target="#render-to-string-demo-result"
-        hx-swap="outerHTML">
+        hx-swap="outerHTML focus-scroll:true"
+        hx-indicator="#oob-indicator"
+        hx-disabled-elt="find button">
+        <HrxAntiforgeryInput />
+
         <label for="displayNameRendered">Display Name (RenderToString path)</label>
         <input id="displayNameRendered" name="displayName" value="Morgan Lake" />
         <button type="submit">Create User via RenderToString</button>
     </form>
+
+    <span id="oob-indicator" class="hrx-indicator" aria-live="polite">Applying updates…</span>
 
     <section id="users-list" class="panel">
         <h3>Latest Created User</h3>

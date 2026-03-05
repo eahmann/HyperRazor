@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HyperRazor.Client\HyperRazor.Client.csproj" />
     <ProjectReference Include="..\HyperRazor.Hosting\HyperRazor.Hosting.csproj" />
     <ProjectReference Include="..\HyperRazor.Htmx.AspNetCore\HyperRazor.Htmx.AspNetCore.csproj" />
     <ProjectReference Include="..\HyperRazor.Mvc\HyperRazor.Mvc.csproj" />

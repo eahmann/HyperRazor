@@ -14,11 +14,13 @@ namespace HyperRazor.Demo.Mvc.Controllers;
 public sealed class FragmentsController : HrController
 {
     private static int _userCount = 5;
+    private readonly IHrxHeadService _headService;
     private readonly IHrxSwapService _swapService;
 
-    public FragmentsController(IHrxSwapService swapService)
+    public FragmentsController(IHrxSwapService swapService, IHrxHeadService headService)
     {
         _swapService = swapService ?? throw new ArgumentNullException(nameof(swapService));
+        _headService = headService ?? throw new ArgumentNullException(nameof(headService));
     }
 
     [HttpGet("users/search")]
@@ -77,6 +79,114 @@ public sealed class FragmentsController : HrController
         return PartialView<ToastSuccess>(new
         {
             Message = "Saved successfully (attribute trigger)."
+        }, cancellationToken);
+    }
+
+    [HttpGet("errors/401")]
+    [HtmxRequest]
+    public Task<IResult> UnauthorizedStatus(CancellationToken cancellationToken)
+    {
+        QueueInspectorUpdate(
+            action: "status-401",
+            details: "Returned a 401 response fragment using HrxResults.Unauthorized.");
+
+        return HrxResults.Unauthorized<ErrorStatusResult>(
+            HttpContext,
+            new
+            {
+                StatusCode = StatusCodes.Status401Unauthorized,
+                Title = "401 Unauthorized",
+                Message = "Authentication is required before this action can proceed."
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    [HttpGet("errors/403")]
+    [HtmxRequest]
+    public Task<IResult> ForbiddenStatus(CancellationToken cancellationToken)
+    {
+        QueueInspectorUpdate(
+            action: "status-403",
+            details: "Returned a 403 response fragment using HrxResults.Forbidden.");
+
+        return HrxResults.Forbidden<ErrorStatusResult>(
+            HttpContext,
+            new
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Title = "403 Forbidden",
+                Message = "You are authenticated, but this operation is not allowed."
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    [HttpGet("errors/404")]
+    [HtmxRequest]
+    public Task<IResult> NotFoundStatus(CancellationToken cancellationToken)
+    {
+        QueueInspectorUpdate(
+            action: "status-404",
+            details: "Returned a 404 response fragment using HrxResults.NotFound.");
+
+        return HrxResults.NotFound<ErrorStatusResult>(
+            HttpContext,
+            new
+            {
+                StatusCode = StatusCodes.Status404NotFound,
+                Title = "404 Not Found",
+                Message = "The requested resource could not be located."
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    [HttpGet("errors/500")]
+    [HtmxRequest]
+    public Task<IResult> ServerErrorStatus(CancellationToken cancellationToken)
+    {
+        _swapService.AddSwappableContent(
+            targetId: $"error-toast-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+            html: "<div class=\"toast error\">Server-side failure demo (500) with OOB toast.</div>",
+            swapStyle: SwapStyle.BeforeEnd,
+            selector: "#toast-stack");
+
+        QueueInspectorUpdate(
+            action: "status-500",
+            details: "Returned a 500 response fragment and appended an OOB toast.");
+
+        return HrxResults.ServerError<ErrorStatusResult>(
+            HttpContext,
+            new
+            {
+                StatusCode = StatusCodes.Status500InternalServerError,
+                Title = "500 Server Error",
+                Message = "The server generated an error fragment while preserving shell/layout."
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    [HttpPost("head/update")]
+    [HtmxRequest]
+    public Task<IResult> HeadUpdate(
+        [FromForm] string? title,
+        [FromForm] string? description,
+        CancellationToken cancellationToken)
+    {
+        var normalizedTitle = string.IsNullOrWhiteSpace(title) ? "HyperRazor • Head Update" : title.Trim();
+        var normalizedDescription = string.IsNullOrWhiteSpace(description)
+            ? "Head updated from HTMX partial response."
+            : description.Trim();
+
+        _headService.AddTitle(normalizedTitle);
+        _headService.AddMeta("description", normalizedDescription);
+
+        QueueInspectorUpdate(
+            action: "head-update",
+            details: $"Queued title + description via IHrxHeadService. Title=\"{normalizedTitle}\"");
+
+        return PartialView<HeadUpdateResult>(new
+        {
+            Title = normalizedTitle,
+            Description = normalizedDescription
         }, cancellationToken);
     }
 
@@ -320,8 +430,9 @@ public sealed class FragmentsController : HrController
         string action,
         string details)
     {
-        var request = context.Request.Headers;
+        var requestHeaders = context.Request.Headers;
         var response = context.Response.Headers;
+        var parsedRequest = context.HtmxRequest();
         var route = $"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}";
 
         return new Dictionary<string, object?>
@@ -329,13 +440,18 @@ public sealed class FragmentsController : HrController
             [nameof(HxRequestResponseInspector.ActionName)] = action,
             [nameof(HxRequestResponseInspector.Details)] = details,
             [nameof(HxRequestResponseInspector.Route)] = route,
-            [nameof(HxRequestResponseInspector.HxRequest)] = ReadHeader(request, HtmxHeaderNames.Request),
-            [nameof(HxRequestResponseInspector.HxTarget)] = ReadHeader(request, HtmxHeaderNames.Target),
-            [nameof(HxRequestResponseInspector.HxTrigger)] = ReadHeader(request, HtmxHeaderNames.Trigger),
-            [nameof(HxRequestResponseInspector.HxCurrentUrl)] = ReadHeader(request, HtmxHeaderNames.CurrentUrl),
+            [nameof(HxRequestResponseInspector.HxRequest)] = ReadHeader(requestHeaders, HtmxHeaderNames.Request),
+            [nameof(HxRequestResponseInspector.HxRequestType)] = ReadHeader(requestHeaders, HtmxHeaderNames.RequestType),
+            [nameof(HxRequestResponseInspector.HxTarget)] = ReadHeader(requestHeaders, HtmxHeaderNames.Target),
+            [nameof(HxRequestResponseInspector.HxTrigger)] = ReadHeader(requestHeaders, HtmxHeaderNames.Trigger),
+            [nameof(HxRequestResponseInspector.HxSource)] = ReadHeader(requestHeaders, HtmxHeaderNames.Source),
+            [nameof(HxRequestResponseInspector.HxCurrentUrl)] = ReadHeader(requestHeaders, HtmxHeaderNames.CurrentUrl),
+            [nameof(HxRequestResponseInspector.ParsedVersion)] = parsedRequest.Version.ToString(),
+            [nameof(HxRequestResponseInspector.ParsedRequestType)] = parsedRequest.RequestType.ToString(),
             [nameof(HxRequestResponseInspector.HxTriggerResponse)] = ReadHeader(response, HtmxHeaderNames.TriggerResponse),
             [nameof(HxRequestResponseInspector.HxRedirect)] = ReadHeader(response, HtmxHeaderNames.Redirect),
             [nameof(HxRequestResponseInspector.HxLocation)] = ReadHeader(response, HtmxHeaderNames.Location),
+            [nameof(HxRequestResponseInspector.HxPushUrl)] = ReadHeader(response, HtmxHeaderNames.PushUrl),
             [nameof(HxRequestResponseInspector.StatusCode)] = context.Response.StatusCode
         };
     }

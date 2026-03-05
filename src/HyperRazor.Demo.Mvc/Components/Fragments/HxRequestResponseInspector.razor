@@ -14,9 +14,13 @@
         <ul class="debug-list">
             <li><code>Route</code>: @Route</li>
             <li><code>@HtmxHeaderNames.Request</code>: @HxRequest</li>
+            <li><code>@HtmxHeaderNames.RequestType</code>: @HxRequestType</li>
             <li><code>@HtmxHeaderNames.Target</code>: @HxTarget</li>
             <li><code>@HtmxHeaderNames.Trigger</code>: @HxTrigger</li>
+            <li><code>@HtmxHeaderNames.Source</code>: @HxSource</li>
             <li><code>@HtmxHeaderNames.CurrentUrl</code>: @HxCurrentUrl</li>
+            <li><code>Parsed Version</code>: @ParsedVersion</li>
+            <li><code>Parsed RequestType</code>: @ParsedRequestType</li>
         </ul>
     </section>
     <section>
@@ -25,6 +29,7 @@
             <li><code>@HtmxHeaderNames.TriggerResponse</code>: @HxTriggerResponse</li>
             <li><code>@HtmxHeaderNames.Redirect</code>: @HxRedirect</li>
             <li><code>@HtmxHeaderNames.Location</code>: @HxLocation</li>
+            <li><code>@HtmxHeaderNames.PushUrl</code>: @HxPushUrl</li>
             <li>Status: @StatusCode</li>
         </ul>
     </section>
@@ -44,13 +49,25 @@
     public string HxRequest { get; set; } = "(none)";
 
     [Parameter]
+    public string HxRequestType { get; set; } = "(none)";
+
+    [Parameter]
     public string HxTarget { get; set; } = "(none)";
 
     [Parameter]
     public string HxTrigger { get; set; } = "(none)";
 
     [Parameter]
+    public string HxSource { get; set; } = "(none)";
+
+    [Parameter]
     public string HxCurrentUrl { get; set; } = "(none)";
+
+    [Parameter]
+    public string ParsedVersion { get; set; } = "(none)";
+
+    [Parameter]
+    public string ParsedRequestType { get; set; } = "(none)";
 
     [Parameter]
     public string HxTriggerResponse { get; set; } = "(none)";
@@ -60,6 +77,9 @@
 
     [Parameter]
     public string HxLocation { get; set; } = "(none)";
+
+    [Parameter]
+    public string HxPushUrl { get; set; } = "(none)";
 
     [Parameter]
     public int StatusCode { get; set; } = StatusCodes.Status200OK;

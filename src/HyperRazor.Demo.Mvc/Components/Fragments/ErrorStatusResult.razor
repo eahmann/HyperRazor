@@ -1,0 +1,17 @@
+@* Status/error demo fragment used for 401/403/404/500 responses. *@
+<section id="status-result" class="panel status-result status-@StatusCode">
+    <h3>@Title</h3>
+    <p class="demo-caption">HTTP Status: <code>@StatusCode</code></p>
+    <p>@Message</p>
+</section>
+
+@code {
+    [Parameter]
+    public int StatusCode { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+}

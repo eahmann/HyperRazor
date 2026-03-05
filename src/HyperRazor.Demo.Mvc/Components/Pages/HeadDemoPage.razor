@@ -1,0 +1,42 @@
+@* Demonstrates first-party head queue/flush support on HTMX partial responses. *@
+<section class="panel">
+    <h2>Head Handling</h2>
+    <p>Queues document <code>&lt;title&gt;</code> and <code>&lt;meta&gt;</code> updates from the server.</p>
+</section>
+
+<section id="head-demo" class="panel">
+    <h3>Head Queue + Flush</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> submit this form and watch the browser tab title update without a full page load.
+        The fragment updates this panel while the response also ships a <code>&lt;head&gt;</code> block.
+    </div>
+    <p class="demo-caption">
+        Expected outcome: inspector shows the request/response cycle, and the tab title changes immediately.
+    </p>
+
+    <form
+        id="head-demo-form"
+        action="/fragments/head/update"
+        hx-post="/fragments/head/update"
+        hx-target="#head-demo-result"
+        hx-swap="outerHTML"
+        hx-ext="head-support"
+        hx-indicator="#head-indicator"
+        hx-disabled-elt="find button">
+        <HrxAntiforgeryInput />
+
+        <label for="head-title-input">Title</label>
+        <input id="head-title-input" name="title" value="HyperRazor • Head Demo" />
+
+        <label for="head-description-input">Description</label>
+        <input id="head-description-input" name="description" value="Updated via HrxHeadService + head-support." />
+
+        <button type="submit">Queue Head Update</button>
+        <span id="head-indicator" class="hrx-indicator" aria-live="polite">Updating head…</span>
+    </form>
+
+    <section id="head-demo-result" class="panel">
+        <h3>Awaiting update</h3>
+        <p>Submit the form to queue a head update from the server.</p>
+    </section>
+</section>

@@ -1,0 +1,18 @@
+@* Head handling demo fragment: shows the values queued into HrxHeadService. *@
+<section id="head-demo-result" class="panel">
+    <h3>Head Updated</h3>
+    <p><strong>Title queued:</strong> @Title</p>
+    <p><strong>Description queued:</strong> @Description</p>
+    <p class="demo-caption">
+        The response also includes a <code>&lt;head&gt;</code> payload. With <code>head-support</code> enabled,
+        the browser document title/meta are updated without a full page reload.
+    </p>
+</section>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Description { get; set; } = string.Empty;
+}

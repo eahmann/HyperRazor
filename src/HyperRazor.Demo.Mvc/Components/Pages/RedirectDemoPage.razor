@@ -14,6 +14,13 @@
         Expected outcome: both end at Home, but navigation mechanics differ (`HX-Location` vs `HX-Redirect`).
     </p>
 
-    <button type="button" hx-post="/fragments/navigation/soft">Soft redirect (HX-Location)</button>
-    <button type="button" hx-post="/fragments/navigation/hard">Hard redirect (HX-Redirect)</button>
+    <form class="inline-form" action="/fragments/navigation/soft" hx-post="/fragments/navigation/soft" hx-disabled-elt="find button">
+        <HrxAntiforgeryInput />
+        <button type="submit">Soft redirect (HX-Location)</button>
+    </form>
+
+    <form class="inline-form" action="/fragments/navigation/hard" hx-post="/fragments/navigation/hard" hx-disabled-elt="find button">
+        <HrxAntiforgeryInput />
+        <button type="submit">Hard redirect (HX-Redirect)</button>
+    </form>
 </section>

@@ -21,6 +21,8 @@
         hx-get="/fragments/users/search"
         hx-target="#search-results"
         hx-swap="innerHTML"
+        hx-indicator="#search-indicator"
+        hx-disabled-elt="find button"
         hx-trigger="submit, keyup changed delay:250ms from:#search-box, change from:#sort-select">
         <label for="search-box">Query</label>
         <input
@@ -41,6 +43,7 @@
         <input type="hidden" name="page" value="1" />
         <input type="hidden" name="pageSize" value="4" />
         <button type="submit">Run Query</button>
+        <span id="search-indicator" class="hrx-indicator" aria-live="polite">Searching…</span>
     </form>
 
     @* Fragment target that receives table + pager markup from server. *@

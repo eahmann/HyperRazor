@@ -27,9 +27,13 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("href=\"/demos/basic\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/search\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/redirects\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/errors\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/validation\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/oob\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/head\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/layout-swap\"", body, StringComparison.Ordinal);
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -92,6 +96,64 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task StatusDemo_ReturnsStatusHandlingScenario()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/errors");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Status Handling</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/fragments/errors/401\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/fragments/errors/500\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HeadDemo_ReturnsHeadHandlingScenario()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/head");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Head Handling</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"head-demo-form\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/fragments/head/update\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LayoutSwapDemo_ReturnsAlternateLayoutScenario()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/layout-swap");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Layout Swap Demo</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"side-nav-layout-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/layout-swap/details\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/basic\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LayoutSwapDetails_ReturnsAlternateLayoutDetailsScenario()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/layout-swap/details");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Layout Swap Details</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"side-nav-layout-shell\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Feature_WithoutHxRequest_ReturnsFullPageWithConfigAndVary()
     {
         using var client = CreateClient();
@@ -112,9 +174,12 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var metaMarker = "name=\"htmx-config\"";
         var metaStart = body.IndexOf(metaMarker, StringComparison.Ordinal);
         Assert.True(metaStart >= 0, "Expected htmx-config meta tag in rendered HTML.");
-        var scriptIndex = body.IndexOf("src=\"https://unpkg.com/htmx.org@2.0.4\"", StringComparison.Ordinal);
+        var scriptIndex = body.IndexOf("src=\"/_content/HyperRazor.Client/vendor/htmx/htmx-2.0.4.min.js\"", StringComparison.Ordinal);
         Assert.True(scriptIndex >= 0 && metaStart < scriptIndex, "Expected htmx-config meta to render before htmx.js.");
+        Assert.Contains("name=\"hrx-antiforgery\"", body, StringComparison.Ordinal);
+        Assert.Contains("_content/HyperRazor.Client/hyperrazor.htmx.js", body, StringComparison.Ordinal);
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -130,10 +195,45 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("<h2>OOB Swaps</h2>", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("app-shell", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
         Assert.Equal("text/html; charset=utf-8", response.Content.Headers.ContentType?.ToString());
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task LayoutSwap_WithHxRequest_ReturnsSideLayoutWithoutTopNav()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/layout-swap");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Layout Swap Demo</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"side-nav-layout-shell\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-swap-oob", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Basic_WithHxRequest_ReturnsMainLayoutWithTopNav()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/basic");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Server Trigger</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("class=\"app-nav\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/layout-swap\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-swap-oob", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -149,6 +249,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("app-shell", body, StringComparison.Ordinal);
+        Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -194,13 +295,17 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateUserValidated_RequiresHtmxRequest()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
 
-        var response = await client.PostAsync("/fragments/users/create-validated",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["displayName"] = "Riley Stone",
-                ["email"] = "riley@example.com"
-            }));
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create-validated");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Riley Stone",
+            ["email"] = "riley@example.com"
+        });
+
+        var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -282,8 +387,10 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateUser_WithHxRequest_ReturnsMainFragmentAndOobUpdates()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
         using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["displayName"] = "Jordan Avery"
@@ -311,8 +418,10 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateUserRendered_WithHxRequest_ReturnsPreviewAndOobUpdatesFromStringRenderer()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
         using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create-rendered");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["displayName"] = "Casey Quinn"
@@ -339,8 +448,10 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateUserValidated_WithHxRequest_InvalidInputReturnsErrors()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
         using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create-validated");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["displayName"] = "A",
@@ -363,8 +474,10 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateUserValidated_WithHxRequest_ValidInputReturnsSuccess()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
         using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create-validated");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["displayName"] = "Riley Stone",
@@ -387,7 +500,9 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateUser_WithoutHxRequest_DoesNotRenderSwappableOobBlocks()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
         using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["displayName"] = "Jordan Avery"
@@ -405,8 +520,11 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     public async Task RedirectEndpoints_UseHxHeadersWithout3xxResponses()
     {
         using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
 
-        var softResponse = await client.PostAsync("/fragments/navigation/soft", content: null);
+        using var softRequest = new HttpRequestMessage(HttpMethod.Post, "/fragments/navigation/soft");
+        softRequest.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        var softResponse = await client.SendAsync(softRequest);
         Assert.Equal(HttpStatusCode.NoContent, softResponse.StatusCode);
         Assert.True(softResponse.Headers.TryGetValues(HtmxHeaderNames.Location, out var locationValues));
         using (var locationDoc = JsonDocument.Parse(locationValues.Single()))
@@ -416,10 +534,61 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
             Assert.Equal("innerHTML", locationDoc.RootElement.GetProperty("swap").GetString());
         }
 
-        var hardResponse = await client.PostAsync("/fragments/navigation/hard", content: null);
+        using var hardRequest = new HttpRequestMessage(HttpMethod.Post, "/fragments/navigation/hard");
+        hardRequest.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        var hardResponse = await client.SendAsync(hardRequest);
         Assert.Equal(HttpStatusCode.NoContent, hardResponse.StatusCode);
         Assert.True(hardResponse.Headers.TryGetValues(HtmxHeaderNames.Redirect, out var redirectValues));
         Assert.Equal("/", redirectValues.Single());
+    }
+
+    [Theory]
+    [InlineData("/fragments/errors/401", HttpStatusCode.Unauthorized, "401 Unauthorized")]
+    [InlineData("/fragments/errors/403", HttpStatusCode.Forbidden, "403 Forbidden")]
+    [InlineData("/fragments/errors/404", HttpStatusCode.NotFound, "404 Not Found")]
+    [InlineData("/fragments/errors/500", HttpStatusCode.InternalServerError, "500 Server Error")]
+    public async Task StatusEndpoints_WithHxRequest_ReturnExpectedStatusAndFragment(
+        string route,
+        HttpStatusCode expectedStatusCode,
+        string expectedHeading)
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, route);
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(expectedStatusCode, response.StatusCode);
+        Assert.Contains("id=\"status-result\"", body, StringComparison.Ordinal);
+        Assert.Contains(expectedHeading, body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HeadUpdate_WithHxRequest_ReturnsFragmentAndHeadPayload()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/head/update");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["title"] = "HyperRazor Head Test",
+            ["description"] = "Head payload test."
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"head-demo-result\"", body, StringComparison.Ordinal);
+        Assert.Contains("HyperRazor Head Test", body, StringComparison.Ordinal);
+        Assert.Contains("<head", body, StringComparison.Ordinal);
+        Assert.Contains("hx-head=\"merge\"", body, StringComparison.Ordinal);
+        Assert.Contains("<title>HyperRazor Head Test</title>", body, StringComparison.Ordinal);
     }
 
     private HttpClient CreateClient()
@@ -428,5 +597,27 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         {
             AllowAutoRedirect = false
         });
+    }
+
+    private static async Task<string> GetAntiforgeryTokenAsync(HttpClient client)
+    {
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return ExtractMetaContent(html, "hrx-antiforgery");
+    }
+
+    private static string ExtractMetaContent(string html, string metaName)
+    {
+        var marker = $"<meta name=\"{metaName}\" content=\"";
+        var start = html.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Expected meta tag '{metaName}' in response HTML.");
+
+        start += marker.Length;
+        var end = html.IndexOf('"', start);
+        Assert.True(end > start, $"Expected meta tag '{metaName}' content value.");
+
+        return html[start..end];
     }
 }

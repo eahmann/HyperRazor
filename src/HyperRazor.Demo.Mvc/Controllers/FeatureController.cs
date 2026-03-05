@@ -1,6 +1,6 @@
 using HyperRazor.Demo.Mvc.Components.Pages;
+using HyperRazor.Demo.Mvc.Components.Pages.SideNav;
 using HyperRazor.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HyperRazor.Demo.Mvc.Controllers;
@@ -32,6 +32,12 @@ public sealed class FeatureController : HrController
         return View<RedirectDemoPage>(cancellationToken: cancellationToken);
     }
 
+    [HttpGet("/demos/errors")]
+    public Task<IResult> StatusHandling(CancellationToken cancellationToken)
+    {
+        return View<ErrorsDemoPage>(cancellationToken: cancellationToken);
+    }
+
     [HttpGet("/demos/validation")]
     public Task<IResult> FormValidation(CancellationToken cancellationToken)
     {
@@ -42,5 +48,23 @@ public sealed class FeatureController : HrController
     public Task<IResult> OobSwaps(CancellationToken cancellationToken)
     {
         return View<FeaturePage>(cancellationToken: cancellationToken);
+    }
+
+    [HttpGet("/demos/head")]
+    public Task<IResult> HeadHandling(CancellationToken cancellationToken)
+    {
+        return View<HeadDemoPage>(cancellationToken: cancellationToken);
+    }
+
+    [HttpGet("/demos/layout-swap")]
+    public Task<IResult> LayoutSwap(CancellationToken cancellationToken)
+    {
+        return View<LayoutSwapDemoPage>(cancellationToken: cancellationToken);
+    }
+
+    [HttpGet("/demos/layout-swap/details")]
+    public Task<IResult> LayoutSwapDetails(CancellationToken cancellationToken)
+    {
+        return View<LayoutSwapDetailsPage>(cancellationToken: cancellationToken);
     }
 }

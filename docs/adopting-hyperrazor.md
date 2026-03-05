@@ -8,6 +8,7 @@ builder.Services.AddHyperRazorHtmx(htmx =>
 {
     htmx.SelfRequestsOnly = true;
     htmx.HistoryRestoreAsHxRequest = false;
+    htmx.AllowNestedOobSwaps = false;
 });
 ```
 
@@ -22,4 +23,21 @@ app.UseHyperRazorHtmxVary();
 ```csharp
 var (request, response) = HttpContext.Htmx();
 response.Trigger("toast:show", new { message = "Saved" });
+```
+
+5. Optional strict validation semantics (`422`):
+
+```csharp
+builder.Services.AddHyperRazorHtmx(htmx =>
+{
+    htmx.ResponseHandling =
+    [
+        new HtmxResponseHandlingRule
+        {
+            Code = "422",
+            Swap = true,
+            Error = false
+        }
+    ];
+});
 ```

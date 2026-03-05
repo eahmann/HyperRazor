@@ -9,6 +9,8 @@ public sealed class HtmxConfig
 
     public bool HistoryRestoreAsHxRequest { get; set; } = false;
 
+    public bool? AllowNestedOobSwaps { get; set; }
+
     public string? DefaultSwapStyle { get; set; }
 
     public IReadOnlyList<HtmxResponseHandlingRule>? ResponseHandling { get; set; }

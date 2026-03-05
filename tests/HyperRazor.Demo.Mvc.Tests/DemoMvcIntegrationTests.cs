@@ -103,6 +103,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("<header id=\"app-shell\">", body, StringComparison.Ordinal);
         Assert.Contains("name=\"htmx-config\"", body, StringComparison.Ordinal);
         Assert.Contains("historyRestoreAsHxRequest", body, StringComparison.Ordinal);
+        Assert.Contains("allowNestedOobSwaps", body, StringComparison.Ordinal);
         Assert.Contains("<h2>OOB Swaps</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-post=\"/fragments/users/create-rendered\"", body, StringComparison.Ordinal);
@@ -335,7 +336,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task CreateUserValidated_WithHxRequest_InvalidInputReturns422AndErrors()
+    public async Task CreateUserValidated_WithHxRequest_InvalidInputReturnsErrors()
     {
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/create-validated");

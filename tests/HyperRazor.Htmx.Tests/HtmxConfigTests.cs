@@ -13,6 +13,7 @@ public class HtmxConfigTests
         using var doc = JsonDocument.Parse(json);
         Assert.True(doc.RootElement.GetProperty("selfRequestsOnly").GetBoolean());
         Assert.False(doc.RootElement.GetProperty("historyRestoreAsHxRequest").GetBoolean());
+        Assert.False(doc.RootElement.TryGetProperty("allowNestedOobSwaps", out _));
         Assert.False(doc.RootElement.TryGetProperty("defaultSwapStyle", out _));
         Assert.False(doc.RootElement.TryGetProperty("responseHandling", out _));
     }
@@ -24,6 +25,7 @@ public class HtmxConfigTests
         {
             SelfRequestsOnly = false,
             HistoryRestoreAsHxRequest = true,
+            AllowNestedOobSwaps = false,
             DefaultSwapStyle = "outerHTML",
             ResponseHandling =
             [
@@ -39,6 +41,7 @@ public class HtmxConfigTests
         using var doc = JsonDocument.Parse(json);
         Assert.False(doc.RootElement.GetProperty("selfRequestsOnly").GetBoolean());
         Assert.True(doc.RootElement.GetProperty("historyRestoreAsHxRequest").GetBoolean());
+        Assert.False(doc.RootElement.GetProperty("allowNestedOobSwaps").GetBoolean());
         Assert.Equal("outerHTML", doc.RootElement.GetProperty("defaultSwapStyle").GetString());
         var responseHandling = doc.RootElement.GetProperty("responseHandling");
         Assert.Equal("422", responseHandling[0].GetProperty("code").GetString());

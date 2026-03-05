@@ -15,6 +15,7 @@ builder.Services.AddHtmx(htmx =>
 {
     htmx.SelfRequestsOnly = true;
     htmx.HistoryRestoreAsHxRequest = false;
+    htmx.AllowNestedOobSwaps = false;
     htmx.DefaultSwapStyle = "outerHTML";
 });
 

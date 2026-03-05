@@ -31,6 +31,7 @@ public class HyperRazorHtmxServiceCollectionExtensionsTests
         {
             config.SelfRequestsOnly = false;
             config.HistoryRestoreAsHxRequest = true;
+            config.AllowNestedOobSwaps = false;
             config.DefaultSwapStyle = "innerHTML";
         });
 
@@ -39,6 +40,7 @@ public class HyperRazorHtmxServiceCollectionExtensionsTests
 
         Assert.False(config.SelfRequestsOnly);
         Assert.True(config.HistoryRestoreAsHxRequest);
+        Assert.False(config.AllowNestedOobSwaps);
         Assert.Equal("innerHTML", config.DefaultSwapStyle);
     }
 }

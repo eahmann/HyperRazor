@@ -11,3 +11,12 @@ Default `historyRestoreAsHxRequest` to `false` for safer full-page restoration b
 
 ## CI-H4: Keep stable target IDs
 Use stable swap targets (`#main`, `#panel`, `#search-results`) to keep fragments reusable.
+
+## CI-H5: Default nested OOB swaps to explicit behavior
+Set `allowNestedOobSwaps` intentionally in your HTMX config when reusable fragments can contain OOB blocks.
+- Recommended baseline for HyperRazor demos: `allowNestedOobSwaps=false`
+- Keep OOB blocks adjacent to the main fragment response where possible.
+
+## CI-H6: Default validation swaps to `200` for demos
+For baseline demo UX, return `200` with inline validation errors to avoid non-2xx swap handling complexity.
+- Teams that require strict `422` semantics can opt into HTMX `responseHandling` rules.

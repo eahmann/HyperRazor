@@ -45,13 +45,12 @@ This document lists optional items that were intentionally not completed during 
   - Add demo/test showing behavior difference when enabled vs disabled.
 
 ### 5) Strict Validation Semantics Variant (`422` demo endpoint)
-- Status: Deferred
-- Why deferred:
-  - Validation demo switched invalid responses to `200` for cleaner developer UX (no red console noise).
-  - Current endpoint still demonstrates server-side validation and HTMX fragment updates.
+- Status: Closed by decision (Not planned for Phase 2.x)
+- Decision:
+  - Validation demo remains on `200` invalid responses for cleaner default UX.
+  - No `/demos/validation-422` route will be added in Phase 2.x.
 - Follow-up target:
-  - Add a second endpoint/page variant returning `422` for invalid form submits.
-  - Document tradeoffs (`semantic HTTP` vs `clean console UX`).
+  - Keep `422` guidance as optional consumer configuration via `responseHandling` docs only.
 
 ## Out-of-Scope Items (Not Phase 2.1 Optional)
 

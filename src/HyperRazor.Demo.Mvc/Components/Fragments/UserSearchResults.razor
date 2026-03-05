@@ -4,6 +4,10 @@
 }
 else
 {
+    @* Metadata section mirrors query/sort/page contract received by endpoint. *@
+    <p class="demo-caption">
+        Server note: pagination and sorting are calculated on the server for each HTMX request.
+    </p>
     <div class="search-meta" data-search-results="true">
         <p>
             Showing @_startIndex-@_endIndex of @_totalCount users.
@@ -29,6 +33,7 @@ else
         </tbody>
     </table>
 
+    @* Pager controls call the same endpoint with updated page query string. *@
     <div class="pager">
         <button
             type="button"
@@ -90,6 +95,7 @@ else
 
     protected override void OnParametersSet()
     {
+        // Filter first so sort/pagination always operate on the same deterministic subset.
         var term = Query?.Trim();
         var filtered = string.IsNullOrWhiteSpace(term)
             ? Users.ToList()
@@ -98,6 +104,7 @@ else
                     || user.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
+        // Normalize incoming sort token to known values before switching behavior.
         _resolvedSort = NormalizeSort(Sort);
         var ordered = _resolvedSort switch
         {
@@ -112,6 +119,7 @@ else
         _pageCount = Math.Max(1, (int)Math.Ceiling(_totalCount / (double)_pageSize));
         _currentPage = Math.Clamp(Page, 1, _pageCount);
 
+        // Apply page window after sort to keep row order stable between page transitions.
         _pagedResults = ordered
             .Skip((_currentPage - 1) * _pageSize)
             .Take(_pageSize)
@@ -141,6 +149,7 @@ else
 
     private string BuildPageUrl(int page)
     {
+        // Keep current filters/sort values while changing only page number.
         var safePage = Math.Clamp(page, 1, _pageCount);
         var query = Uri.EscapeDataString(Query?.Trim() ?? string.Empty);
         var sort = Uri.EscapeDataString(_resolvedSort);

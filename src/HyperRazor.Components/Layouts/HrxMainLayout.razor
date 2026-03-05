@@ -1,13 +1,19 @@
 @layout HrxAppLayout
 @inherits LayoutComponentBase
 
-<main id="hrx-main-layout">
+@* Main page body target used by HX-Location soft redirects. *@
+<main id="hrx-main-layout" class="layout">
     @Body
 </main>
 
-<section class="panel">
+@* Persistent inspector shell; OOB swaps replace this region as requests are made. *@
+<section class="panel panel--inspector">
     <div id="hx-debug-shell">
         <h3>HX Request/Response Inspector</h3>
         <p class="empty">Run HTMX actions to inspect the latest request and response headers.</p>
+        <div class="demo-note" role="note">
+            <strong>Inspector Note:</strong> this region is updated out-of-band after each HTMX interaction,
+            so you can inspect both inbound and outbound HX headers in one place.
+        </div>
     </div>
 </section>

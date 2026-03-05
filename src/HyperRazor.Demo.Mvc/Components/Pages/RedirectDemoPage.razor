@@ -1,18 +1,19 @@
+@* Compares soft in-place navigation vs full page navigation using HTMX headers. *@
 <section class="panel">
     <h2>Redirect Headers</h2>
     <p>Demonstrates `HX-Location` soft navigation vs `HX-Redirect` full redirect responses.</p>
 </section>
 
-<nav class="demo-nav" aria-label="Feature navigation">
-    <a href="/">Overview</a>
-    <a href="/demos/basic">Server Trigger</a>
-    <a href="/demos/search">Live Search</a>
-    <a href="/demos/validation">Form Validation</a>
-    <a href="/demos/oob">OOB Swaps</a>
-</nav>
-
 <section id="redirect-demo" class="panel">
     <h3>Redirect Patterns</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> soft redirect preserves the shell and swaps `#hrx-main-layout`;
+        hard redirect forces a full navigation.
+    </div>
+    <p class="demo-caption">
+        Expected outcome: both end at Home, but navigation mechanics differ (`HX-Location` vs `HX-Redirect`).
+    </p>
+
     <button type="button" hx-post="/fragments/navigation/soft">Soft redirect (HX-Location)</button>
     <button type="button" hx-post="/fragments/navigation/hard">Hard redirect (HX-Redirect)</button>
 </section>

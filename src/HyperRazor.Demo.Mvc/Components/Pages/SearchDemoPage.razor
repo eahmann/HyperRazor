@@ -1,18 +1,20 @@
+@* Exercises an HTMX GET form with dynamic query/sort and server-driven pagination. *@
 <section class="panel">
     <h2>Live Search</h2>
     <p>Demonstrates HTMX query, sort, and pagination against a fragment endpoint.</p>
 </section>
 
-<nav class="demo-nav" aria-label="Feature navigation">
-    <a href="/">Overview</a>
-    <a href="/demos/basic">Server Trigger</a>
-    <a href="/demos/redirects">Redirect Headers</a>
-    <a href="/demos/validation">Form Validation</a>
-    <a href="/demos/oob">OOB Swaps</a>
-</nav>
-
 <section id="live-search-demo" class="panel">
     <h3>Live User Search</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> type in Query, change Sort, then use pager buttons.
+        Watch inspector headers and query string update on every request.
+    </div>
+    <p class="demo-caption">
+        Expected outcome: list/table/pager swap in place with no full page refresh.
+    </p>
+
+    @* One HTMX form handles submit + debounced keyup + select change triggers. *@
     <form
         id="search-controls"
         action="/fragments/users/search"
@@ -40,6 +42,8 @@
         <input type="hidden" name="pageSize" value="4" />
         <button type="submit">Run Query</button>
     </form>
+
+    @* Fragment target that receives table + pager markup from server. *@
     <div id="search-results">
         <p>Start typing or change sort to load users.</p>
     </div>

@@ -1,20 +1,21 @@
+@* Demonstrates two trigger styles: imperative response header and attribute-driven header. *@
 <section class="panel">
     <h2>Server Trigger</h2>
     <p>Demonstrates fragment swaps plus `HX-Trigger` events from response headers.</p>
 </section>
 
-<nav class="demo-nav" aria-label="Feature navigation">
-    <a href="/">Overview</a>
-    <a href="/demos/search">Live Search</a>
-    <a href="/demos/redirects">Redirect Headers</a>
-    <a href="/demos/validation">Form Validation</a>
-    <a href="/demos/oob">OOB Swaps</a>
-</nav>
-
 <section id="server-trigger-demo" class="panel">
     <h3>Server Trigger</h3>
     <p class="empty">Compare trigger payload from action code vs `[HtmxResponse]` attribute.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> Click either button and compare the toast body with the inspector's
+        <code>HX-Trigger</code> response header.
+    </div>
+    <p class="demo-caption">
+        Expected outcome: both buttons render a toast, but the source of the trigger header differs.
+    </p>
 
+    @* Action method emits trigger payload directly in controller body. *@
     <button
         type="button"
         hx-get="/fragments/toast/success"
@@ -23,6 +24,7 @@
         Trigger Toast (Body Trigger)
     </button>
 
+    @* Action uses [HtmxResponse] attribute to emit trigger header after execution. *@
     <button
         type="button"
         hx-get="/fragments/toast/success-attribute"
@@ -35,6 +37,7 @@
 </section>
 
 <script>
+    // Client-side listener for server-triggered custom events.
     document.body.addEventListener("toast:show", function (event) {
         var detail = event.detail || {};
         var message = detail.message || "Server event received.";

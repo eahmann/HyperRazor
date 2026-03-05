@@ -1,20 +1,21 @@
+@* Server-side validation demo intentionally returns 200 for invalid submissions. *@
 <section class="panel">
     <h2>Form Validation</h2>
     <p>Demonstrates server-side validation with inline fragment errors while keeping invalid submits at <code>200 OK</code>.</p>
 </section>
 
-<nav class="demo-nav" aria-label="Feature navigation">
-    <a href="/">Overview</a>
-    <a href="/demos/basic">Server Trigger</a>
-    <a href="/demos/search">Live Search</a>
-    <a href="/demos/redirects">Redirect Headers</a>
-    <a href="/demos/oob">OOB Swaps</a>
-</nav>
-
 <section id="validation-demo" class="panel">
     <h3>Create User (Validated)</h3>
     <p class="empty">Try invalid input first, then submit valid input.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> submit `A` + `invalid` first, then a proper name/email.
+        The response swaps only the result area and keeps the form in place.
+    </div>
+    <p class="demo-caption">
+        Expected outcome: errors and success both render in <code>#validation-result</code> without navigation.
+    </p>
 
+    @* HTMX target is scoped to #validation-result so only result state changes per submit. *@
     <form
         id="validation-form"
         action="/fragments/users/create-validated"
@@ -31,6 +32,7 @@
         <button type="submit">Submit</button>
     </form>
 
+    @* Partial fragment mount point for success/error state. *@
     <div id="validation-result">
         <p class="empty">Awaiting submission.</p>
     </div>

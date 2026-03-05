@@ -1,9 +1,13 @@
 @using HyperRazor.Htmx
 @using Microsoft.AspNetCore.Http
 
+@* Replaced out-of-band after each HTMX request to make header behavior observable. *@
 <h3>HX Request/Response Inspector</h3>
 <p>Latest action: <strong>@ActionName</strong>.</p>
 <p>@Details</p>
+<p class="demo-caption">
+    Read this panel top-to-bottom: route + inbound HX headers first, then outbound response headers.
+</p>
 <div class="debug-grid">
     <section>
         <h4>Request Headers</h4>

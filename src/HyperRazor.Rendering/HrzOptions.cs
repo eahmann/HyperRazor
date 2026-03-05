@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace HyperRazor.Rendering;
 
-public sealed class HrxOptions
+public sealed class HrzOptions
 {
-    private Type _rootComponent = typeof(HrxApp<HrxAppLayout>);
+    private Type _rootComponent = typeof(HrzApp<HrzAppLayout>);
 
     public Type RootComponent
     {
@@ -23,7 +23,7 @@ public sealed class HrxOptions
 
     public bool AllowRawContentOnNonHtmx { get; set; }
 
-    public HrxLayoutBoundaryOptions LayoutBoundary { get; set; } = new();
+    public HrzLayoutBoundaryOptions LayoutBoundary { get; set; } = new();
 
     private static void EnsureComponentType(Type type, string argumentName)
     {

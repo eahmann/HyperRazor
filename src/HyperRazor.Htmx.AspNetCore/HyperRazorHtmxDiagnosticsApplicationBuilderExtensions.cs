@@ -31,12 +31,12 @@ public static class HyperRazorHtmxDiagnosticsApplicationBuilderExtensions
             var request = context.HtmxRequest();
             using var scope = logger.BeginScope(new Dictionary<string, object?>
             {
-                ["hrx.is_htmx"] = request.IsHtmx,
-                ["hrx.version"] = request.Version.ToString(),
-                ["hrx.request_type"] = request.RequestType.ToString(),
-                ["hrx.source"] = request.SourceElement,
-                ["hrx.target"] = request.Target,
-                ["hrx.current_url"] = request.CurrentUrl?.ToString()
+                ["hrz.is_htmx"] = request.IsHtmx,
+                ["hrz.version"] = request.Version.ToString(),
+                ["hrz.request_type"] = request.RequestType.ToString(),
+                ["hrz.source"] = request.SourceElement,
+                ["hrz.target"] = request.Target,
+                ["hrz.current_url"] = request.CurrentUrl?.ToString()
             });
 
             await next();

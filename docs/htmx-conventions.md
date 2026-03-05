@@ -26,7 +26,7 @@ For baseline demo UX, return `200` with inline validation errors to avoid non-2x
 
 ## CI-H7: Antiforgery must be automatic for unsafe HTMX methods
 Use a predictable token source and transport:
-- emit a token meta tag (`hrx-antiforgery`)
+- emit a token meta tag (`hrz-antiforgery`)
 - attach `RequestVerificationToken` on HTMX requests
 - include hidden antiforgery inputs in POST forms as a fallback
 

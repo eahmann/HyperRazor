@@ -16,7 +16,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace HyperRazor.Rendering.Tests;
 
-public class HrxComponentViewServiceTests
+public class HrzComponentViewServiceTests
 {
     [Fact]
     public async Task View_WithoutHtmxRequest_RendersFullShell()
@@ -27,7 +27,7 @@ public class HrxComponentViewServiceTests
         var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        Assert.Contains("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
         Assert.Contains(HtmxHeaderNames.Request, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.RequestType, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
@@ -46,8 +46,8 @@ public class HrxComponentViewServiceTests
         var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        Assert.Contains("id=\"hrx-minimal-shell\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class HrxComponentViewServiceTests
         var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        Assert.Contains("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class HrxComponentViewServiceTests
         var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        Assert.Contains("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -91,8 +91,8 @@ public class HrxComponentViewServiceTests
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"hrx-app-shell\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"hrx-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -142,17 +142,17 @@ public class HrxComponentViewServiceTests
             config.SelfRequestsOnly = true;
             config.HistoryRestoreAsHxRequest = false;
         });
-        services.Configure<HrxOptions>(options =>
+        services.Configure<HrzOptions>(options =>
         {
-            options.RootComponent = typeof(HrxApp<HrxAppLayout>);
+            options.RootComponent = typeof(HrzApp<HrzAppLayout>);
             options.UseMinimalLayoutForHtmx = true;
         });
-        services.AddOptions<HrxSwapOptions>();
-        services.AddSingleton<IHrxLayoutFamilyResolver, HrxLayoutFamilyResolver>();
-        services.AddScoped<IHrxHeadService, HrxHeadService>();
-        services.AddScoped<IHrxSwapService, HrxSwapService>();
-        services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();
-        services.AddScoped<IHrxComponentViewService, HrxComponentViewService>();
+        services.AddOptions<HrzSwapOptions>();
+        services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
+        services.AddScoped<IHrzHeadService, HrzHeadService>();
+        services.AddScoped<IHrzSwapService, HrzSwapService>();
+        services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
+        services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
 
         var provider = services.BuildServiceProvider();
         var scope = provider.CreateScope();
@@ -165,7 +165,7 @@ public class HrxComponentViewServiceTests
 
         httpContextAccessor.HttpContext = httpContext;
 
-        var viewService = scope.ServiceProvider.GetRequiredService<IHrxComponentViewService>();
+        var viewService = scope.ServiceProvider.GetRequiredService<IHrzComponentViewService>();
 
         await Task.Yield();
 
@@ -190,7 +190,7 @@ public class HrxComponentViewServiceTests
             IServiceScope scope,
             IHttpContextAccessor httpContextAccessor,
             HttpContext httpContext,
-            IHrxComponentViewService viewService)
+            IHrzComponentViewService viewService)
         {
             Provider = provider;
             Scope = scope;
@@ -207,7 +207,7 @@ public class HrxComponentViewServiceTests
 
         public HttpContext HttpContext { get; }
 
-        public IHrxComponentViewService ViewService { get; }
+        public IHrzComponentViewService ViewService { get; }
 
         public void SetCurrentContext()
         {

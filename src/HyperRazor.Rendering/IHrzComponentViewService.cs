@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace HyperRazor.Rendering;
 
-public interface IHrxComponentViewService
+public interface IHrzComponentViewService
 {
     Task<IResult> View<TComponent>(object? data = null, CancellationToken cancellationToken = default)
         where TComponent : IComponent;

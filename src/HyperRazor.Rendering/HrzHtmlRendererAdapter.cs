@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace HyperRazor.Rendering;
 
-public sealed class HrxHtmlRendererAdapter : IHrxHtmlRendererAdapter, IAsyncDisposable
+public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisposable
 {
     private readonly HtmlRenderer _renderer;
 
-    public HrxHtmlRendererAdapter(IServiceProvider services, ILoggerFactory loggerFactory)
+    public HrzHtmlRendererAdapter(IServiceProvider services, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(loggerFactory);

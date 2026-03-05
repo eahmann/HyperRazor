@@ -48,11 +48,11 @@ public abstract class HrController : ControllerBase
         return ViewService.PartialView(cancellationToken, fragments);
     }
 
-    private IHrxComponentViewService ViewService =>
-        HttpContext.RequestServices.GetRequiredService<IHrxComponentViewService>();
+    private IHrzComponentViewService ViewService =>
+        HttpContext.RequestServices.GetRequiredService<IHrzComponentViewService>();
 
     private void CaptureModelState()
     {
-        HttpContext.Items[HrxContextItemKeys.ModelState] = ModelState;
+        HttpContext.Items[HrzContextItemKeys.ModelState] = ModelState;
     }
 }

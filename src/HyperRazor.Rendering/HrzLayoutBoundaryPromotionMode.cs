@@ -1,6 +1,6 @@
 namespace HyperRazor.Rendering;
 
-public enum HrxLayoutBoundaryPromotionMode
+public enum HrzLayoutBoundaryPromotionMode
 {
     Off = 0,
     ShellSwap = 1,

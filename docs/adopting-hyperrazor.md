@@ -49,12 +49,12 @@ var (request, response) = HttpContext.Htmx();
 response.Trigger("toast:show", new { message = "Saved" });
 ```
 
-5. For status-oriented responses, use `HrxResults` helpers:
+5. For status-oriented responses, use `HrzResults` helpers:
 
 ```csharp
-return HrxResults.NotFound<MyNotFoundComponent>(HttpContext);
-return HrxResults.Forbidden<MyForbiddenComponent>(HttpContext);
-return await HrxResults.Validation<MyFormResultComponent>(
+return HrzResults.NotFound<MyNotFoundComponent>(HttpContext);
+return HrzResults.Forbidden<MyForbiddenComponent>(HttpContext);
+return await HrzResults.Validation<MyFormResultComponent>(
     HttpContext,
     data: new { Errors = errors },
     statusCode: StatusCodes.Status200OK);
@@ -81,7 +81,7 @@ builder.Services.AddHyperRazorHtmx(htmx =>
 
 ```razor
 <form action="/fragments/users/create" hx-post="/fragments/users/create">
-    <HrxAntiforgeryInput />
+    <HrzAntiforgeryInput />
     ...
 </form>
 ```

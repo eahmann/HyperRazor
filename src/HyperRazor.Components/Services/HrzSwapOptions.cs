@@ -1,6 +1,6 @@
 namespace HyperRazor.Components.Services;
 
-public sealed class HrxSwapOptions
+public sealed class HrzSwapOptions
 {
     public bool AllowRawContentOnNonHtmx { get; set; }
 }

@@ -11,18 +11,18 @@ namespace HyperRazor.Components.Services;
 
 #pragma warning disable ASP0006
 
-public sealed class HrxSwapService : IHrxSwapService
+public sealed class HrzSwapService : IHrzSwapService
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters =
         new Dictionary<string, object?>(0, StringComparer.Ordinal);
 
-    private readonly List<HrxSwapItem> _items = [];
+    private readonly List<HrzSwapItem> _items = [];
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly HrxSwapOptions _options;
+    private readonly HrzSwapOptions _options;
     private readonly IServiceProvider? _services;
     private readonly ILoggerFactory? _loggerFactory;
 
-    public HrxSwapService(IHttpContextAccessor httpContextAccessor, IOptions<HrxSwapOptions> options)
+    public HrzSwapService(IHttpContextAccessor httpContextAccessor, IOptions<HrzSwapOptions> options)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
@@ -30,9 +30,9 @@ public sealed class HrxSwapService : IHrxSwapService
         _loggerFactory = null;
     }
 
-    public HrxSwapService(
+    public HrzSwapService(
         IHttpContextAccessor httpContextAccessor,
-        IOptions<HrxSwapOptions> options,
+        IOptions<HrzSwapOptions> options,
         IServiceProvider services,
         ILoggerFactory loggerFactory)
         : this(httpContextAccessor, options)
@@ -56,8 +56,8 @@ public sealed class HrxSwapService : IHrxSwapService
 
         var normalizedParameters = parameters ?? EmptyParameters;
         var fragment = BuildComponentFragment<TComponent>(normalizedParameters);
-        _items.Add(new HrxSwapItem(
-            Type: HrxSwapItemType.Swappable,
+        _items.Add(new HrzSwapItem(
+            Type: HrzSwapItemType.Swappable,
             TargetId: targetId,
             SwapStyle: swapStyle,
             Selector: NormalizeSelector(selector),
@@ -89,8 +89,8 @@ public sealed class HrxSwapService : IHrxSwapService
         EnsureTargetId(targetId);
         ArgumentNullException.ThrowIfNull(fragment);
 
-        _items.Add(new HrxSwapItem(
-            Type: HrxSwapItemType.Swappable,
+        _items.Add(new HrzSwapItem(
+            Type: HrzSwapItemType.Swappable,
             TargetId: targetId,
             SwapStyle: swapStyle,
             Selector: NormalizeSelector(selector),
@@ -110,8 +110,8 @@ public sealed class HrxSwapService : IHrxSwapService
         var content = html ?? string.Empty;
         RenderFragment fragment = builder => builder.AddMarkupContent(0, content);
 
-        _items.Add(new HrxSwapItem(
-            Type: HrxSwapItemType.Swappable,
+        _items.Add(new HrzSwapItem(
+            Type: HrzSwapItemType.Swappable,
             TargetId: targetId,
             SwapStyle: swapStyle,
             Selector: NormalizeSelector(selector),
@@ -122,8 +122,8 @@ public sealed class HrxSwapService : IHrxSwapService
 
     public void AddRawContent(string html)
     {
-        _items.Add(new HrxSwapItem(
-            Type: HrxSwapItemType.RawHtml,
+        _items.Add(new HrzSwapItem(
+            Type: HrzSwapItemType.RawHtml,
             TargetId: string.Empty,
             SwapStyle: SwapStyle.None,
             Selector: null,
@@ -139,7 +139,7 @@ public sealed class HrxSwapService : IHrxSwapService
         var includeRaw = includeSwappables || _options.AllowRawContentOnNonHtmx;
 
         var snapshot = _items
-            .Where(item => item.Type == HrxSwapItemType.Swappable ? includeSwappables : includeRaw)
+            .Where(item => item.Type == HrzSwapItemType.Swappable ? includeSwappables : includeRaw)
             .ToArray();
 
         if (clear)
@@ -153,22 +153,22 @@ public sealed class HrxSwapService : IHrxSwapService
 
             foreach (var item in snapshot)
             {
-                if (item.Type == HrxSwapItemType.RawHtml)
+                if (item.Type == HrzSwapItemType.RawHtml)
                 {
                     builder.AddMarkupContent(sequence++, item.RawHtml ?? string.Empty);
                     continue;
                 }
 
-                builder.OpenComponent<HrxSwappable>(sequence++);
-                builder.AddAttribute(sequence++, nameof(HrxSwappable.TargetId), item.TargetId);
-                builder.AddAttribute(sequence++, nameof(HrxSwappable.SwapStyle), item.SwapStyle);
+                builder.OpenComponent<HrzSwappable>(sequence++);
+                builder.AddAttribute(sequence++, nameof(HrzSwappable.TargetId), item.TargetId);
+                builder.AddAttribute(sequence++, nameof(HrzSwappable.SwapStyle), item.SwapStyle);
 
                 if (!string.IsNullOrWhiteSpace(item.Selector))
                 {
-                    builder.AddAttribute(sequence++, nameof(HrxSwappable.Selector), item.Selector);
+                    builder.AddAttribute(sequence++, nameof(HrzSwappable.Selector), item.Selector);
                 }
 
-                builder.AddAttribute(sequence++, nameof(HrxSwappable.ChildContent), item.Fragment);
+                builder.AddAttribute(sequence++, nameof(HrzSwappable.ChildContent), item.Fragment);
                 builder.CloseComponent();
             }
         };
@@ -186,7 +186,7 @@ public sealed class HrxSwapService : IHrxSwapService
 
         var parameters = new Dictionary<string, object?>
         {
-            [nameof(HrxFragmentGroup.Fragments)] = new RenderFragment[] { fragment }
+            [nameof(HrzFragmentGroup.Fragments)] = new RenderFragment[] { fragment }
         };
 
         await using var renderer = new HtmlRenderer(_services, _loggerFactory);
@@ -194,7 +194,7 @@ public sealed class HrxSwapService : IHrxSwapService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var rendered = await renderer.RenderComponentAsync<HrxFragmentGroup>(
+            var rendered = await renderer.RenderComponentAsync<HrzFragmentGroup>(
                 ParameterView.FromDictionary(parameters));
             return rendered.ToHtmlString();
         });

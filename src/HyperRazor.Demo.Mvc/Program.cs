@@ -18,16 +18,16 @@ builder.Services.AddAntiforgery(options =>
 });
 builder.Services.AddHyperRazor(options =>
 {
-    options.RootComponent = typeof(HrxApp<AppLayout>);
+    options.RootComponent = typeof(HrzApp<AppLayout>);
     options.UseMinimalLayoutForHtmx = true;
     options.LayoutBoundary.Enabled = true;
     options.LayoutBoundary.OnlyBoostedRequests = true;
-    options.LayoutBoundary.PromotionMode = HrxLayoutBoundaryPromotionMode.ShellSwap;
+    options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
     options.LayoutBoundary.LayoutFamilyHeaderName = HtmxHeaderNames.LayoutFamily;
     options.LayoutBoundary.DefaultLayoutFamily = "main";
-    options.LayoutBoundary.ShellTargetSelector = "#hrx-app-shell";
+    options.LayoutBoundary.ShellTargetSelector = "#hrz-app-shell";
     options.LayoutBoundary.ShellSwapStyle = "outerHTML";
-    options.LayoutBoundary.ShellReselectSelector = "#hrx-app-shell";
+    options.LayoutBoundary.ShellReselectSelector = "#hrz-app-shell";
     options.LayoutBoundary.AddVaryHeader = true;
 });
 builder.Services.AddHtmx(htmx =>
@@ -38,7 +38,7 @@ builder.Services.AddHtmx(htmx =>
     htmx.AllowNestedOobSwaps = false;
     htmx.DefaultSwapStyle = "outerHTML";
     htmx.EnableHeadSupport = true;
-    htmx.AntiforgeryMetaName = "hrx-antiforgery";
+    htmx.AntiforgeryMetaName = "hrz-antiforgery";
     htmx.AntiforgeryHeaderName = "RequestVerificationToken";
     htmx.ResponseHandling =
     [

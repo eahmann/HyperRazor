@@ -11,11 +11,11 @@
                 @_componentContent
                 @if (ShouldRenderHeadContent)
                 {
-                    <HrxHeadContent />
+                    <HrzHeadContent />
                 }
                 @if (ShouldRenderSwapContent)
                 {
-                    <HrxSwapContent />
+                    <HrzSwapContent />
                 }
             }
             else
@@ -23,11 +23,11 @@
                 <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
                 @if (ShouldRenderHeadContent)
                 {
-                    <HrxHeadContent />
+                    <HrzHeadContent />
                 }
                 @if (ShouldRenderSwapContent)
                 {
-                    <HrxSwapContent />
+                    <HrzSwapContent />
                 }
             }
         </CascadingValue>
@@ -63,9 +63,9 @@
     public ModelStateDictionary? ModelState { get; set; }
 
     [Parameter]
-    public HrxShellContext? ShellContext { get; set; }
+    public HrzShellContext? ShellContext { get; set; }
 
-    private Type _resolvedRootComponentType = typeof(HrxApp<HrxAppLayout>);
+    private Type _resolvedRootComponentType = typeof(HrzApp<HrzAppLayout>);
     private Dictionary<string, object?> _rootParameters = new();
     private RenderFragment _componentContent = _ => { };
     private bool ShouldRenderHeadContent => IsHtmxRequest && !IsHistoryRestoreRequest;
@@ -73,7 +73,7 @@
 
     protected override void OnParametersSet()
     {
-        _resolvedRootComponentType = RootComponentType ?? typeof(HrxApp<HrxAppLayout>);
+        _resolvedRootComponentType = RootComponentType ?? typeof(HrzApp<HrzAppLayout>);
         _componentContent = BuildComponentTree();
 
         _rootParameters = new Dictionary<string, object?>

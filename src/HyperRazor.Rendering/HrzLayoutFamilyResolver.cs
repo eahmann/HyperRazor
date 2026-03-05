@@ -5,15 +5,15 @@ using Microsoft.Extensions.Options;
 
 namespace HyperRazor.Rendering;
 
-public sealed class HrxLayoutFamilyResolver : IHrxLayoutFamilyResolver
+public sealed class HrzLayoutFamilyResolver : IHrzLayoutFamilyResolver
 {
     private const string LayoutSuffix = "Layout";
 
-    private readonly HrxOptions _options;
+    private readonly HrzOptions _options;
     private readonly ConcurrentDictionary<Type, string> _pageCache = new();
     private readonly ConcurrentDictionary<Type, string> _layoutCache = new();
 
-    public HrxLayoutFamilyResolver(IOptions<HrxOptions> options)
+    public HrzLayoutFamilyResolver(IOptions<HrzOptions> options)
     {
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
     }
@@ -51,9 +51,9 @@ public sealed class HrxLayoutFamilyResolver : IHrxLayoutFamilyResolver
 
     private string ResolveLayoutFamilyCore(Type layoutType)
     {
-        var explicitFamily = (HrxLayoutFamilyAttribute?)Attribute.GetCustomAttribute(
+        var explicitFamily = (HrzLayoutFamilyAttribute?)Attribute.GetCustomAttribute(
             layoutType,
-            typeof(HrxLayoutFamilyAttribute),
+            typeof(HrzLayoutFamilyAttribute),
             inherit: true);
 
         if (explicitFamily is not null)

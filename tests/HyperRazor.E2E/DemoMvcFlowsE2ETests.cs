@@ -217,14 +217,14 @@ public sealed class DemoMvcFlowsE2ETests
             response => response.Url.Contains("/demos/layout-swap", StringComparison.Ordinal));
 
         Assert.Equal(200, layoutIntroResponse.Status);
-        Assert.Equal("main", layoutIntroResponse.Request.Headers["x-hrx-layout-family"]);
+        Assert.Equal("main", layoutIntroResponse.Request.Headers["x-hrz-layout-family"]);
         var layoutIntroHeaders = await layoutIntroResponse.AllHeadersAsync();
         Assert.True(layoutIntroHeaders.TryGetValue("hx-retarget", out var layoutIntroRetarget));
-        Assert.Equal("#hrx-app-shell", layoutIntroRetarget);
+        Assert.Equal("#hrz-app-shell", layoutIntroRetarget);
         Assert.True(layoutIntroHeaders.TryGetValue("hx-reswap", out var layoutIntroReswap));
         Assert.Equal("outerHTML", layoutIntroReswap);
         Assert.True(layoutIntroHeaders.TryGetValue("hx-reselect", out var layoutIntroReselect));
-        Assert.Equal("#hrx-app-shell", layoutIntroReselect);
+        Assert.Equal("#hrz-app-shell", layoutIntroReselect);
         await ExpectHeadingAsync(page, "Layout Swap Demo");
         await Assertions.Expect(page.Locator("#side-nav-layout-shell")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".app-nav")).ToHaveCountAsync(0);
@@ -235,7 +235,7 @@ public sealed class DemoMvcFlowsE2ETests
             response => response.Url.Contains("/demos/layout-swap/details", StringComparison.Ordinal));
 
         Assert.Equal(200, layoutDetailsResponse.Status);
-        Assert.Equal("side", layoutDetailsResponse.Request.Headers["x-hrx-layout-family"]);
+        Assert.Equal("side", layoutDetailsResponse.Request.Headers["x-hrz-layout-family"]);
         var layoutDetailsHeaders = await layoutDetailsResponse.AllHeadersAsync();
         Assert.False(layoutDetailsHeaders.ContainsKey("hx-retarget"));
         Assert.False(layoutDetailsHeaders.ContainsKey("hx-reswap"));
@@ -248,14 +248,14 @@ public sealed class DemoMvcFlowsE2ETests
             response => response.Url.Contains("/demos/basic", StringComparison.Ordinal));
 
         Assert.Equal(200, backToTopNavResponse.Status);
-        Assert.Equal("side", backToTopNavResponse.Request.Headers["x-hrx-layout-family"]);
+        Assert.Equal("side", backToTopNavResponse.Request.Headers["x-hrz-layout-family"]);
         var backToTopHeaders = await backToTopNavResponse.AllHeadersAsync();
         Assert.True(backToTopHeaders.TryGetValue("hx-retarget", out var backToTopRetarget));
-        Assert.Equal("#hrx-app-shell", backToTopRetarget);
+        Assert.Equal("#hrz-app-shell", backToTopRetarget);
         Assert.True(backToTopHeaders.TryGetValue("hx-reswap", out var backToTopReswap));
         Assert.Equal("outerHTML", backToTopReswap);
         Assert.True(backToTopHeaders.TryGetValue("hx-reselect", out var backToTopReselect));
-        Assert.Equal("#hrx-app-shell", backToTopReselect);
+        Assert.Equal("#hrz-app-shell", backToTopReselect);
         await ExpectHeadingAsync(page, "Server Trigger");
         Assert.EndsWith("/demos/basic", page.Url, StringComparison.Ordinal);
         Assert.Equal(1, await page.Locator("#app-shell").CountAsync());
@@ -269,7 +269,7 @@ public sealed class DemoMvcFlowsE2ETests
 
     private static async Task ExpectHeadingAsync(IPage page, string text)
     {
-        var heading = page.Locator("main#hrx-main-layout h2").First;
+        var heading = page.Locator("main#hrz-main-layout h2").First;
         await heading.WaitForAsync(new LocatorWaitForOptions
         {
             State = WaitForSelectorState.Visible

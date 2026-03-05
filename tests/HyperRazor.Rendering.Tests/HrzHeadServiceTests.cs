@@ -9,7 +9,7 @@ namespace HyperRazor.Rendering.Tests;
 
 #pragma warning disable BL0006
 
-public class HrxHeadServiceTests
+public class HrzHeadServiceTests
 {
     [Fact]
     public void RenderToFragment_WithoutHtmxRequest_DoesNotEmitHeadPayload()
@@ -65,7 +65,7 @@ public class HrxHeadServiceTests
         Assert.Equal(3, updates);
     }
 
-    private static HrxHeadService CreateService(bool isHtmx)
+    private static HrzHeadService CreateService(bool isHtmx)
     {
         var context = new DefaultHttpContext();
         if (isHtmx)
@@ -78,7 +78,7 @@ public class HrxHeadServiceTests
             HttpContext = context
         };
 
-        return new HrxHeadService(accessor);
+        return new HrzHeadService(accessor);
     }
 
     private static ArrayRange<RenderTreeFrame> RenderFrames(RenderFragment fragment)

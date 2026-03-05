@@ -14,10 +14,10 @@ namespace HyperRazor.Demo.Mvc.Controllers;
 public sealed class FragmentsController : HrController
 {
     private static int _userCount = 5;
-    private readonly IHrxHeadService _headService;
-    private readonly IHrxSwapService _swapService;
+    private readonly IHrzHeadService _headService;
+    private readonly IHrzSwapService _swapService;
 
-    public FragmentsController(IHrxSwapService swapService, IHrxHeadService headService)
+    public FragmentsController(IHrzSwapService swapService, IHrzHeadService headService)
     {
         _swapService = swapService ?? throw new ArgumentNullException(nameof(swapService));
         _headService = headService ?? throw new ArgumentNullException(nameof(headService));
@@ -88,9 +88,9 @@ public sealed class FragmentsController : HrController
     {
         QueueInspectorUpdate(
             action: "status-401",
-            details: "Returned a 401 response fragment using HrxResults.Unauthorized.");
+            details: "Returned a 401 response fragment using HrzResults.Unauthorized.");
 
-        return HrxResults.Unauthorized<ErrorStatusResult>(
+        return HrzResults.Unauthorized<ErrorStatusResult>(
             HttpContext,
             new
             {
@@ -107,9 +107,9 @@ public sealed class FragmentsController : HrController
     {
         QueueInspectorUpdate(
             action: "status-403",
-            details: "Returned a 403 response fragment using HrxResults.Forbidden.");
+            details: "Returned a 403 response fragment using HrzResults.Forbidden.");
 
-        return HrxResults.Forbidden<ErrorStatusResult>(
+        return HrzResults.Forbidden<ErrorStatusResult>(
             HttpContext,
             new
             {
@@ -126,9 +126,9 @@ public sealed class FragmentsController : HrController
     {
         QueueInspectorUpdate(
             action: "status-404",
-            details: "Returned a 404 response fragment using HrxResults.NotFound.");
+            details: "Returned a 404 response fragment using HrzResults.NotFound.");
 
-        return HrxResults.NotFound<ErrorStatusResult>(
+        return HrzResults.NotFound<ErrorStatusResult>(
             HttpContext,
             new
             {
@@ -153,7 +153,7 @@ public sealed class FragmentsController : HrController
             action: "status-500",
             details: "Returned a 500 response fragment and appended an OOB toast.");
 
-        return HrxResults.ServerError<ErrorStatusResult>(
+        return HrzResults.ServerError<ErrorStatusResult>(
             HttpContext,
             new
             {
@@ -181,7 +181,7 @@ public sealed class FragmentsController : HrController
 
         QueueInspectorUpdate(
             action: "head-update",
-            details: $"Queued title + description via IHrxHeadService. Title=\"{normalizedTitle}\"");
+            details: $"Queued title + description via IHrzHeadService. Title=\"{normalizedTitle}\"");
 
         return PartialView<HeadUpdateResult>(new
         {
@@ -233,7 +233,7 @@ public sealed class FragmentsController : HrController
 
         QueueInspectorUpdate(
             action: "create-user-rendered",
-            details: $"Created {normalizedName} (#{count}) via IHrxSwapService.RenderToString(clear: true).");
+            details: $"Created {normalizedName} (#{count}) via IHrzSwapService.RenderToString(clear: true).");
 
         var oobMarkup = await _swapService.RenderToString(clear: true, cancellationToken);
         var preview = BuildRenderToStringPreview(oobMarkup);
@@ -310,7 +310,7 @@ public sealed class FragmentsController : HrController
         HttpContext.HtmxResponse().Location(new
         {
             path = "/",
-            target = "#hrx-main-layout",
+            target = "#hrz-main-layout",
             swap = "innerHTML"
         });
         return NoContent();

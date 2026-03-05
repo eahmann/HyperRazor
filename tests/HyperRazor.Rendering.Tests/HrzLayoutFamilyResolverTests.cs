@@ -5,13 +5,13 @@ using Microsoft.Extensions.Options;
 
 namespace HyperRazor.Rendering.Tests;
 
-public class HrxLayoutFamilyResolverTests
+public class HrzLayoutFamilyResolverTests
 {
-    private static IHrxLayoutFamilyResolver CreateResolver(string defaultLayoutFamily = "main")
+    private static IHrzLayoutFamilyResolver CreateResolver(string defaultLayoutFamily = "main")
     {
-        return new HrxLayoutFamilyResolver(Options.Create(new HrxOptions
+        return new HrzLayoutFamilyResolver(Options.Create(new HrzOptions
         {
-            LayoutBoundary = new HrxLayoutBoundaryOptions
+            LayoutBoundary = new HrzLayoutBoundaryOptions
             {
                 DefaultLayoutFamily = defaultLayoutFamily
             }
@@ -57,7 +57,7 @@ public class HrxLayoutFamilyResolverTests
     {
     }
 
-    [HrxLayoutFamily("side")]
+    [HrzLayoutFamily("side")]
     private sealed class SideDemoLayout : LayoutComponentBase
     {
     }

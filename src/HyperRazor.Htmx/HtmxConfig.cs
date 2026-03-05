@@ -19,7 +19,7 @@ public sealed class HtmxConfig
     public bool EnableDiagnosticsInDevelopment { get; set; } = true;
 
     [JsonIgnore]
-    public string AntiforgeryMetaName { get; set; } = "hrx-antiforgery";
+    public string AntiforgeryMetaName { get; set; } = "hrz-antiforgery";
 
     [JsonIgnore]
     public string AntiforgeryHeaderName { get; set; } = "RequestVerificationToken";

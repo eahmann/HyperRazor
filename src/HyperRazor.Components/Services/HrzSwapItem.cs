@@ -2,14 +2,14 @@ using Microsoft.AspNetCore.Components;
 
 namespace HyperRazor.Components.Services;
 
-internal enum HrxSwapItemType
+internal enum HrzSwapItemType
 {
     Swappable,
     RawHtml
 }
 
-internal sealed record HrxSwapItem(
-    HrxSwapItemType Type,
+internal sealed record HrzSwapItem(
+    HrzSwapItemType Type,
     string TargetId,
     SwapStyle SwapStyle,
     string? Selector,

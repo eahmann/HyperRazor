@@ -1,20 +1,20 @@
 @implements IDisposable
-@inject IHrxHeadService HeadService
+@inject IHrzSwapService SwapService
 
-@if (HeadService.ContentAvailable)
+@if (SwapService.ContentAvailable)
 {
-    @HeadService.RenderToFragment(clear: true)
+    @SwapService.RenderToFragment(clear: true)
 }
 
 @code {
     protected override void OnInitialized()
     {
-        HeadService.ContentItemsUpdated += OnContentItemsUpdated;
+        SwapService.ContentItemsUpdated += OnContentItemsUpdated;
     }
 
     public void Dispose()
     {
-        HeadService.ContentItemsUpdated -= OnContentItemsUpdated;
+        SwapService.ContentItemsUpdated -= OnContentItemsUpdated;
     }
 
     private void OnContentItemsUpdated(object? sender, EventArgs args)

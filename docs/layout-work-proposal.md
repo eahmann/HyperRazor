@@ -49,8 +49,8 @@ Boundary promotion keeps the system:
 ## 2) Terminology
 
 - **Layout family**: a stable id string like `main` or `side` that groups layouts whose shell chrome can remain stable across route swaps.
-- **Route frame**: the element you normally swap into (currently `#hrx-main-layout` in `layout.txt`).
-- **Shell root**: the element that wraps “chrome that might differ by family” and can be swapped when needed (new: `#hrx-app-shell` as a *div inside body*).
+- **Route frame**: the element you normally swap into (currently `#hrz-main-layout` in `layout.txt`).
+- **Shell root**: the element that wraps “chrome that might differ by family” and can be swapped when needed (new: `#hrz-app-shell` as a *div inside body*).
 
 ---
 
@@ -59,7 +59,7 @@ Boundary promotion keeps the system:
 ### 3.1 Request (client → server)
 On every HTMX request, client sends:
 
-- `X-Hrx-Layout-Family: <current-family>`
+- `X-Hrz-Layout-Family: <current-family>`
 
 (added via `htmx:configRequest` or `hx-headers`)
 
@@ -82,28 +82,28 @@ Decision:
 ## 4) Architectural Changes
 
 ### 4.1 Change: Shell root must be swappable (avoid swapping `<body>`)
-In `layout.txt`, `id="hrx-app-shell"` is on `<body>`. HTMX has a quirk: targeting `body` always uses `innerHTML`, so you cannot change body attributes via an HTMX swap.
+In `layout.txt`, `id="hrz-app-shell"` is on `<body>`. HTMX has a quirk: targeting `body` always uses `innerHTML`, so you cannot change body attributes via an HTMX swap.
 
-**Action:** Move `#hrx-app-shell` onto a *div inside body*:
+**Action:** Move `#hrz-app-shell` onto a *div inside body*:
 
 ```razor
 <body
-    data-hrx-antiforgery-meta="..."
-    data-hrx-antiforgery-header="..."
-    data-hrx-head-support="true"
+    data-hrz-antiforgery-meta="..."
+    data-hrz-antiforgery-header="..."
+    data-hrz-head-support="true"
     hx-ext="head-support">
 
-    <div id="hrx-app-shell" data-hrx-layout-family="@Shell.LayoutFamily">
+    <div id="hrz-app-shell" data-hrz-layout-family="@Shell.LayoutFamily">
         <!-- header + route frame + any family-dependent chrome -->
         <header id="app-shell">...</header>
 
-        <main id="hrx-main-layout" class="layout">
+        <main id="hrz-main-layout" class="layout">
             @Body
         </main>
     </div>
 
     <!-- Optional: inspector outside shell so it never re-renders on promotions -->
-    <section class="panel panel--inspector" hx-preserve="true" id="hrx-inspector">...</section>
+    <section class="panel panel--inspector" hx-preserve="true" id="hrz-inspector">...</section>
 </body>
 ```
 
@@ -112,15 +112,15 @@ Notes:
 - You can preserve the inspector with `hx-preserve` **or** move it outside the shell root.
 
 ### 4.2 Add a shell context (so AppLayout knows the route family)
-We need AppLayout to emit `data-hrx-layout-family="..."` on the shell root. AppLayout does not naturally “know” which page layout is in use.
+We need AppLayout to emit `data-hrz-layout-family="..."` on the shell root. AppLayout does not naturally “know” which page layout is in use.
 
 **Plan:** Add a server-provided shell context:
 
 ```csharp
-public sealed record HrxShellContext(string LayoutFamily);
+public sealed record HrzShellContext(string LayoutFamily);
 ```
 
-Expose it to components via a cascading parameter from your root wrapper (`HrxApp<T>`).
+Expose it to components via a cascading parameter from your root wrapper (`HrzApp<T>`).
 
 ---
 
@@ -132,9 +132,9 @@ Use `htmx:configRequest` to attach a header (event exposes `detail.headers`).
 ```js
 // hyperrazor.htmx.js
 document.body.addEventListener('htmx:configRequest', function (evt) {
-  const shell = document.querySelector('#hrx-app-shell');
-  const family = shell?.dataset?.hrxLayoutFamily || '';
-  evt.detail.headers['X-Hrx-Layout-Family'] = family;
+  const shell = document.querySelector('#hrz-app-shell');
+  const family = shell?.dataset?.hrzLayoutFamily || '';
+  evt.detail.headers['X-Hrz-Layout-Family'] = family;
 });
 ```
 
@@ -143,7 +143,7 @@ If you prefer declarative inheritance, `hx-headers` can add headers to all desce
 
 Example concept (verify exact expression style you want):
 ```html
-<body hx-headers='{"X-Hrx-Layout-Family":"js:document.querySelector(\"#hrx-app-shell\")?.dataset?.hrxLayoutFamily"}'>
+<body hx-headers='{"X-Hrz-Layout-Family":"js:document.querySelector(\"#hrz-app-shell\")?.dataset?.hrzLayoutFamily"}'>
 ```
 
 We’ll ship the `htmx:configRequest` approach as default because it’s explicit and debuggable.
@@ -156,7 +156,7 @@ We’ll ship the `htmx:configRequest` approach as default because it’s explici
 Create a small, testable service:
 
 ```csharp
-public interface IHrxLayoutFamilyResolver
+public interface IHrzLayoutFamilyResolver
 {
     string ResolveForPageComponent(Type pageComponentType);
     string ResolveForLayoutType(Type layoutType);
@@ -164,7 +164,7 @@ public interface IHrxLayoutFamilyResolver
 ```
 
 Resolution rules (KISS):
-1. If layout type has `[HrxLayoutFamily("main")]` attribute → use it.
+1. If layout type has `[HrzLayoutFamily("main")]` attribute → use it.
 2. Else derive from naming convention:
    - `MainLayout` → `main`
    - `SideLayout` → `side`
@@ -176,7 +176,7 @@ Also add:
 ### 6.2 Add options for boundary promotion
 
 ```csharp
-public enum HrxLayoutBoundaryPromotionMode
+public enum HrzLayoutBoundaryPromotionMode
 {
     Off = 0,
     ShellSwap = 1,
@@ -184,16 +184,16 @@ public enum HrxLayoutBoundaryPromotionMode
     Refresh = 3
 }
 
-public sealed class HrxLayoutBoundaryOptions
+public sealed class HrzLayoutBoundaryOptions
 {
     public bool Enabled { get; set; } = true;
-    public string RequestHeaderName { get; set; } = "X-Hrx-Layout-Family";
+    public string RequestHeaderName { get; set; } = "X-Hrz-Layout-Family";
     public bool OnlyBoostedRequests { get; set; } = true;  // default safer
-    public HrxLayoutBoundaryPromotionMode Mode { get; set; } = HrxLayoutBoundaryPromotionMode.ShellSwap;
+    public HrzLayoutBoundaryPromotionMode Mode { get; set; } = HrzLayoutBoundaryPromotionMode.ShellSwap;
 
-    public string ShellTargetSelector { get; set; } = "#hrx-app-shell";
+    public string ShellTargetSelector { get; set; } = "#hrz-app-shell";
     public string ShellSwapStyle { get; set; } = "outerHTML";
-    public string ShellReselectSelector { get; set; } = "#hrx-app-shell";
+    public string ShellReselectSelector { get; set; } = "#hrz-app-shell";
 
     public bool AddVaryHeader { get; set; } = true;
 }
@@ -229,9 +229,9 @@ Return **full page HTML** (same as non-HTMX render), but instruct HTMX to:
 - select only the shell root from the response
 
 Headers:
-- `HX-Retarget: #hrx-app-shell`
+- `HX-Retarget: #hrz-app-shell`
 - `HX-Reswap: outerHTML`
-- `HX-Reselect: #hrx-app-shell`
+- `HX-Reselect: #hrz-app-shell`
 
 Optionally:
 - `HX-Push-Url: <requested-url>` (extra safety)
@@ -265,18 +265,18 @@ If you use caching, HTMX docs recommend:
 - `Vary: HX-Request` when rendering fragments for HTMX requests but full HTML otherwise
 - disable `historyRestoreAsHxRequest` when using the fragment/full split
 
-With boundary promotion enabled, responses also vary by `X-Hrx-Layout-Family` (because mismatch vs match changes response shape), so include it in Vary as well.
+With boundary promotion enabled, responses also vary by `X-Hrz-Layout-Family` (because mismatch vs match changes response shape), so include it in Vary as well.
 
 Implementation:
-- Always add: `Vary: HX-Request, X-Hrx-Layout-Family` when boundary promotion is enabled (and the response is HTML).
+- Always add: `Vary: HX-Request, X-Hrz-Layout-Family` when boundary promotion is enabled (and the response is HTML).
 
 ---
 
 ## 7) Demo Work (HyperRazor.Demo.Mvc)
 
 ### 7.1 Update AppLayout markup
-- Move `#hrx-app-shell` to a div inside body
-- Add `data-hrx-layout-family` to the shell root
+- Move `#hrz-app-shell` to a div inside body
+- Add `data-hrz-layout-family` to the shell root
 - Move inspector outside shell root OR add `hx-preserve` + stable id
 
 ### 7.2 Make family-dependent shell chrome obvious
@@ -311,9 +311,9 @@ Inside each, include enough navigation links to:
   - OnlyBoostedRequests respects `HX-Boosted`
 
 ### 8.2 Integration tests (WebApplicationFactory)
-- HTMX boosted request with `X-Hrx-Layout-Family=main` to a side-family route:
+- HTMX boosted request with `X-Hrz-Layout-Family=main` to a side-family route:
   - asserts response includes: `HX-Retarget`, `HX-Reswap`, `HX-Reselect`
-  - asserts response contains `id="hrx-app-shell"`
+  - asserts response contains `id="hrz-app-shell"`
 - Same-family request:
   - asserts promotion headers are absent
   - asserts response is fragment-shaped (no doctype, depending on your current fragment output)
@@ -341,7 +341,7 @@ Create a short doc page:
     - keep “family-dependent chrome” inside shell root
     - keep route content inside route frame
   - debugging tips:
-    - show `data-hrx-layout-family` in inspector
+    - show `data-hrz-layout-family` in inspector
     - log promotion decisions in Development
 
 ---
@@ -381,17 +381,17 @@ Create a short doc page:
    - Keep this configurable for advanced consumers.
 
 3. **Missing client family header behavior = fail safe, with fallback inference**
-   - Primary source: `X-Hrx-Layout-Family`.
+   - Primary source: `X-Hrz-Layout-Family`.
    - Fallback: derive current family from `HX-Current-URL` route mapping when available.
    - If neither can be resolved reliably, treat as boundary mismatch and promote (safe default).
 
 4. **Head/script-sensitive routes = explicit hard-navigation marker**
-   - Add an explicit route/layout marker (attribute or metadata), e.g. `[HrxRequireHardNavigation]`.
+   - Add an explicit route/layout marker (attribute or metadata), e.g. `[HrzRequireHardNavigation]`.
    - When marker is present, bypass `ShellSwap` and return `HX-Redirect` for correctness.
    - Keep default unmarked routes on `ShellSwap`.
 
 5. **Inspector persistence = outside shell root**
-   - Keep inspector outside `#hrx-app-shell` as the default structure.
+   - Keep inspector outside `#hrz-app-shell` as the default structure.
    - This avoids extra preserve semantics and removes one moving part during shell promotions.
 
 6. **Scope control for v1**

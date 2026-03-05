@@ -6,12 +6,12 @@ namespace HyperRazor.Components.Services;
 
 #pragma warning disable ASP0006
 
-public sealed class HrxHeadService : IHrxHeadService
+public sealed class HrzHeadService : IHrzHeadService
 {
     private readonly List<RenderFragment> _items = [];
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public HrxHeadService(IHttpContextAccessor httpContextAccessor)
+    public HrzHeadService(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     }

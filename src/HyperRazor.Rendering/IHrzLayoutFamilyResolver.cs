@@ -1,6 +1,6 @@
 namespace HyperRazor.Rendering;
 
-public interface IHrxLayoutFamilyResolver
+public interface IHrzLayoutFamilyResolver
 {
     string ResolveForPageComponent(Type pageComponentType);
 

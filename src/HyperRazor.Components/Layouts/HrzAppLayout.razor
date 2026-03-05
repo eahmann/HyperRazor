@@ -7,18 +7,18 @@
     <meta charset="utf-8" hx-preserve="true" />
     <meta name="viewport" content="width=device-width, initial-scale=1" hx-preserve="true" />
     <title>HyperRazor</title>
-    <HrxHtmxConfigMeta />
-    <HrxAntiforgeryMeta />
+    <HrzHtmxConfigMeta />
+    <HrzAntiforgeryMeta />
     <script src="/_content/HyperRazor.Client/vendor/htmx/htmx-2.0.4.min.js" hx-preserve="true"></script>
     <script src="/_content/HyperRazor.Client/vendor/htmx/head-support-2.0.2.js" hx-preserve="true"></script>
     <script src="/_content/HyperRazor.Client/hyperrazor.htmx.js" defer hx-preserve="true"></script>
     <link rel="stylesheet" href="/_content/HyperRazor.Client/hyperrazor.css" hx-preserve="true" />
 </head>
 <body
-    id="hrx-app-shell"
-    data-hrx-antiforgery-meta="@HtmxConfig.AntiforgeryMetaName"
-    data-hrx-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
-    data-hrx-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
+    id="hrz-app-shell"
+    data-hrz-antiforgery-meta="@HtmxConfig.AntiforgeryMetaName"
+    data-hrz-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
+    data-hrz-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
     hx-ext="@(HtmxConfig.EnableHeadSupport ? "head-support" : null)">
     @Body
 </body>

@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HyperRazor.Mvc;
 
-public static class HrxResults
+public static class HrzResults
 {
     public static Task<IResult> Page<TComponent>(
         HttpContext context,
@@ -46,7 +46,7 @@ public static class HrxResults
 
         configureResponse?.Invoke(context.HtmxResponse());
         var inner = await ResolveViewService(context).PartialView<TComponent>(data, cancellationToken);
-        return new HrxStatusResult(statusCode, inner);
+        return new HrzStatusResult(statusCode, inner);
     }
 
     public static Task<IResult> NotFound<TComponent>(
@@ -121,20 +121,20 @@ public static class HrxResults
 
         configureResponse?.Invoke(context.HtmxResponse());
         var inner = await ResolveViewService(context).PartialView<TComponent>(data, cancellationToken);
-        return new HrxStatusResult(statusCode, inner);
+        return new HrzStatusResult(statusCode, inner);
     }
 
-    private static IHrxComponentViewService ResolveViewService(HttpContext context)
+    private static IHrzComponentViewService ResolveViewService(HttpContext context)
     {
-        return context.RequestServices.GetRequiredService<IHrxComponentViewService>();
+        return context.RequestServices.GetRequiredService<IHrzComponentViewService>();
     }
 
-    private sealed class HrxStatusResult : IResult
+    private sealed class HrzStatusResult : IResult
     {
         private readonly int _statusCode;
         private readonly IResult _inner;
 
-        public HrxStatusResult(int statusCode, IResult inner)
+        public HrzStatusResult(int statusCode, IResult inner)
         {
             _statusCode = statusCode;
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));

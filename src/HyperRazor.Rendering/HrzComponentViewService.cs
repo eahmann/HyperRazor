@@ -9,20 +9,20 @@ using Microsoft.Net.Http.Headers;
 
 namespace HyperRazor.Rendering;
 
-public sealed class HrxComponentViewService : IHrxComponentViewService
+public sealed class HrzComponentViewService : IHrzComponentViewService
 {
     private const string HtmlContentType = "text/html; charset=utf-8";
 
-    private readonly IHrxHtmlRendererAdapter _renderer;
+    private readonly IHrzHtmlRendererAdapter _renderer;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IHrxLayoutFamilyResolver _layoutFamilyResolver;
-    private readonly HrxOptions _options;
+    private readonly IHrzLayoutFamilyResolver _layoutFamilyResolver;
+    private readonly HrzOptions _options;
 
-    public HrxComponentViewService(
-        IHrxHtmlRendererAdapter renderer,
+    public HrzComponentViewService(
+        IHrzHtmlRendererAdapter renderer,
         IHttpContextAccessor httpContextAccessor,
-        IHrxLayoutFamilyResolver layoutFamilyResolver,
-        IOptions<HrxOptions> options)
+        IHrzLayoutFamilyResolver layoutFamilyResolver,
+        IOptions<HrzOptions> options)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -33,7 +33,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
     public Task<IResult> View<TComponent>(object? data = null, CancellationToken cancellationToken = default)
         where TComponent : IComponent
     {
-        return View<TComponent>(HrxParameterDictionaryFactory.Create(data), cancellationToken);
+        return View<TComponent>(HrzParameterDictionaryFactory.Create(data), cancellationToken);
     }
 
     public async Task<IResult> View<TComponent>(
@@ -47,7 +47,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         var request = context.HtmxRequest();
         var isHtmxRequest = request.RequestType == HtmxRequestType.Partial;
         var routeLayoutFamily = _layoutFamilyResolver.ResolveForPageComponent(typeof(TComponent));
-        var shellContext = new HrxShellContext(routeLayoutFamily);
+        var shellContext = new HrzShellContext(routeLayoutFamily);
         var modelState = ResolveModelState(context);
         EnsureVaryForHtmxBranching(context.Response.Headers);
 
@@ -56,19 +56,19 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
             context: context,
             routeLayoutFamily: routeLayoutFamily);
 
-        if (promotionMode == HrxLayoutBoundaryPromotionMode.Redirect)
+        if (promotionMode == HrzLayoutBoundaryPromotionMode.Redirect)
         {
             context.HtmxResponse().Redirect(GetRequestPathAndQuery(context.Request));
             return Results.Content(string.Empty, HtmlContentType);
         }
 
-        if (promotionMode == HrxLayoutBoundaryPromotionMode.Refresh)
+        if (promotionMode == HrzLayoutBoundaryPromotionMode.Refresh)
         {
             context.HtmxResponse().Refresh();
             return Results.Content(string.Empty, HtmlContentType);
         }
 
-        var shouldRenderShellForPromotion = promotionMode == HrxLayoutBoundaryPromotionMode.ShellSwap;
+        var shouldRenderShellForPromotion = promotionMode == HrzLayoutBoundaryPromotionMode.ShellSwap;
         if (shouldRenderShellForPromotion)
         {
             context.HtmxResponse()
@@ -95,7 +95,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
     public Task<IResult> PartialView<TComponent>(object? data = null, CancellationToken cancellationToken = default)
         where TComponent : IComponent
     {
-        return PartialView<TComponent>(HrxParameterDictionaryFactory.Create(data), cancellationToken);
+        return PartialView<TComponent>(HrzParameterDictionaryFactory.Create(data), cancellationToken);
     }
 
     public async Task<IResult> PartialView<TComponent>(
@@ -134,10 +134,10 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         EnsureVaryForHtmxBranching(context.Response.Headers);
 
         var html = await RenderHostAsync(
-            componentType: typeof(HrxFragmentGroup),
+            componentType: typeof(HrzFragmentGroup),
             componentParameters: new Dictionary<string, object?>
             {
-                [nameof(HrxFragmentGroup.Fragments)] = fragments
+                [nameof(HrzFragmentGroup.Fragments)] = fragments
             },
             context: context,
             modelState: modelState,
@@ -158,24 +158,24 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         bool isPartial,
         bool isHtmxRequest,
         bool isHistoryRestoreRequest,
-        HrxShellContext? shellContext,
+        HrzShellContext? shellContext,
         CancellationToken cancellationToken)
     {
         var hostParameters = new Dictionary<string, object?>
         {
-            [nameof(HrxComponentHost.ComponentType)] = componentType,
-            [nameof(HrxComponentHost.ComponentParameters)] = componentParameters,
-            [nameof(HrxComponentHost.RootComponentType)] = _options.RootComponent,
-            [nameof(HrxComponentHost.IsPartial)] = isPartial,
-            [nameof(HrxComponentHost.IsHtmxRequest)] = isHtmxRequest,
-            [nameof(HrxComponentHost.IsHistoryRestoreRequest)] = isHistoryRestoreRequest,
-            [nameof(HrxComponentHost.UseMinimalLayoutForHtmx)] = _options.UseMinimalLayoutForHtmx,
-            [nameof(HrxComponentHost.HttpContext)] = context,
-            [nameof(HrxComponentHost.ModelState)] = modelState,
-            [nameof(HrxComponentHost.ShellContext)] = shellContext
+            [nameof(HrzComponentHost.ComponentType)] = componentType,
+            [nameof(HrzComponentHost.ComponentParameters)] = componentParameters,
+            [nameof(HrzComponentHost.RootComponentType)] = _options.RootComponent,
+            [nameof(HrzComponentHost.IsPartial)] = isPartial,
+            [nameof(HrzComponentHost.IsHtmxRequest)] = isHtmxRequest,
+            [nameof(HrzComponentHost.IsHistoryRestoreRequest)] = isHistoryRestoreRequest,
+            [nameof(HrzComponentHost.UseMinimalLayoutForHtmx)] = _options.UseMinimalLayoutForHtmx,
+            [nameof(HrzComponentHost.HttpContext)] = context,
+            [nameof(HrzComponentHost.ModelState)] = modelState,
+            [nameof(HrzComponentHost.ShellContext)] = shellContext
         };
 
-        return _renderer.RenderAsync(typeof(HrxComponentHost), hostParameters, cancellationToken);
+        return _renderer.RenderAsync(typeof(HrzComponentHost), hostParameters, cancellationToken);
     }
 
     private HttpContext GetHttpContext()
@@ -223,7 +223,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
 
     private static ModelStateDictionary ResolveModelState(HttpContext context)
     {
-        if (context.Items.TryGetValue(HrxContextItemKeys.ModelState, out var value)
+        if (context.Items.TryGetValue(HrzContextItemKeys.ModelState, out var value)
             && value is ModelStateDictionary modelState)
         {
             return modelState;
@@ -232,25 +232,25 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         return new ModelStateDictionary();
     }
 
-    private HrxLayoutBoundaryPromotionMode ResolvePromotionMode(
+    private HrzLayoutBoundaryPromotionMode ResolvePromotionMode(
         HtmxRequest request,
         HttpContext context,
         string routeLayoutFamily)
     {
         var options = _options.LayoutBoundary;
-        if (!options.Enabled || options.PromotionMode == HrxLayoutBoundaryPromotionMode.Off)
+        if (!options.Enabled || options.PromotionMode == HrzLayoutBoundaryPromotionMode.Off)
         {
-            return HrxLayoutBoundaryPromotionMode.Off;
+            return HrzLayoutBoundaryPromotionMode.Off;
         }
 
         if (!request.IsPartialRequest || request.IsHistoryRestoreRequest)
         {
-            return HrxLayoutBoundaryPromotionMode.Off;
+            return HrzLayoutBoundaryPromotionMode.Off;
         }
 
         if (options.OnlyBoostedRequests && !request.IsBoosted)
         {
-            return HrxLayoutBoundaryPromotionMode.Off;
+            return HrzLayoutBoundaryPromotionMode.Off;
         }
 
         var clientLayoutFamily = ResolveClientLayoutFamily(request, context, routeLayoutFamily, options.LayoutFamilyHeaderName);
@@ -260,7 +260,7 @@ public sealed class HrxComponentViewService : IHrxComponentViewService
         }
 
         return string.Equals(clientLayoutFamily, routeLayoutFamily, StringComparison.OrdinalIgnoreCase)
-            ? HrxLayoutBoundaryPromotionMode.Off
+            ? HrzLayoutBoundaryPromotionMode.Off
             : options.PromotionMode;
     }
 

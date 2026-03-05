@@ -75,8 +75,8 @@
             return;
         }
 
-        var metaName = readBodySetting("data-hrx-antiforgery-meta", "hrx-antiforgery");
-        var headerName = readBodySetting("data-hrx-antiforgery-header", "RequestVerificationToken");
+        var metaName = readBodySetting("data-hrz-antiforgery-meta", "hrz-antiforgery");
+        var headerName = readBodySetting("data-hrz-antiforgery-header", "RequestVerificationToken");
         var token = readMetaContent(metaName);
         if (!token) {
             return;
@@ -92,17 +92,17 @@
             return;
         }
 
-        var shell = document.querySelector("#hrx-app-shell");
+        var shell = document.querySelector("#hrz-app-shell");
         if (!shell) {
             return;
         }
 
-        var family = shell.getAttribute("data-hrx-layout-family");
+        var family = shell.getAttribute("data-hrz-layout-family");
         if (!family || family.trim().length === 0) {
             return;
         }
 
-        headers["X-Hrx-Layout-Family"] = family.trim();
+        headers["X-Hrz-Layout-Family"] = family.trim();
     }
 
     function ensureHeadSupport() {
@@ -111,7 +111,7 @@
             return;
         }
 
-        var enabled = body.getAttribute("data-hrx-head-support");
+        var enabled = body.getAttribute("data-hrz-head-support");
         if (enabled !== "true") {
             return;
         }

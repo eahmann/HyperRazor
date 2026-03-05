@@ -9,28 +9,28 @@ public static class HyperRazorServiceCollectionExtensions
 {
     public static IServiceCollection AddHyperRazor(
         this IServiceCollection services,
-        Action<HrxOptions>? configure = null)
+        Action<HrzOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddHttpContextAccessor();
         services.AddRazorComponents();
-        services.AddOptions<HrxOptions>();
+        services.AddOptions<HrzOptions>();
         if (configure is not null)
         {
             services.Configure(configure);
         }
-        services.AddOptions<HrxSwapOptions>()
-            .Configure<IOptions<HrxOptions>>((swapOptions, hrxOptions) =>
+        services.AddOptions<HrzSwapOptions>()
+            .Configure<IOptions<HrzOptions>>((swapOptions, hrzOptions) =>
             {
-                swapOptions.AllowRawContentOnNonHtmx = hrxOptions.Value.AllowRawContentOnNonHtmx;
+                swapOptions.AllowRawContentOnNonHtmx = hrzOptions.Value.AllowRawContentOnNonHtmx;
             });
 
-        services.AddScoped<IHrxHtmlRendererAdapter, HrxHtmlRendererAdapter>();
-        services.AddScoped<IHrxComponentViewService, HrxComponentViewService>();
-        services.AddSingleton<IHrxLayoutFamilyResolver, HrxLayoutFamilyResolver>();
-        services.AddScoped<IHrxHeadService, HrxHeadService>();
-        services.AddScoped<IHrxSwapService, HrxSwapService>();
+        services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
+        services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
+        services.AddScoped<IHrzHeadService, HrzHeadService>();
+        services.AddScoped<IHrzSwapService, HrzSwapService>();
 
         return services;
     }

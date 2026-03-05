@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace HyperRazor.Rendering;
 
-internal static class HrxParameterDictionaryFactory
+internal static class HrzParameterDictionaryFactory
 {
     public static IReadOnlyDictionary<string, object?> Create(object? data)
     {

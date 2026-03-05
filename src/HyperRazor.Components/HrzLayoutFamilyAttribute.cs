@@ -1,9 +1,9 @@
 namespace HyperRazor.Components;
 
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public sealed class HrxLayoutFamilyAttribute : Attribute
+public sealed class HrzLayoutFamilyAttribute : Attribute
 {
-    public HrxLayoutFamilyAttribute(string family)
+    public HrzLayoutFamilyAttribute(string family)
     {
         if (string.IsNullOrWhiteSpace(family))
         {

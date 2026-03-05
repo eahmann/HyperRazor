@@ -17,7 +17,7 @@ namespace HyperRazor.Rendering.Tests;
 
 #pragma warning disable BL0006
 
-public class HrxSwapServiceTests
+public class HrzSwapServiceTests
 {
     [Fact]
     public void SwapStyle_ToHtmxString_UsesExpectedFormats()
@@ -135,7 +135,7 @@ public class HrxSwapServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.RenderToString());
     }
 
-    private static HrxSwapService CreateService(
+    private static HrzSwapService CreateService(
         bool isHtmx,
         bool allowRawContentOnNonHtmx = false,
         IServiceProvider? serviceProvider = null,
@@ -152,17 +152,17 @@ public class HrxSwapServiceTests
             HttpContext = context
         };
 
-        var options = Options.Create(new HrxSwapOptions
+        var options = Options.Create(new HrzSwapOptions
         {
             AllowRawContentOnNonHtmx = allowRawContentOnNonHtmx
         });
 
         if (serviceProvider is not null && loggerFactory is not null)
         {
-            return new HrxSwapService(accessor, options, serviceProvider, loggerFactory);
+            return new HrzSwapService(accessor, options, serviceProvider, loggerFactory);
         }
 
-        return new HrxSwapService(accessor, options);
+        return new HrzSwapService(accessor, options);
     }
 
     private static ArrayRange<RenderTreeFrame> RenderFrames(RenderFragment fragment)

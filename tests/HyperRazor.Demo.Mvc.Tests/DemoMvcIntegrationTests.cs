@@ -178,7 +178,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.True(metaStart >= 0, "Expected htmx-config meta tag in rendered HTML.");
         var scriptIndex = body.IndexOf("src=\"/_content/HyperRazor.Client/vendor/htmx/htmx-2.0.4.min.js\"", StringComparison.Ordinal);
         Assert.True(scriptIndex >= 0 && metaStart < scriptIndex, "Expected htmx-config meta to render before htmx.js.");
-        Assert.Contains("name=\"hrx-antiforgery\"", body, StringComparison.Ordinal);
+        Assert.Contains("name=\"hrz-antiforgery\"", body, StringComparison.Ordinal);
         Assert.Contains("_content/HyperRazor.Client/hyperrazor.htmx.js", body, StringComparison.Ordinal);
         Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
@@ -235,13 +235,13 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Retarget, out var retargetValues));
-        Assert.Equal("#hrx-app-shell", retargetValues.Single());
+        Assert.Equal("#hrz-app-shell", retargetValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reswap, out var reswapValues));
         Assert.Equal("outerHTML", reswapValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
-        Assert.Equal("#hrx-app-shell", reselectValues.Single());
+        Assert.Equal("#hrz-app-shell", reselectValues.Single());
         Assert.Contains("<header id=\"app-shell\">", body, StringComparison.Ordinal);
-        Assert.Contains("data-hrx-layout-family=\"side\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-layout-family=\"side\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -496,7 +496,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"render-to-string-demo-result\"", body, StringComparison.Ordinal);
-        Assert.Contains("IHrxSwapService.RenderToString(clear: true)", body, StringComparison.Ordinal);
+        Assert.Contains("IHrzSwapService.RenderToString(clear: true)", body, StringComparison.Ordinal);
         Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
@@ -594,7 +594,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         using (var locationDoc = JsonDocument.Parse(locationValues.Single()))
         {
             Assert.Equal("/", locationDoc.RootElement.GetProperty("path").GetString());
-            Assert.Equal("#hrx-main-layout", locationDoc.RootElement.GetProperty("target").GetString());
+            Assert.Equal("#hrz-main-layout", locationDoc.RootElement.GetProperty("target").GetString());
             Assert.Equal("innerHTML", locationDoc.RootElement.GetProperty("swap").GetString());
         }
 
@@ -669,7 +669,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return ExtractMetaContent(html, "hrx-antiforgery");
+        return ExtractMetaContent(html, "hrz-antiforgery");
     }
 
     private static string ExtractMetaContent(string html, string metaName)

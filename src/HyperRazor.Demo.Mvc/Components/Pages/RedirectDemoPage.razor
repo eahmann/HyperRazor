@@ -7,7 +7,7 @@
 <section id="redirect-demo" class="panel">
     <h3>Redirect Patterns</h3>
     <div class="demo-note" role="note">
-        <strong>How To Test:</strong> soft redirect preserves the shell and swaps `#hrx-main-layout`;
+        <strong>How To Test:</strong> soft redirect preserves the shell and swaps `#hrz-main-layout`;
         hard redirect forces a full navigation.
     </div>
     <p class="demo-caption">
@@ -15,12 +15,12 @@
     </p>
 
     <form class="inline-form" action="/fragments/navigation/soft" hx-post="/fragments/navigation/soft" hx-disabled-elt="find button">
-        <HrxAntiforgeryInput />
+        <HrzAntiforgeryInput />
         <button type="submit">Soft redirect (HX-Location)</button>
     </form>
 
     <form class="inline-form" action="/fragments/navigation/hard" hx-post="/fragments/navigation/hard" hx-disabled-elt="find button">
-        <HrxAntiforgeryInput />
+        <HrzAntiforgeryInput />
         <button type="submit">Hard redirect (HX-Redirect)</button>
     </form>
 </section>

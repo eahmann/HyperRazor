@@ -25,7 +25,7 @@
         hx-indicator="#validation-indicator"
         hx-disabled-elt="find button"
         novalidate>
-        <HrxAntiforgeryInput />
+        <HrzAntiforgeryInput />
 
         <label for="validation-display-name">Display Name</label>
         <input id="validation-display-name" name="displayName" value="Riley Stone" />
@@ -34,7 +34,7 @@
         <input id="validation-email" name="email" type="email" value="riley@example.com" />
 
         <button type="submit">Submit</button>
-        <span id="validation-indicator" class="hrx-indicator" aria-live="polite">Validating…</span>
+        <span id="validation-indicator" class="hrz-indicator" aria-live="polite">Validating…</span>
     </form>
 
     @* Partial fragment mount point for success/error state. *@

@@ -118,6 +118,10 @@ Acceptance:
 
 ### E) CI and release readiness
 
+Status:
+
+- complete on 2026-03-06
+
 Deliverables:
 
 - Add CI workflow(s) to run unit/integration on PRs.

@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup Condition="'$(IsPackable)' != 'false' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('HyperRazor.'))">
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(PackageReadmeFile)' == 'README.md'">
+    <None Include="$(MSBuildThisFileDirectory)docs/nuget-readme.md" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
+</Project>

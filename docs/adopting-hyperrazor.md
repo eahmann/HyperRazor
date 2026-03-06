@@ -1,6 +1,7 @@
 # Adopting HyperRazor (v1)
 
 For the current canonical setup, start with [quickstart.md](/home/eric/repos/HyperRazor/docs/quickstart.md).
+For CI and package/versioning expectations, see [release-policy.md](/home/eric/repos/HyperRazor/docs/release-policy.md).
 
 1. Reference HyperRazor packages from your web app:
 - `HyperRazor.Hosting`

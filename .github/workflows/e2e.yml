@@ -1,0 +1,49 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: '0 7 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  playwright:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            HyperRazor.slnx
+            src/**/*.csproj
+            tests/**/*.csproj
+
+      - name: Run E2E bootstrap and tests
+        run: bash tests/HyperRazor.E2E/run-e2e.sh

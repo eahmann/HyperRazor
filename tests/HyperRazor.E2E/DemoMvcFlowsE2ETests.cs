@@ -209,7 +209,7 @@ public sealed class DemoMvcFlowsE2ETests
         await using var context = await _fixture.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/basic");
+        await page.GotoAsync($"{_fixture.BaseUrl}/minimal/basic");
         await WaitForHtmxAsync(page);
 
         var layoutIntroResponse = await page.RunAndWaitForResponseAsync(
@@ -244,8 +244,8 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.EndsWith("/demos/layout-swap/details", page.Url, StringComparison.Ordinal);
 
         var backToTopNavResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync(".side-layout-nav a[href='/demos/basic']"),
-            response => response.Url.Contains("/demos/basic", StringComparison.Ordinal));
+            async () => await page.ClickAsync(".side-layout-nav a[href='/minimal/basic']"),
+            response => response.Url.Contains("/minimal/basic", StringComparison.Ordinal));
 
         Assert.Equal(200, backToTopNavResponse.Status);
         Assert.Equal("side", backToTopNavResponse.Request.Headers["x-hrz-layout-family"]);
@@ -257,7 +257,7 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.True(backToTopHeaders.TryGetValue("hx-reselect", out var backToTopReselect));
         Assert.Equal("#hrz-app-shell", backToTopReselect);
         await ExpectHeadingAsync(page, "Server Trigger");
-        Assert.EndsWith("/demos/basic", page.Url, StringComparison.Ordinal);
+        Assert.EndsWith("/minimal/basic", page.Url, StringComparison.Ordinal);
         Assert.Equal(1, await page.Locator("#app-shell").CountAsync());
         await Assertions.Expect(page.Locator(".app-nav")).ToHaveCountAsync(1);
     }

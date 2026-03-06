@@ -8,6 +8,10 @@ namespace HyperRazor.Mvc;
 
 public static class HrzResults
 {
+    /// <summary>
+    /// Renders a routable page component, automatically returning full HTML or an HTMX fragment
+    /// based on the current request.
+    /// </summary>
     public static Task<IResult> Page<TComponent>(
         HttpContext context,
         object? data = null,
@@ -21,6 +25,9 @@ public static class HrzResults
         return ResolveViewService(context).View<TComponent>(data, cancellationToken);
     }
 
+    /// <summary>
+    /// Renders a fragment component without page-shell semantics.
+    /// </summary>
     public static Task<IResult> Partial<TComponent>(
         HttpContext context,
         object? data = null,
@@ -34,6 +41,9 @@ public static class HrzResults
         return ResolveViewService(context).PartialView<TComponent>(data, cancellationToken);
     }
 
+    /// <summary>
+    /// Renders a fragment component and applies the supplied status code.
+    /// </summary>
     public static async Task<IResult> Validation<TComponent>(
         HttpContext context,
         object? data = null,
@@ -49,6 +59,9 @@ public static class HrzResults
         return new HrzStatusResult(statusCode, inner);
     }
 
+    /// <summary>
+    /// Renders a fragment component with a 404 status code.
+    /// </summary>
     public static Task<IResult> NotFound<TComponent>(
         HttpContext context,
         object? data = null,
@@ -64,6 +77,9 @@ public static class HrzResults
             cancellationToken);
     }
 
+    /// <summary>
+    /// Renders a fragment component with a 403 status code.
+    /// </summary>
     public static Task<IResult> Forbidden<TComponent>(
         HttpContext context,
         object? data = null,
@@ -79,6 +95,9 @@ public static class HrzResults
             cancellationToken);
     }
 
+    /// <summary>
+    /// Renders a fragment component with a 401 status code.
+    /// </summary>
     public static Task<IResult> Unauthorized<TComponent>(
         HttpContext context,
         object? data = null,
@@ -94,6 +113,9 @@ public static class HrzResults
             cancellationToken);
     }
 
+    /// <summary>
+    /// Renders a fragment component with a 500 status code.
+    /// </summary>
     public static Task<IResult> ServerError<TComponent>(
         HttpContext context,
         object? data = null,

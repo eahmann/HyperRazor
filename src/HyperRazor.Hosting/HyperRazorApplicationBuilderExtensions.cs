@@ -5,6 +5,11 @@ namespace HyperRazor.Hosting;
 
 public static class HyperRazorApplicationBuilderExtensions
 {
+    /// <summary>
+    /// Enables HyperRazor's HTMX-aware middleware pipeline.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <returns>The application builder for chaining.</returns>
     public static IApplicationBuilder UseHyperRazor(this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);

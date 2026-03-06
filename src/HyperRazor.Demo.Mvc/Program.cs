@@ -1,8 +1,10 @@
 using HyperRazor.Components;
+using HyperRazor.Demo.Mvc.Components.Pages;
 using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Hosting;
 using HyperRazor.Htmx;
 using HyperRazor.Htmx.AspNetCore;
+using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Mvc;
 
@@ -73,6 +75,13 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseHyperRazor();
+
+// Minimal API parity routes reuse the same page components as the MVC demo controller.
+var minimalPages = app.MapGroup("/minimal");
+minimalPages.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<HomePage>(context, cancellationToken: cancellationToken));
+minimalPages.MapGet("/basic", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<BasicDemoPage>(context, cancellationToken: cancellationToken));
 
 app.MapControllers();
 

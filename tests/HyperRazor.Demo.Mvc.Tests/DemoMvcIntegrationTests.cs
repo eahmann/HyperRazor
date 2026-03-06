@@ -24,7 +24,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Server Trigger", body, StringComparison.Ordinal);
-        Assert.Contains("href=\"/demos/basic\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/minimal\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/minimal/basic\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/search\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/redirects\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/errors\"", body, StringComparison.Ordinal);
@@ -37,6 +38,35 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.Boosted, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.LayoutFamily, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task MinimalHome_ReturnsOverviewComponent()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/minimal");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("HyperRazor HTMX Demo", body, StringComparison.Ordinal);
+        Assert.Contains("/minimal/basic", body, StringComparison.Ordinal);
+        Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task MinimalBasic_ReturnsServerTriggerExperience()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/minimal/basic");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Server Trigger</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/fragments/toast/success\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/fragments/toast/success-attribute\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"server-trigger-demo\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,7 +167,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("<h2>Layout Swap Demo</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"side-nav-layout-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/layout-swap/details\"", body, StringComparison.Ordinal);
-        Assert.Contains("href=\"/demos/basic\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/minimal/basic\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
     }
 
@@ -222,6 +252,23 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task MinimalBasic_WithHxRequest_ReturnsMainLayoutFragmentWithoutHeaderNav()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/minimal/basic");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Server Trigger</h2>", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.Contains(HtmxHeaderNames.Request, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task LayoutSwap_WithBoostedRequestAndMainFamily_PromotesToShellSwap()
     {
         using var client = CreateClient();
@@ -245,10 +292,10 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task Basic_WithBoostedRequestAndMainFamily_DoesNotPromoteLayoutBoundary()
+    public async Task MinimalBasic_WithBoostedRequestAndMainFamily_DoesNotPromoteLayoutBoundary()
     {
         using var client = CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/basic");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/minimal/basic");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add(HtmxHeaderNames.Boosted, "true");
         request.Headers.Add(HtmxHeaderNames.LayoutFamily, "main");

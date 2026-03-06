@@ -1,5 +1,7 @@
 # Adopting HyperRazor (v1)
 
+For the current canonical setup, start with [quickstart.md](/home/eric/repos/HyperRazor/docs/quickstart.md).
+
 1. Reference HyperRazor packages from your web app:
 - `HyperRazor.Hosting`
 - `HyperRazor.Htmx.AspNetCore`
@@ -22,7 +24,7 @@ builder.Services.AddHyperRazor(options =>
     options.UseMinimalLayoutForHtmx = true;
 });
 
-builder.Services.AddHyperRazorHtmx(htmx =>
+builder.Services.AddHtmx(htmx =>
 {
     htmx.ClientProfile = HtmxClientProfile.Htmx2Defaults;
     htmx.SelfRequestsOnly = true;
@@ -63,7 +65,7 @@ return await HrzResults.Validation<MyFormResultComponent>(
 6. Optional strict validation semantics (`422`):
 
 ```csharp
-builder.Services.AddHyperRazorHtmx(htmx =>
+builder.Services.AddHtmx(htmx =>
 {
     htmx.ResponseHandling =
     [

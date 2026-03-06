@@ -1,4 +1,4 @@
-using HyperRazor.Htmx.AspNetCore;
+using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;

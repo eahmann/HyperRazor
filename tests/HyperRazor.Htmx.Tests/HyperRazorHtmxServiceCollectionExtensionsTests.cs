@@ -1,8 +1,7 @@
 using HyperRazor.Htmx;
-using HyperRazor.Htmx.AspNetCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace HyperRazor.Htmx.AspNetCore.Tests;
+namespace HyperRazor.Htmx.Tests;
 
 public class HyperRazorHtmxServiceCollectionExtensionsTests
 {

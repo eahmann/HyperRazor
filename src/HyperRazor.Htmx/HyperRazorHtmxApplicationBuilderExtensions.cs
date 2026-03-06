@@ -1,9 +1,8 @@
-using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 
-namespace HyperRazor.Htmx.AspNetCore;
+namespace HyperRazor.Htmx;
 
 public static class HyperRazorHtmxApplicationBuilderExtensions
 {

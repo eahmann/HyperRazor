@@ -11,8 +11,8 @@ This plan is based on the repository state as of today, not assumptions.
 
 - Current prefix baseline is `Hrz*` / `hrz-*` (no `Hrx*` aliases in source).
 - Full test suite passes:
-  - `HyperRazor.Htmx.Tests`: 11/11
-  - `HyperRazor.Htmx.AspNetCore.Tests`: 9/9
+  - `HyperRazor.Htmx.Core.Tests`: 11/11
+  - `HyperRazor.Htmx.Tests`: 9/9
   - `HyperRazor.Rendering.Tests`: 23/23
   - `HyperRazor.Demo.Mvc.Tests`: 36/36
   - `HyperRazor.E2E`: 7/7

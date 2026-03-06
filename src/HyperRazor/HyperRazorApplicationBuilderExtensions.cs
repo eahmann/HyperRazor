@@ -1,7 +1,7 @@
-using HyperRazor.Htmx.AspNetCore;
+using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Builder;
 
-namespace HyperRazor.Hosting;
+namespace HyperRazor;
 
 public static class HyperRazorApplicationBuilderExtensions
 {

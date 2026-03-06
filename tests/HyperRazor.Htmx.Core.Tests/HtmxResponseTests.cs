@@ -1,7 +1,7 @@
 using System.Text.Json;
 using HyperRazor.Htmx;
 
-namespace HyperRazor.Htmx.Tests;
+namespace HyperRazor.Htmx.Core.Tests;
 
 public class HtmxResponseTests
 {

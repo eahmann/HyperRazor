@@ -57,7 +57,7 @@ HyperRazor uses a fast/slow split.
 
 - `CI` workflow runs the fast suites on pushes and pull requests:
   - `HyperRazor.Htmx.Tests`
-  - `HyperRazor.Htmx.AspNetCore.Tests`
+  - `HyperRazor.Htmx.Core.Tests`
   - `HyperRazor.Rendering.Tests`
   - `HyperRazor.Demo.Mvc.Tests`
 - `E2E` workflow runs the Playwright suite outside pull requests:

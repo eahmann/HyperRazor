@@ -1,7 +1,6 @@
-using HyperRazor.Htmx;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace HyperRazor.Htmx.AspNetCore;
+namespace HyperRazor.Htmx;
 
 public static class HyperRazorHtmxServiceCollectionExtensions
 {

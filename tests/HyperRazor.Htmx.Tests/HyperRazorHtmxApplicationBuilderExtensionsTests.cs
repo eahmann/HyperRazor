@@ -1,12 +1,11 @@
 using HyperRazor.Htmx;
-using HyperRazor.Htmx.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 
-namespace HyperRazor.Htmx.AspNetCore.Tests;
+namespace HyperRazor.Htmx.Tests;
 
 public class HyperRazorHtmxApplicationBuilderExtensionsTests
 {

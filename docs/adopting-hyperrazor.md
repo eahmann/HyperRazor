@@ -7,8 +7,8 @@ For CI and package/versioning expectations, see [release-policy.md](/home/eric/r
 - `HyperRazor` for the full framework path
 - `HyperRazor.Htmx` for HTMX-only ASP.NET integration without the HyperRazor rendering stack
 
-For the normal HyperRazor app path, install `HyperRazor`. The lower-level MVC and HTMX ASP.NET Core packages flow transitively from there.
-The public package IDs are simpler than the current namespaces, so you will still import namespaces like `HyperRazor.Hosting`, `HyperRazor.Mvc`, and `HyperRazor.Htmx.AspNetCore` in code.
+For the normal HyperRazor app path, install `HyperRazor`. The lower-level MVC and HTMX packages flow transitively from there.
+The main entry-point namespaces now align with the package story: `HyperRazor`, `HyperRazor.Htmx`, and `HyperRazor.Mvc`.
 
 2. Register services:
 

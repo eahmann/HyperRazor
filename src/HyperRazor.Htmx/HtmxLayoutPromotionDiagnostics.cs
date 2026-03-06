@@ -1,4 +1,4 @@
-namespace HyperRazor.Htmx.AspNetCore;
+namespace HyperRazor.Htmx;
 
 public sealed record HtmxLayoutPromotionDiagnostics(
     string? ClientLayoutFamily,

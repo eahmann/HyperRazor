@@ -1,7 +1,6 @@
-using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Http;
 
-namespace HyperRazor.Htmx.AspNetCore;
+namespace HyperRazor.Htmx;
 
 public static class HyperRazorHtmxHttpContextExtensions
 {

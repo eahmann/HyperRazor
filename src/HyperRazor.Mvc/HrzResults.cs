@@ -1,4 +1,4 @@
-using HyperRazor.Htmx.AspNetCore;
+using HyperRazor.Htmx;
 using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;

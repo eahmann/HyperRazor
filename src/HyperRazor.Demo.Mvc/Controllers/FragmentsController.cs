@@ -2,7 +2,6 @@ using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Components.Services;
 using HyperRazor.Htmx;
-using HyperRazor.Htmx.AspNetCore;
 using HyperRazor.Mvc;
 using HyperRazor.Mvc.Filters;
 using Microsoft.AspNetCore.Http;

@@ -1,8 +1,7 @@
 using System.Text.Json;
-using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Http;
 
-namespace HyperRazor.Htmx.AspNetCore;
+namespace HyperRazor.Htmx;
 
 public sealed class HtmxResponseWriter
 {

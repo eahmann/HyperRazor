@@ -3,7 +3,7 @@ using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace HyperRazor.Hosting;
+namespace HyperRazor;
 
 public static class HyperRazorServiceCollectionExtensions
 {

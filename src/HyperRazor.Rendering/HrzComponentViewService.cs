@@ -1,6 +1,5 @@
 using HyperRazor.Components;
 using HyperRazor.Htmx;
-using HyperRazor.Htmx.AspNetCore;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;

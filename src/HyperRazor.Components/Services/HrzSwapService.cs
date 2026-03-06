@@ -45,6 +45,44 @@ public sealed class HrzSwapService : IHrzSwapService
 
     public bool ContentAvailable => _items.Count > 0;
 
+    public void QueueComponent<TComponent>(
+        string targetId,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null)
+        where TComponent : IComponent
+    {
+        AddSwappableComponent<TComponent>(targetId, parameters, swapStyle, selector);
+    }
+
+    public void QueueComponent<TComponent>(
+        string targetId,
+        object? parameters = null,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null)
+        where TComponent : IComponent
+    {
+        AddSwappableComponent<TComponent>(targetId, parameters, swapStyle, selector);
+    }
+
+    public void QueueFragment(
+        string targetId,
+        RenderFragment fragment,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null)
+    {
+        AddSwappableFragment(targetId, fragment, swapStyle, selector);
+    }
+
+    public void QueueHtml(
+        string targetId,
+        string html,
+        SwapStyle swapStyle = SwapStyle.OuterHtml,
+        string? selector = null)
+    {
+        AddSwappableContent(targetId, html, swapStyle, selector);
+    }
+
     public void AddSwappableComponent<TComponent>(
         string targetId,
         IReadOnlyDictionary<string, object?>? parameters = null,

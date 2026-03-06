@@ -143,7 +143,7 @@ public sealed class FragmentsController : HrController
     [HtmxRequest]
     public Task<IResult> ServerErrorStatus(CancellationToken cancellationToken)
     {
-        _swapService.AddSwappableContent(
+        _swapService.QueueHtml(
             targetId: $"error-toast-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
             html: "<div class=\"toast error\">Server-side failure demo (500) with OOB toast.</div>",
             swapStyle: SwapStyle.BeforeEnd,
@@ -169,24 +169,36 @@ public sealed class FragmentsController : HrController
     public Task<IResult> HeadUpdate(
         [FromForm] string? title,
         [FromForm] string? description,
+        [FromForm] string? accent,
         CancellationToken cancellationToken)
     {
         var normalizedTitle = string.IsNullOrWhiteSpace(title) ? "HyperRazor • Head Update" : title.Trim();
         var normalizedDescription = string.IsNullOrWhiteSpace(description)
             ? "Head updated from HTMX partial response."
             : description.Trim();
+        var accentPreset = NormalizeHeadAccent(accent);
 
-        _headService.AddTitle(normalizedTitle);
-        _headService.AddMeta("description", normalizedDescription);
+        _headService.SetTitle(normalizedTitle);
+        _headService.AddMeta("description", normalizedDescription, key: "description");
+        _headService.AddStyle(BuildHeadDemoStyle(accentPreset.Hex), key: "head-demo-style");
+        _headService.AddScript(
+            "/head-demo.asset.js",
+            new Dictionary<string, object?>
+            {
+                ["defer"] = true
+            },
+            key: "head-demo-script");
 
         QueueInspectorUpdate(
             action: "head-update",
-            details: $"Queued title + description via IHrzHeadService. Title=\"{normalizedTitle}\"");
+            details: $"Queued title/meta/style/script via IHrzHeadService. Title=\"{normalizedTitle}\", accent={accentPreset.Name}.");
 
         return PartialView<HeadUpdateResult>(new
         {
             Title = normalizedTitle,
-            Description = normalizedDescription
+            Description = normalizedDescription,
+            AccentName = accentPreset.Name,
+            AccentHex = accentPreset.Hex
         }, cancellationToken);
     }
 
@@ -359,7 +371,7 @@ public sealed class FragmentsController : HrController
     {
         if (includeUsersList)
         {
-            _swapService.AddSwappableComponent<UserCreateResult>(
+            _swapService.QueueComponent<UserCreateResult>(
                 targetId: "users-list",
                 parameters: new Dictionary<string, object?>
                 {
@@ -369,7 +381,7 @@ public sealed class FragmentsController : HrController
                 swapStyle: SwapStyle.OuterHtml);
         }
 
-        _swapService.AddSwappableComponent<ToastSuccess>(
+        _swapService.QueueComponent<ToastSuccess>(
             targetId: $"toast-{count}",
             parameters: new Dictionary<string, object?>
             {
@@ -378,7 +390,7 @@ public sealed class FragmentsController : HrController
             swapStyle: SwapStyle.BeforeEnd,
             selector: "#toast-stack");
 
-        _swapService.AddSwappableComponent<UserCountValue>(
+        _swapService.QueueComponent<UserCountValue>(
             targetId: "user-count-shell",
             parameters: new Dictionary<string, object?>
             {
@@ -386,7 +398,7 @@ public sealed class FragmentsController : HrController
             },
             swapStyle: SwapStyle.InnerHtml);
 
-        _swapService.AddSwappableComponent<ActivityFeedItem>(
+        _swapService.QueueComponent<ActivityFeedItem>(
             targetId: $"activity-{count}",
             parameters: new Dictionary<string, object?>
             {
@@ -399,7 +411,7 @@ public sealed class FragmentsController : HrController
 
     private void QueueInspectorUpdate(string action, string details)
     {
-        _swapService.AddSwappableComponent<HxRequestResponseInspector>(
+        _swapService.QueueComponent<HxRequestResponseInspector>(
             targetId: "hx-debug-shell",
             parameters: BuildInspectorParameters(HttpContext, action, details),
             swapStyle: SwapStyle.OuterHtml);
@@ -464,5 +476,34 @@ public sealed class FragmentsController : HrController
         }
 
         return value.ToString();
+    }
+
+    private static (string Name, string Hex) NormalizeHeadAccent(string? accent)
+    {
+        return accent?.Trim().ToLowerInvariant() switch
+        {
+            "amber" => ("Amber", "#d97706"),
+            "rose" => ("Rose", "#e11d48"),
+            _ => ("Teal", "#0f766e")
+        };
+    }
+
+    private static string BuildHeadDemoStyle(string accentHex)
+    {
+        return $$"""
+        #head-demo-result .head-demo-style-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid {{accentHex}};
+            border-radius: 999px;
+            background: color-mix(in srgb, {{accentHex}} 14%, white);
+            color: {{accentHex}};
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        """;
     }
 }

@@ -135,6 +135,7 @@ public sealed class DemoMvcFlowsE2ETests
         await WaitForHtmxAsync(page);
         await page.FillAsync("#head-title-input", "E2E Head Title");
         await page.FillAsync("#head-description-input", "E2E head description.");
+        await page.SelectOptionAsync("#head-accent-input", "amber");
         var response = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#head-demo-form button[type='submit']"),
             r => r.Url.Contains("/fragments/head/update", StringComparison.Ordinal));
@@ -153,6 +154,19 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Contains("<title>E2E Head Title</title>", html, StringComparison.Ordinal);
         await Assertions.Expect(page).ToHaveTitleAsync("E2E Head Title");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Head Updated");
+        await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Accent preset: Amber");
+        await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Load count: 1");
+
+        await page.FillAsync("#head-title-input", "E2E Head Title 2");
+        await page.SelectOptionAsync("#head-accent-input", "rose");
+        var secondResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#head-demo-form button[type='submit']"),
+            r => r.Url.Contains("/fragments/head/update", StringComparison.Ordinal));
+
+        Assert.Equal(200, secondResponse.Status);
+        await Assertions.Expect(page).ToHaveTitleAsync("E2E Head Title 2");
+        await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Accent preset: Rose");
+        await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Load count: 1");
     }
 
     [SkippableFact]

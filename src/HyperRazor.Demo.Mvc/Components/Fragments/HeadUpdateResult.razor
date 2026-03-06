@@ -3,9 +3,12 @@
     <h3>Head Updated</h3>
     <p><strong>Title queued:</strong> @Title</p>
     <p><strong>Description queued:</strong> @Description</p>
+    <p><strong>Accent preset:</strong> @AccentName (<code>@AccentHex</code>)</p>
+    <p><span class="head-demo-style-preview">Head Style Preview</span></p>
+    <p id="head-script-status" class="demo-caption">Script asset pending.</p>
     <p class="demo-caption">
         The response also includes a <code>&lt;head&gt;</code> payload. With <code>head-support</code> enabled,
-        the browser document title/meta are updated without a full page reload.
+        the browser updates keyed head items without a full page reload.
     </p>
 </section>
 
@@ -15,4 +18,10 @@
 
     [Parameter]
     public string Description { get; set; } = string.Empty;
+
+    [Parameter]
+    public string AccentName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string AccentHex { get; set; } = string.Empty;
 }

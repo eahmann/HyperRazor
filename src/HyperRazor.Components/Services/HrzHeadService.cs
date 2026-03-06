@@ -8,8 +8,9 @@ namespace HyperRazor.Components.Services;
 
 public sealed class HrzHeadService : IHrzHeadService
 {
-    private readonly List<RenderFragment> _items = [];
+    private readonly List<HeadItem> _items = [];
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private long _nextSequence;
 
     public HrzHeadService(IHttpContextAccessor httpContextAccessor)
     {
@@ -20,64 +21,125 @@ public sealed class HrzHeadService : IHrzHeadService
 
     public bool ContentAvailable => _items.Count > 0;
 
-    public void AddTitle(string title)
+    public void SetTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(title));
         }
 
-        AddHeadFragment(builder =>
-        {
-            builder.OpenElement(0, "title");
-            builder.AddContent(1, title.Trim());
-            builder.CloseElement();
-        });
+        UpsertItem(
+            HeadItemKind.Title,
+            HeadItem.TitleKey,
+            builder =>
+            {
+                builder.OpenElement(0, "title");
+                builder.AddContent(1, title.Trim());
+                builder.CloseElement();
+            });
     }
 
-    public void AddMeta(string name, string content)
+    public void AddTitle(string title)
+    {
+        SetTitle(title);
+    }
+
+    public void AddMeta(string name, string content, string? key = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(name));
         }
 
-        AddHeadFragment(builder =>
-        {
-            builder.OpenElement(0, "meta");
-            builder.AddAttribute(1, "name", name.Trim());
-            builder.AddAttribute(2, "content", content ?? string.Empty);
-            builder.CloseElement();
-        });
+        UpsertItem(
+            HeadItemKind.Meta,
+            NormalizeKey(key),
+            builder =>
+            {
+                builder.OpenElement(0, "meta");
+                builder.AddAttribute(1, "name", name.Trim());
+                builder.AddAttribute(2, "content", content ?? string.Empty);
+                builder.CloseElement();
+            });
     }
 
-    public void AddLink(string href, string rel = "stylesheet")
+    public void AddLink(string href, string rel = "stylesheet", string? key = null)
     {
         if (string.IsNullOrWhiteSpace(href))
         {
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(href));
         }
 
-        AddHeadFragment(builder =>
+        UpsertItem(
+            HeadItemKind.Link,
+            NormalizeKey(key),
+            builder =>
+            {
+                builder.OpenElement(0, "link");
+                builder.AddAttribute(1, "rel", string.IsNullOrWhiteSpace(rel) ? "stylesheet" : rel.Trim());
+                builder.AddAttribute(2, "href", href.Trim());
+                builder.CloseElement();
+            });
+    }
+
+    public void AddScript(string src, IReadOnlyDictionary<string, object?>? attributes = null, string? key = null)
+    {
+        if (string.IsNullOrWhiteSpace(src))
         {
-            builder.OpenElement(0, "link");
-            builder.AddAttribute(1, "rel", string.IsNullOrWhiteSpace(rel) ? "stylesheet" : rel.Trim());
-            builder.AddAttribute(2, "href", href.Trim());
-            builder.CloseElement();
-        });
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(src));
+        }
+
+        UpsertItem(
+            HeadItemKind.Script,
+            NormalizeKey(key),
+            builder =>
+            {
+                builder.OpenElement(0, "script");
+                builder.AddAttribute(1, "src", src.Trim());
+
+                var sequence = 2;
+                foreach (var attribute in OrderAttributes(attributes))
+                {
+                    if (string.Equals(attribute.Key, "src", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    builder.AddAttribute(sequence++, attribute.Key, attribute.Value);
+                }
+
+                builder.CloseElement();
+            });
+    }
+
+    public void AddStyle(string cssText, string? key = null)
+    {
+        if (string.IsNullOrWhiteSpace(cssText))
+        {
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(cssText));
+        }
+
+        UpsertItem(
+            HeadItemKind.Style,
+            NormalizeKey(key),
+            builder =>
+            {
+                builder.OpenElement(0, "style");
+                builder.AddContent(1, cssText.Trim());
+                builder.CloseElement();
+            });
     }
 
     public void AddHeadFragment(RenderFragment fragment)
     {
         ArgumentNullException.ThrowIfNull(fragment);
 
-        _items.Add(fragment);
-        NotifyContentItemsUpdated();
+        AddItem(HeadItemKind.Fragment, fragment);
     }
 
     public void AddRawContent(string html)
     {
-        AddHeadFragment(builder => builder.AddMarkupContent(0, html ?? string.Empty));
+        AddItem(HeadItemKind.Raw, builder => builder.AddMarkupContent(0, html ?? string.Empty));
     }
 
     public RenderFragment RenderToFragment(bool clear = false)
@@ -93,7 +155,11 @@ public sealed class HrzHeadService : IHrzHeadService
             return _ => { };
         }
 
-        var snapshot = _items.ToArray();
+        var snapshot = _items
+            .OrderBy(item => item.SortOrder)
+            .ThenBy(item => item.Sequence)
+            .Select(item => item.Fragment)
+            .ToArray();
         if (clear)
         {
             ClearInternal(notify: false);
@@ -145,6 +211,30 @@ public sealed class HrzHeadService : IHrzHeadService
         ContentItemsUpdated?.Invoke(this, EventArgs.Empty);
     }
 
+    private void AddItem(HeadItemKind kind, RenderFragment fragment)
+    {
+        _items.Add(new HeadItem(kind, _nextSequence++, Key: null, fragment));
+        NotifyContentItemsUpdated();
+    }
+
+    private void UpsertItem(HeadItemKind kind, string? key, RenderFragment fragment)
+    {
+        if (key is not null)
+        {
+            var index = _items.FindIndex(item => item.Kind == kind && string.Equals(item.Key, key, StringComparison.Ordinal));
+            if (index >= 0)
+            {
+                var existing = _items[index];
+                _items[index] = existing with { Fragment = fragment };
+                NotifyContentItemsUpdated();
+                return;
+            }
+        }
+
+        _items.Add(new HeadItem(kind, _nextSequence++, key, fragment));
+        NotifyContentItemsUpdated();
+    }
+
     private void ClearInternal(bool notify)
     {
         if (_items.Count == 0)
@@ -157,6 +247,39 @@ public sealed class HrzHeadService : IHrzHeadService
         {
             NotifyContentItemsUpdated();
         }
+    }
+
+    private static IEnumerable<KeyValuePair<string, object?>> OrderAttributes(IReadOnlyDictionary<string, object?>? attributes)
+    {
+        if (attributes is null || attributes.Count == 0)
+        {
+            return Enumerable.Empty<KeyValuePair<string, object?>>();
+        }
+
+        return attributes.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string? NormalizeKey(string? key)
+    {
+        return string.IsNullOrWhiteSpace(key) ? null : key.Trim();
+    }
+
+    private enum HeadItemKind
+    {
+        Title = 0,
+        Meta = 1,
+        Link = 2,
+        Style = 3,
+        Script = 4,
+        Fragment = 5,
+        Raw = 6
+    }
+
+    private sealed record HeadItem(HeadItemKind Kind, long Sequence, string? Key, RenderFragment Fragment)
+    {
+        internal const string TitleKey = "__title";
+
+        public int SortOrder => (int)Kind;
     }
 }
 

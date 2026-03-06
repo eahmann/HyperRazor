@@ -1,17 +1,18 @@
 @* Demonstrates first-party head queue/flush support on HTMX partial responses. *@
 <section class="panel">
     <h2>Head Handling</h2>
-    <p>Queues document <code>&lt;title&gt;</code> and <code>&lt;meta&gt;</code> updates from the server.</p>
+    <p>Queues document <code>&lt;title&gt;</code>, <code>&lt;meta&gt;</code>, <code>&lt;style&gt;</code>, and <code>&lt;script&gt;</code> updates from the server.</p>
 </section>
 
 <section id="head-demo" class="panel">
     <h3>Head Queue + Flush</h3>
     <div class="demo-note" role="note">
-        <strong>How To Test:</strong> submit this form and watch the browser tab title update without a full page load.
-        The fragment updates this panel while the response also ships a <code>&lt;head&gt;</code> block.
+        <strong>How To Test:</strong> submit this form, then submit it again with a different accent.
+        The tab title should change, the preview chip should restyle, and the script load count should stay at <code>1</code>.
     </div>
     <p class="demo-caption">
-        Expected outcome: inspector shows the request/response cycle, and the tab title changes immediately.
+        Expected outcome: inspector shows the request/response cycle, the tab title changes immediately,
+        and repeated submits replace keyed head items instead of duplicating them.
     </p>
 
     <form
@@ -31,12 +32,19 @@
         <label for="head-description-input">Description</label>
         <input id="head-description-input" name="description" value="Updated via HrzHeadService + head-support." />
 
+        <label for="head-accent-input">Accent</label>
+        <select id="head-accent-input" name="accent">
+            <option value="teal" selected>Teal</option>
+            <option value="amber">Amber</option>
+            <option value="rose">Rose</option>
+        </select>
+
         <button type="submit">Queue Head Update</button>
         <span id="head-indicator" class="hrz-indicator" aria-live="polite">Updating head…</span>
     </form>
 
     <section id="head-demo-result" class="panel">
         <h3>Awaiting update</h3>
-        <p>Submit the form to queue a head update from the server.</p>
+        <p>Submit the form to queue a keyed head update from the server.</p>
     </section>
 </section>

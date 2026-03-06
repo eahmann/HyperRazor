@@ -101,6 +101,49 @@ public class HrzSwapServiceTests
     }
 
     [Fact]
+    public async Task RenderToString_QueueAliases_PreserveOrderingAndSelectorBehavior()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        var environment = new TestWebHostEnvironment();
+        services.AddSingleton<IWebHostEnvironment>(environment);
+        services.AddSingleton<IHostEnvironment>(environment);
+        services.AddRazorComponents();
+        using var provider = services.BuildServiceProvider();
+        var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+
+        var service = CreateService(
+            isHtmx: true,
+            serviceProvider: provider,
+            loggerFactory: loggerFactory);
+
+        service.QueueHtml(
+            "toast-first",
+            "<div class=\"toast\">First</div>",
+            swapStyle: SwapStyle.BeforeEnd,
+            selector: "#toast-stack");
+        service.QueueFragment(
+            "activity-fragment",
+            builder => builder.AddMarkupContent(0, "<article>Second</article>"),
+            swapStyle: SwapStyle.OuterHtml);
+        service.QueueComponent<TestBadgeComponent>(
+            "badge-item",
+            new { Message = "Third" },
+            swapStyle: SwapStyle.InnerHtml);
+
+        var html = await service.RenderToString();
+
+        Assert.Contains("hx-swap-oob=\"beforeend:#toast-stack\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"toast-first\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"activity-fragment\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"badge-item\"", html, StringComparison.Ordinal);
+
+        Assert.True(IndexOf(html, "id=\"toast-first\"") < IndexOf(html, "id=\"activity-fragment\""));
+        Assert.True(IndexOf(html, "id=\"activity-fragment\"") < IndexOf(html, "id=\"badge-item\""));
+    }
+
+    [Fact]
     public async Task RenderToString_WithHtmxRequest_IncludesSwappableMarkup()
     {
         var services = new ServiceCollection();
@@ -175,6 +218,11 @@ public class HrzSwapServiceTests
     private static string BuildOobValue(SwapStyle style, string selector)
     {
         return $"{style.ToHtmxString()}:{selector}";
+    }
+
+    private static int IndexOf(string html, string value)
+    {
+        return html.IndexOf(value, StringComparison.Ordinal);
     }
 
     private sealed class TestBadgeComponent : ComponentBase

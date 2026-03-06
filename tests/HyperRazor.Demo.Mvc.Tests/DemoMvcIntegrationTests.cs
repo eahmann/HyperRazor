@@ -688,7 +688,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["title"] = "HyperRazor Head Test",
-            ["description"] = "Head payload test."
+            ["description"] = "Head payload test.",
+            ["accent"] = "rose"
         });
 
         var response = await client.SendAsync(request);
@@ -700,6 +701,11 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("<head", body, StringComparison.Ordinal);
         Assert.Contains("hx-head=\"merge\"", body, StringComparison.Ordinal);
         Assert.Contains("<title>HyperRazor Head Test</title>", body, StringComparison.Ordinal);
+        Assert.Contains("<meta name=\"description\" content=\"Head payload test.\"", body, StringComparison.Ordinal);
+        Assert.Contains("<style>", body, StringComparison.Ordinal);
+        Assert.Contains("#head-demo-result .head-demo-style-preview", body, StringComparison.Ordinal);
+        Assert.Contains("<script src=\"/head-demo.asset.js\" defer></script>", body, StringComparison.Ordinal);
+        Assert.Contains("Accent preset:</strong> Rose", body, StringComparison.Ordinal);
     }
 
     private HttpClient CreateClient()

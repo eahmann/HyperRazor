@@ -148,7 +148,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("<h2>User Administration</h2>", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
     }
 
@@ -164,7 +164,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"workbench-layout-shell\"", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("class=\"app-nav\"", body, StringComparison.Ordinal);
     }
 
@@ -187,7 +187,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal("outerHTML", reswapValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
         Assert.Equal("#hrz-app-shell", reselectValues.Single());
-        Assert.Contains("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.Contains("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-layout-family=\"workbench\"", body, StringComparison.Ordinal);
     }
 
@@ -226,8 +226,29 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.False(response.Headers.Contains(HtmxHeaderNames.Retarget));
         Assert.False(response.Headers.Contains(HtmxHeaderNames.Reswap));
         Assert.False(response.Headers.Contains(HtmxHeaderNames.Reselect));
-        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("<h2>User Administration</h2>", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Users_WithBoostedRequestAndAdminFamily_IncludesChromeOobUpdates()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/users");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add(HtmxHeaderNames.Boosted, "true");
+        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "admin");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"app-chrome-toolbar\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"app-chrome-sidebar\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
+        Assert.Contains("<code>/users</code>", body, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"sidebar-mode-value\">admin</span>", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/users\" aria-current=\"page\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -245,7 +266,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.False(response.Headers.Contains(HtmxHeaderNames.Retarget));
         Assert.False(response.Headers.Contains(HtmxHeaderNames.Reswap));
         Assert.False(response.Headers.Contains(HtmxHeaderNames.Reselect));
-        Assert.DoesNotContain("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"workbench-layout-shell\"", body, StringComparison.Ordinal);
     }
 
@@ -261,7 +282,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("<header id=\"app-shell\">", body, StringComparison.Ordinal);
+        Assert.Contains("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
@@ -548,6 +569,39 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("#head-demo-result .head-demo-style-preview", body, StringComparison.Ordinal);
         Assert.Contains("<script src=\"/head-demo.asset.js\" defer></script>", body, StringComparison.Ordinal);
         Assert.Contains("Accent preset:</strong> Rose", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ThemeToggle_WithHxRequest_SetsCookieAndRefreshes()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/chrome/theme");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["theme"] = "light",
+            ["returnUrl"] = "/users"
+        });
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Refresh, out var refreshValues));
+        Assert.Equal("true", refreshValues.Single());
+        Assert.True(response.Headers.TryGetValues("Set-Cookie", out var setCookieValues));
+
+        var themeCookie = setCookieValues.Single(value => value.Contains("hrz-demo-theme=light", StringComparison.Ordinal));
+        using var themedRequest = new HttpRequestMessage(HttpMethod.Get, "/users");
+        themedRequest.Headers.Add("Cookie", themeCookie.Split(';', 2)[0]);
+
+        var themedResponse = await client.SendAsync(themedRequest);
+        var themedBody = await themedResponse.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, themedResponse.StatusCode);
+        Assert.Contains("/vendor/bootswatch/flatly.min.css", themedBody, StringComparison.Ordinal);
     }
 
     [Fact]

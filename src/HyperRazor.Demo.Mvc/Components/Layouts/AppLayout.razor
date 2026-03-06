@@ -2,7 +2,7 @@
 @inherits LayoutComponentBase
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="@ChromeState.Theme">
 <head>
     <meta charset="utf-8" hx-preserve="true" />
     <meta name="viewport" content="width=device-width, initial-scale=1" hx-preserve="true" />
@@ -12,6 +12,7 @@
     <script src="/_content/HyperRazor.Client/vendor/htmx/htmx-2.0.4.min.js" hx-preserve="true"></script>
     <script src="/_content/HyperRazor.Client/vendor/htmx/head-support-2.0.2.js" hx-preserve="true"></script>
     <script src="/_content/HyperRazor.Client/hyperrazor.htmx.js" defer hx-preserve="true"></script>
+    <link id="hrz-theme-css" rel="stylesheet" href="@ChromeState.ThemeHref" hx-preserve="true" />
     <link rel="stylesheet" href="/_content/HyperRazor.Client/hyperrazor.css" hx-preserve="true" />
     <link rel="stylesheet" href="/app.css" hx-preserve="true" />
 </head>
@@ -20,34 +21,56 @@
     data-hrz-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
     data-hrz-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
     hx-ext="@(HtmxConfig.EnableHeadSupport ? "head-support" : null)">
-    <div id="hrz-app-shell" data-hrz-layout-family="@CurrentLayoutFamily">
+    <div id="hrz-app-shell" class="app-shell" data-hrz-layout-family="@ChromeState.LayoutFamily">
         <header id="app-shell">
-            <div class="app-title-row">
-                <p class="app-kicker">HyperRazor Demo</p>
-                <h1>Operations Console</h1>
-                <p class="app-tagline">
-                    A backoffice-style HTMX + SSR demo that keeps transport details visible while workflows stay realistic.
-                </p>
-            </div>
-            <div class="app-header-nav-region">
-                <SectionOutlet SectionName="AppHeaderNav" />
+            <div class="container-fluid app-shell-frame px-3 px-xxl-4">
+                <div class="app-bar d-flex flex-wrap align-items-center justify-content-between gap-3 py-2">
+                    <div class="app-brand">
+                        <p class="app-kicker">HyperRazor Demo</p>
+                        <div class="app-brand-row">
+                            <h1>Operations Console</h1>
+                            <span class="app-brand-caption">HTMX + SSR transport inspection</span>
+                        </div>
+                    </div>
+
+                    <div id="app-chrome-toolbar">
+                        <DemoChromeToolbar
+                            RouteLabel="@ChromeState.RouteLabel"
+                            LayoutFamily="@ChromeState.LayoutFamily"
+                            Theme="@ChromeState.Theme" />
+                    </div>
+                </div>
             </div>
         </header>
 
-        <main id="hrz-main-layout" class="layout">
-            @Body
-        </main>
-    </div>
+        <div class="container-fluid app-workspace px-3 px-xxl-4 py-3 py-xl-4">
+            <div class="row g-3 g-xxl-4 align-items-start">
+                <aside class="col-12 col-xl-2">
+                    <div id="app-chrome-sidebar">
+                        <DemoChromeSidebar
+                            ActiveSection="@ChromeState.ActiveSection"
+                            LayoutFamily="@ChromeState.LayoutFamily" />
+                    </div>
+                </aside>
 
-    <section id="hrz-inspector-shell" class="panel panel--inspector">
-        <div id="hx-debug-shell">
-            <h3>HX Request/Response Inspector</h3>
-            <p class="empty">Run any workflow action to inspect the latest request and response headers.</p>
-            <div class="demo-note" role="note">
-                <strong>Inspector Note:</strong> this region is updated out-of-band after each HTMX interaction so the visible workflow and transport-level HX behavior stay tied together.
+                <main id="hrz-main-layout" class="layout col-12 col-xl-7 col-xxl-7">
+                    @Body
+                </main>
+
+                <aside class="col-12 col-xl-3">
+                    <section id="hrz-inspector-shell" class="panel panel--inspector sticky-shell">
+                        <div id="hx-debug-shell">
+                            <h3>HX Request/Response Inspector</h3>
+                            <p class="empty">Run any workflow action to inspect the latest request and response headers.</p>
+                            <div class="demo-note" role="note">
+                                <strong>Inspector Note:</strong> this region is updated out-of-band after each HTMX interaction so the visible workflow and transport-level HX behavior stay tied together.
+                            </div>
+                        </div>
+                    </section>
+                </aside>
             </div>
         </div>
-    </section>
+    </div>
 </body>
 </html>
 
@@ -55,7 +78,8 @@
     [CascadingParameter]
     public HrzShellContext? ShellContext { get; set; }
 
-    private string CurrentLayoutFamily => string.IsNullOrWhiteSpace(ShellContext?.LayoutFamily)
-        ? "admin"
-        : ShellContext.LayoutFamily;
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    private DemoChromeState ChromeState => DemoChromeState.Create(HttpContext, ShellContext?.LayoutFamily);
 }

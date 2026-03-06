@@ -1,13 +1,32 @@
 <nav
-    class="app-nav"
+    class="app-nav nav nav-pills flex-column gap-2"
     aria-label="Demo navigation"
     hx-boost="true"
     hx-target="#hrz-main-layout"
     hx-swap="innerHTML show:window:top"
     hx-push-url="true">
-    <a href="/">Dashboard</a>
-    <a href="/users">Users</a>
-    <a href="/access-requests">Access Requests</a>
-    <a href="/incidents">Incidents</a>
-    <a href="/settings/branding">Branding</a>
+    <a class="@GetLinkClass("/")" href="/" aria-current="@GetAriaCurrent("/")">Dashboard</a>
+    <a class="@GetLinkClass("/users")" href="/users" aria-current="@GetAriaCurrent("/users")">Users</a>
+    <a class="@GetLinkClass("/access-requests")" href="/access-requests" aria-current="@GetAriaCurrent("/access-requests")">Access Requests</a>
+    <a class="@GetLinkClass("/incidents")" href="/incidents" aria-current="@GetAriaCurrent("/incidents")">Incidents</a>
+    <a class="@GetLinkClass("/settings/branding")" href="/settings/branding" aria-current="@GetAriaCurrent("/settings/branding")">Branding</a>
 </nav>
+
+@code {
+    [Parameter]
+    public string ActiveSection { get; set; } = "/";
+
+    private string GetLinkClass(string href)
+    {
+        return string.Equals(ActiveSection, href, StringComparison.OrdinalIgnoreCase)
+            ? "nav-link active"
+            : "nav-link";
+    }
+
+    private string? GetAriaCurrent(string href)
+    {
+        return string.Equals(ActiveSection, href, StringComparison.OrdinalIgnoreCase)
+            ? "page"
+            : null;
+    }
+}

@@ -1,7 +1,10 @@
 using HyperRazor.Components;
+using HyperRazor.Components.Services;
+using HyperRazor.Demo.Mvc.Components;
 using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Demo.Mvc.Components.Pages;
 using HyperRazor.Demo.Mvc.Components.Pages.Admin;
+using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Hosting;
 using HyperRazor.Htmx;
 using HyperRazor.Htmx.AspNetCore;
@@ -76,6 +79,39 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseHyperRazor();
+app.Use(async (context, next) =>
+{
+    var request = context.HtmxRequest();
+    if (HttpMethods.IsGet(context.Request.Method)
+        && request.RequestType == HtmxRequestType.Partial
+        && !request.IsHistoryRestoreRequest
+        && DemoChromeState.IsPageChromeRoute(context.Request.Path))
+    {
+        var chromeState = DemoChromeState.Create(context);
+        var swapService = context.RequestServices.GetRequiredService<IHrzSwapService>();
+
+        swapService.QueueComponent<DemoChromeToolbar>(
+            targetId: "app-chrome-toolbar",
+            parameters: new
+            {
+                chromeState.RouteLabel,
+                chromeState.LayoutFamily,
+                chromeState.Theme
+            },
+            swapStyle: SwapStyle.OuterHtml);
+
+        swapService.QueueComponent<DemoChromeSidebar>(
+            targetId: "app-chrome-sidebar",
+            parameters: new
+            {
+                chromeState.ActiveSection,
+                chromeState.LayoutFamily
+            },
+            swapStyle: SwapStyle.OuterHtml);
+    }
+
+    await next();
+});
 
 // AdminLayout routes are intentionally served via Minimal API so the demo shows parity in a real app area.
 app.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>

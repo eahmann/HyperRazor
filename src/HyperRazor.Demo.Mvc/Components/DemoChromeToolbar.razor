@@ -1,0 +1,55 @@
+<div class="app-toolbar d-flex flex-wrap align-items-center justify-content-end gap-2">
+    <span class="chrome-chip" title="Current route">
+        <span class="chrome-chip-label">route</span>
+        <code>@RouteLabel</code>
+    </span>
+    <span class="chrome-chip" title="Current shell layout family">
+        <span class="chrome-chip-label">shell</span>
+        <code>@LayoutFamily</code>
+    </span>
+    <div class="chrome-theme-switch" role="group" aria-label="Theme selector">
+        @foreach (var option in ThemeOptions)
+        {
+            <form
+                class="chrome-theme-form"
+                action="/fragments/chrome/theme"
+                hx-post="/fragments/chrome/theme"
+                hx-swap="none"
+                hx-push-url="false">
+                <HrzAntiforgeryInput />
+                <input type="hidden" name="theme" value="@option.Value" />
+                <input type="hidden" name="returnUrl" value="@RouteLabel" />
+                <button type="submit" class="@GetThemeButtonClass(option.Value)" aria-pressed="@IsActiveTheme(option.Value)">@option.Label</button>
+            </form>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly IReadOnlyList<(string Value, string Label)> ThemeOptions =
+    [
+        ("dark", "Dark"),
+        ("light", "Light")
+    ];
+
+    [Parameter]
+    public string RouteLabel { get; set; } = "/";
+
+    [Parameter]
+    public string LayoutFamily { get; set; } = "admin";
+
+    [Parameter]
+    public string Theme { get; set; } = "dark";
+
+    private bool IsActiveTheme(string value)
+    {
+        return string.Equals(Theme, value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetThemeButtonClass(string value)
+    {
+        return IsActiveTheme(value)
+            ? "btn btn-sm btn-primary"
+            : "btn btn-sm btn-outline-secondary";
+    }
+}

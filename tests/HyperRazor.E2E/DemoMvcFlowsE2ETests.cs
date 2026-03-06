@@ -166,7 +166,7 @@ public sealed class DemoMvcFlowsE2ETests
         await Assertions.Expect(page).ToHaveTitleAsync("E2E Branding Title");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Head Updated");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Accent preset: Amber");
-        await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Load count: 1");
+        await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Keyed asset count: 1");
 
         await page.FillAsync("#head-title-input", "E2E Branding Title 2");
         await page.SelectOptionAsync("#head-accent-input", "rose");
@@ -177,7 +177,28 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Equal(200, secondResponse.Status);
         await Assertions.Expect(page).ToHaveTitleAsync("E2E Branding Title 2");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Accent preset: Rose");
-        await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Load count: 1");
+        await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Keyed asset count: 1");
+    }
+
+    [SkippableFact]
+    public async Task Dashboard_QuickChecks_RenderResultAndUpdateEventLog()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/");
+        await WaitForHtmxAsync(page);
+
+        var response = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("button:has-text('Run Sync Check')"),
+            r => r.Url.Contains("/fragments/dashboard/sync-check", StringComparison.Ordinal));
+
+        Assert.Equal(200, response.Status);
+        await Assertions.Expect(page.Locator("#dashboard-sync-status")).ToContainTextAsync("Sync check completed");
+        await Assertions.Expect(page.Locator("#dashboard-sync-status")).ToContainTextAsync("action-body");
+        await Assertions.Expect(page.Locator("#dashboard-event-log")).ToContainTextAsync("Saved successfully.");
     }
 
     [SkippableFact]
@@ -211,6 +232,9 @@ public sealed class DemoMvcFlowsE2ETests
         await ExpectHeadingAsync(page, "User Administration");
         Assert.EndsWith("/users", page.Url, StringComparison.Ordinal);
         Assert.Equal(1, await page.Locator("#app-shell").CountAsync());
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("/users");
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("admin");
+        await Assertions.Expect(page.Locator(".app-nav a[href='/users']")).ToHaveAttributeAsync("aria-current", "page");
         Assert.Empty(pageErrors);
         Assert.Empty(consoleErrors);
 
@@ -225,6 +249,9 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Equal("#hrz-app-shell", accessRetarget);
         await ExpectHeadingAsync(page, "Access Requests");
         await Assertions.Expect(page.Locator("#workbench-layout-shell")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("/access-requests");
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("workbench");
+        await Assertions.Expect(page.Locator(".app-nav a[href='/access-requests']")).ToHaveAttributeAsync("aria-current", "page");
         Assert.EndsWith("/access-requests", page.Url, StringComparison.Ordinal);
 
         var incidentsResponse = await page.RunAndWaitForResponseAsync(
@@ -236,6 +263,9 @@ public sealed class DemoMvcFlowsE2ETests
         var incidentsHeaders = await incidentsResponse.AllHeadersAsync();
         Assert.False(incidentsHeaders.ContainsKey("hx-retarget"));
         await ExpectHeadingAsync(page, "Incidents");
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("/incidents");
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("workbench");
+        await Assertions.Expect(page.Locator(".app-nav a[href='/incidents']")).ToHaveAttributeAsync("aria-current", "page");
         Assert.EndsWith("/incidents", page.Url, StringComparison.Ordinal);
 
         var backResponse = await page.RunAndWaitForResponseAsync(
@@ -250,6 +280,9 @@ public sealed class DemoMvcFlowsE2ETests
         await ExpectHeadingAsync(page, "User Administration");
         Assert.EndsWith("/users", page.Url, StringComparison.Ordinal);
         await Assertions.Expect(page.Locator(".app-nav")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("/users");
+        await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("admin");
+        await Assertions.Expect(page.Locator(".app-nav a[href='/users']")).ToHaveAttributeAsync("aria-current", "page");
     }
 
     private static async Task WaitForHtmxAsync(IPage page)

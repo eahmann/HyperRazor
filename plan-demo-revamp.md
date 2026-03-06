@@ -216,7 +216,15 @@ Definition of done:
 
 ---
 
-## 7) Suggested implementation order
+## 7) Follow-up notes
+
+- Revisit the demo-only chrome OOB middleware in `src/HyperRazor.Demo.Mvc/Program.cs`.
+  - Current behavior is correct, but it is still app-level glue.
+  - Follow up on whether that chrome synchronization belongs in a reusable filter/service or a framework-level hook instead of inline middleware.
+
+---
+
+## 8) Suggested implementation order
 
 1. Rework layouts and nav shell
 2. Build `DashboardPage`, `UsersPage`, and `BrandingSettingsPage` on `AdminLayout`

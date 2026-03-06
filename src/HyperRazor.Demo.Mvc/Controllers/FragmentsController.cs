@@ -1,4 +1,5 @@
 using HyperRazor.Demo.Mvc.Components.Fragments;
+using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Components.Services;
 using HyperRazor.Htmx;
 using HyperRazor.Htmx.AspNetCore;
@@ -21,6 +22,21 @@ public sealed class FragmentsController : HrController
     {
         _swapService = swapService ?? throw new ArgumentNullException(nameof(swapService));
         _headService = headService ?? throw new ArgumentNullException(nameof(headService));
+    }
+
+    [HttpPost("chrome/theme")]
+    public IResult SetTheme([FromForm] string? theme, [FromForm] string? returnUrl)
+    {
+        var normalizedTheme = DemoChromeState.NormalizeTheme(theme);
+        DemoChromeState.WriteThemeCookie(HttpContext, normalizedTheme);
+
+        if (HttpContext.HtmxRequest().IsHtmx)
+        {
+            HttpContext.HtmxResponse().Refresh();
+            return Results.Content(string.Empty, "text/html; charset=utf-8");
+        }
+
+        return Results.Redirect(DemoChromeState.NormalizeReturnUrl(returnUrl));
     }
 
     [HttpGet("users/search")]
@@ -53,6 +69,8 @@ public sealed class FragmentsController : HrController
     [HttpGet("dashboard/sync-check")]
     public Task<IResult> DashboardSyncCheck(CancellationToken cancellationToken)
     {
+        QueueDashboardEventLog("Saved successfully.");
+
         HttpContext.HtmxResponse().Trigger("toast:show", new
         {
             message = "Saved successfully."
@@ -62,9 +80,11 @@ public sealed class FragmentsController : HrController
             action: "dashboard-sync-check",
             details: "Emitted an HX-Trigger workflow event from the dashboard health check.");
 
-        return PartialView<ToastSuccess>(new
+        return PartialView<DashboardCheckResult>(new
         {
-            Message = "Saved successfully."
+            Title = "Sync check completed",
+            Message = "Saved successfully.",
+            TriggerSource = "action-body"
         }, cancellationToken);
     }
 
@@ -72,13 +92,17 @@ public sealed class FragmentsController : HrController
     [HtmxResponse(Trigger = "toast:show")]
     public Task<IResult> DashboardBannerCheck(CancellationToken cancellationToken)
     {
+        QueueDashboardEventLog("Saved successfully (attribute trigger).");
+
         QueueInspectorUpdate(
             action: "dashboard-banner-check",
             details: "Trigger is configured via [HtmxResponse] for a dashboard broadcast event.");
 
-        return PartialView<ToastSuccess>(new
+        return PartialView<DashboardCheckResult>(new
         {
-            Message = "Saved successfully (attribute trigger)."
+            Title = "Broadcast banner queued",
+            Message = "Saved successfully (attribute trigger).",
+            TriggerSource = "[HtmxResponse]"
         }, cancellationToken);
     }
 
@@ -455,6 +479,17 @@ public sealed class FragmentsController : HrController
             targetId: "hx-debug-shell",
             parameters: BuildInspectorParameters(HttpContext, action, details),
             swapStyle: SwapStyle.OuterHtml);
+    }
+
+    private void QueueDashboardEventLog(string message)
+    {
+        _swapService.QueueComponent<DashboardEventLog>(
+            targetId: "dashboard-event-log",
+            parameters: new
+            {
+                Message = message
+            },
+            swapStyle: SwapStyle.InnerHtml);
     }
 
     private static string BuildRenderToStringPreview(string markup)

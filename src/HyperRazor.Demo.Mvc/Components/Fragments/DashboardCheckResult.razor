@@ -1,0 +1,16 @@
+<section id="dashboard-sync-status" class="panel success-banner">
+    <h3>@Title</h3>
+    <p>@Message</p>
+    <p class="demo-caption">HX-Trigger payload: <code>@TriggerSource</code></p>
+</section>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public string TriggerSource { get; set; } = string.Empty;
+}

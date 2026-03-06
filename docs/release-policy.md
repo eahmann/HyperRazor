@@ -4,13 +4,18 @@ This is the release and versioning policy for the repository as Phase 4 wraps.
 
 ## Package scope
 
-Publish only the reusable library packages from `src/`:
+Public entry-point packages:
+
+- `HyperRazor` from `src/HyperRazor.Hosting`
+- `HyperRazor.Htmx`
+  - the public HTMX-only ASP.NET Core package
+  - produced from `src/HyperRazor.Htmx.AspNetCore`
+
+Advanced/composition packages that still publish separately:
 
 - `HyperRazor.Client`
 - `HyperRazor.Components`
-- `HyperRazor.Hosting`
-- `HyperRazor.Htmx`
-- `HyperRazor.Htmx.AspNetCore`
+- `HyperRazor.Htmx.Core`
 - `HyperRazor.Htmx.Components`
 - `HyperRazor.Mvc`
 - `HyperRazor.Rendering`

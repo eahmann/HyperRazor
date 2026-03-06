@@ -4,11 +4,15 @@ This is the current golden path for a server-rendered ASP.NET Core app that uses
 
 ## Packages
 
-Reference these packages in your web app:
+For the normal HyperRazor app path, reference this package in your web app:
 
-- `HyperRazor.Hosting`
-- `HyperRazor.Htmx.AspNetCore`
-- `HyperRazor.Mvc`
+- `HyperRazor`
+
+That single package is the public golden path. It brings in the MVC and HTMX ASP.NET Core layers transitively.
+
+If you only want typed HTMX support without HyperRazor rendering, use `HyperRazor.Htmx` instead.
+
+The package IDs are intentionally simpler than the current namespaces. Installing `HyperRazor` still gives you APIs in namespaces such as `HyperRazor.Hosting`, `HyperRazor.Mvc`, and `HyperRazor.Htmx.AspNetCore`.
 
 ## Service registration
 

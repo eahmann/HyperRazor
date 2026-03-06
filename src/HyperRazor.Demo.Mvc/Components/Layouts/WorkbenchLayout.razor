@@ -1,0 +1,33 @@
+@inherits LayoutComponentBase
+@attribute [HrzLayoutFamily("workbench")]
+
+<SectionContent SectionName="AppHeaderNav">
+    <div class="app-header-nav-stack">
+        <DemoNavLinks />
+        <p class="layout-family-indicator" role="status">Workspace mode</p>
+    </div>
+</SectionContent>
+
+<section id="workbench-layout-shell" class="panel side-layout-shell workbench-layout-shell">
+    <div class="side-layout-grid workbench-layout-grid">
+        <aside
+            class="side-layout-nav workbench-nav"
+            hx-boost="true"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">
+            <p class="app-kicker">Operations Workbench</p>
+            <h3>Queues</h3>
+            <p class="demo-caption">
+                These screens keep dense operational chrome local to the page layout while the app shell stays stable.
+            </p>
+            <a href="/access-requests">Access Requests</a>
+            <a href="/incidents">Incidents</a>
+            <a href="/users">Return To Admin</a>
+        </aside>
+
+        <section class="side-layout-content workbench-content">
+            @Body
+        </section>
+    </div>
+</section>

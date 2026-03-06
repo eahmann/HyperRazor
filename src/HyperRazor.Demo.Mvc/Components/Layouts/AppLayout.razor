@@ -23,10 +23,10 @@
     <div id="hrz-app-shell" data-hrz-layout-family="@CurrentLayoutFamily">
         <header id="app-shell">
             <div class="app-title-row">
-                <p class="app-kicker">HTMX + SSR Playground</p>
-                <h1>HyperRazor</h1>
+                <p class="app-kicker">HyperRazor Demo</p>
+                <h1>Operations Console</h1>
                 <p class="app-tagline">
-                    Focused, inspectable examples that show how server-driven UI updates behave in real requests.
+                    A backoffice-style HTMX + SSR demo that keeps transport details visible while workflows stay realistic.
                 </p>
             </div>
             <div class="app-header-nav-region">
@@ -42,10 +42,9 @@
     <section id="hrz-inspector-shell" class="panel panel--inspector">
         <div id="hx-debug-shell">
             <h3>HX Request/Response Inspector</h3>
-            <p class="empty">Run HTMX actions to inspect the latest request and response headers.</p>
+            <p class="empty">Run any workflow action to inspect the latest request and response headers.</p>
             <div class="demo-note" role="note">
-                <strong>Inspector Note:</strong> this region is updated out-of-band after each HTMX interaction,
-                so you can inspect both inbound and outbound HX headers in one place.
+                <strong>Inspector Note:</strong> this region is updated out-of-band after each HTMX interaction so the visible workflow and transport-level HX behavior stay tied together.
             </div>
         </div>
     </section>
@@ -57,6 +56,6 @@
     public HrzShellContext? ShellContext { get; set; }
 
     private string CurrentLayoutFamily => string.IsNullOrWhiteSpace(ShellContext?.LayoutFamily)
-        ? "main"
+        ? "admin"
         : ShellContext.LayoutFamily;
 }

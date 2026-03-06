@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+@attribute [HrzLayoutFamily("task")]
+
+<SectionContent SectionName="AppHeaderNav">
+    <div class="app-header-nav-stack">
+        <DemoNavLinks />
+        <p class="layout-family-indicator" role="status">Workspace mode</p>
+    </div>
+</SectionContent>
+
+<section class="panel task-layout-shell">
+    <div class="task-layout-frame">
+        <div class="task-layout-intro">
+            <p class="app-kicker">Focused Task</p>
+            <h2>Complete the workflow, then return to the queue.</h2>
+            <p class="demo-caption">
+                Task pages intentionally trim local chrome so HTMX form handling and return-navigation are easier to inspect.
+            </p>
+        </div>
+        <div class="task-layout-body">
+            @Body
+        </div>
+    </div>
+</section>

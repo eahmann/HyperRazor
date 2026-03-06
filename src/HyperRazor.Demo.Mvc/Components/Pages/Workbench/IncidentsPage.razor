@@ -1,0 +1,42 @@
+<section class="panel">
+    <h2>Incidents</h2>
+    <p>Operational queue with realistic status-path drills. This area keeps the inspector useful while exercising 4xx/5xx swaps in context.</p>
+</section>
+
+<section class="panel">
+    <h3>Open Incidents</h3>
+    <div class="queue-list" hx-boost="true" hx-target="#hrz-main-layout" hx-swap="innerHTML show:window:top" hx-push-url="true">
+        <article class="queue-card">
+            <p class="app-kicker">Priority 1</p>
+            <h4>Incident #8801</h4>
+            <p>Checkout API timeout spike affecting live orders.</p>
+            <a href="/incidents/8801/triage">Open Triage</a>
+        </article>
+        <article class="queue-card">
+            <p class="app-kicker">Priority 2</p>
+            <h4>Incident #8802</h4>
+            <p>Support dashboard missing a resolver playbook link.</p>
+            <a href="/incidents/8802/triage">Open Triage</a>
+        </article>
+    </div>
+</section>
+
+<section id="status-demo" class="panel">
+    <h3>Operational Drills</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> run the policy/playbook/backend drills and compare the status code with the inspector output.
+    </div>
+    <div class="status-actions">
+        <button type="button" hx-get="/fragments/incidents/drills/permission" hx-target="#status-result" hx-swap="outerHTML" hx-indicator="#status-indicator" hx-disabled-elt="this">Permission denied</button>
+        <button type="button" hx-get="/fragments/incidents/drills/playbook-missing" hx-target="#status-result" hx-swap="outerHTML" hx-indicator="#status-indicator" hx-disabled-elt="this">Missing playbook</button>
+        <button type="button" hx-get="/fragments/incidents/drills/backend-failure" hx-target="#status-result" hx-swap="outerHTML" hx-indicator="#status-indicator" hx-disabled-elt="this">Backend failure</button>
+        <span id="status-indicator" class="hrz-indicator" aria-live="polite">Loading incident drill…</span>
+    </div>
+
+    <section id="status-result" class="panel status-result">
+        <h3>Ready</h3>
+        <p>Choose a drill to load a server-generated incident response fragment.</p>
+    </section>
+
+    <div id="toast-stack" class="toast-stack"></div>
+</section>

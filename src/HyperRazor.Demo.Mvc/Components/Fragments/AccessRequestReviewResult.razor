@@ -1,0 +1,22 @@
+<section id="review-request-result" class="panel">
+    @if (Errors.Count == 0)
+    {
+        <h3>Ready to redirect</h3>
+        <p>The task passed validation and the server is preparing an <code>HX-Location</code> response.</p>
+    }
+    else
+    {
+        <h3>Review Validation Errors</h3>
+        <ul class="validation-errors">
+            @foreach (var error in Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<string> Errors { get; set; } = Array.Empty<string>();
+}

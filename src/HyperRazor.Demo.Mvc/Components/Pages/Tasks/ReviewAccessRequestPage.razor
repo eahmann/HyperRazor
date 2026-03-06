@@ -1,0 +1,46 @@
+<section class="panel">
+    <h3>Access Review</h3>
+    <p>Review request <strong>#@RequestId</strong> and return to the workbench using a server-driven <code>HX-Location</code> response.</p>
+</section>
+
+<section class="panel">
+    <h3>Decision Form</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> submit a short justification first to see validation stay in place, then provide a complete ticket + justification and watch the page navigate back to the queue.
+    </div>
+
+    <form
+        id="review-request-form"
+        action="/fragments/access-requests/@RequestId/review"
+        hx-post="/fragments/access-requests/@RequestId/review"
+        hx-target="#review-request-result"
+        hx-swap="outerHTML focus-scroll:true"
+        hx-indicator="#review-request-indicator"
+        hx-disabled-elt="find button"
+        novalidate>
+        <HrzAntiforgeryInput />
+
+        <label for="review-ticket-id">Ticket ID</label>
+        <input id="review-ticket-id" name="ticketId" value="SEC-@RequestId" />
+
+        <label for="review-justification">Justification</label>
+        <textarea id="review-justification" name="justification" rows="4">Approve temporary access for the documented change window.</textarea>
+
+        <button type="submit">Approve And Return To Queue</button>
+        <span id="review-request-indicator" class="hrz-indicator" aria-live="polite">Reviewing…</span>
+    </form>
+
+    <section id="review-request-result" class="panel">
+        <h3>Awaiting submission</h3>
+        <p>Complete the task form to validate inline behavior and the server-driven return path.</p>
+    </section>
+
+    <p class="demo-caption">
+        Manual escape hatch: <a href="/access-requests" hx-boost="true" hx-target="#hrz-main-layout" hx-swap="innerHTML show:window:top" hx-push-url="true">Return to access request queue</a>
+    </p>
+</section>
+
+@code {
+    [Parameter]
+    public int RequestId { get; set; }
+}

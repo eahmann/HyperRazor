@@ -1,0 +1,30 @@
+<section class="panel">
+    <h3>Incident Triage</h3>
+    <p>Focused response screen for incident <strong>#@IncidentId</strong>. This page keeps the operator in a reduced-chrome task layout.</p>
+</section>
+
+<section class="panel">
+    <h3>Triage Checks</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> run the checks below to see operational status responses without leaving the task context.
+    </div>
+    <div class="status-actions">
+        <button type="button" hx-get="/fragments/incidents/drills/auth" hx-target="#incident-triage-status" hx-swap="outerHTML">Auth challenge</button>
+        <button type="button" hx-get="/fragments/incidents/drills/playbook-missing" hx-target="#incident-triage-status" hx-swap="outerHTML">Missing runbook</button>
+        <button type="button" hx-get="/fragments/incidents/drills/backend-failure" hx-target="#incident-triage-status" hx-swap="outerHTML">Escalation failure</button>
+    </div>
+
+    <section id="incident-triage-status" class="panel status-result">
+        <h3>Ready</h3>
+        <p>Run a triage check to inspect the response fragment and headers.</p>
+    </section>
+
+    <p class="demo-caption">
+        Return path: <a href="/incidents" hx-boost="true" hx-target="#hrz-main-layout" hx-swap="innerHTML show:window:top" hx-push-url="true">Back to incidents workbench</a>
+    </p>
+</section>
+
+@code {
+    [Parameter]
+    public int IncidentId { get; set; }
+}

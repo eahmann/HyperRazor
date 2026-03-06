@@ -50,8 +50,8 @@ public sealed class FragmentsController : HrController
         }, cancellationToken);
     }
 
-    [HttpGet("toast/success")]
-    public Task<IResult> ToastSuccessFragment(CancellationToken cancellationToken)
+    [HttpGet("dashboard/sync-check")]
+    public Task<IResult> DashboardSyncCheck(CancellationToken cancellationToken)
     {
         HttpContext.HtmxResponse().Trigger("toast:show", new
         {
@@ -59,8 +59,8 @@ public sealed class FragmentsController : HrController
         });
 
         QueueInspectorUpdate(
-            action: "toast-success",
-            details: "Emitted HX-Trigger response event: toast:show");
+            action: "dashboard-sync-check",
+            details: "Emitted an HX-Trigger workflow event from the dashboard health check.");
 
         return PartialView<ToastSuccess>(new
         {
@@ -68,13 +68,13 @@ public sealed class FragmentsController : HrController
         }, cancellationToken);
     }
 
-    [HttpGet("toast/success-attribute")]
+    [HttpGet("dashboard/banner-check")]
     [HtmxResponse(Trigger = "toast:show")]
-    public Task<IResult> ToastSuccessAttributeFragment(CancellationToken cancellationToken)
+    public Task<IResult> DashboardBannerCheck(CancellationToken cancellationToken)
     {
         QueueInspectorUpdate(
-            action: "toast-success-attribute",
-            details: "Trigger is configured via [HtmxResponse]; response headers are applied after action execution.");
+            action: "dashboard-banner-check",
+            details: "Trigger is configured via [HtmxResponse] for a dashboard broadcast event.");
 
         return PartialView<ToastSuccess>(new
         {
@@ -82,13 +82,13 @@ public sealed class FragmentsController : HrController
         }, cancellationToken);
     }
 
-    [HttpGet("errors/401")]
+    [HttpGet("incidents/drills/auth")]
     [HtmxRequest]
-    public Task<IResult> UnauthorizedStatus(CancellationToken cancellationToken)
+    public Task<IResult> IncidentAuthDrill(CancellationToken cancellationToken)
     {
         QueueInspectorUpdate(
-            action: "status-401",
-            details: "Returned a 401 response fragment using HrzResults.Unauthorized.");
+            action: "incident-drill-auth",
+            details: "Returned a 401 response fragment for the incident authentication drill.");
 
         return HrzResults.Unauthorized<ErrorStatusResult>(
             HttpContext,
@@ -101,13 +101,13 @@ public sealed class FragmentsController : HrController
             cancellationToken: cancellationToken);
     }
 
-    [HttpGet("errors/403")]
+    [HttpGet("incidents/drills/permission")]
     [HtmxRequest]
-    public Task<IResult> ForbiddenStatus(CancellationToken cancellationToken)
+    public Task<IResult> IncidentPermissionDrill(CancellationToken cancellationToken)
     {
         QueueInspectorUpdate(
-            action: "status-403",
-            details: "Returned a 403 response fragment using HrzResults.Forbidden.");
+            action: "incident-drill-permission",
+            details: "Returned a 403 response fragment for the incident permission drill.");
 
         return HrzResults.Forbidden<ErrorStatusResult>(
             HttpContext,
@@ -120,13 +120,13 @@ public sealed class FragmentsController : HrController
             cancellationToken: cancellationToken);
     }
 
-    [HttpGet("errors/404")]
+    [HttpGet("incidents/drills/playbook-missing")]
     [HtmxRequest]
-    public Task<IResult> NotFoundStatus(CancellationToken cancellationToken)
+    public Task<IResult> IncidentPlaybookMissingDrill(CancellationToken cancellationToken)
     {
         QueueInspectorUpdate(
-            action: "status-404",
-            details: "Returned a 404 response fragment using HrzResults.NotFound.");
+            action: "incident-drill-playbook-missing",
+            details: "Returned a 404 response fragment for the missing incident playbook drill.");
 
         return HrzResults.NotFound<ErrorStatusResult>(
             HttpContext,
@@ -139,9 +139,9 @@ public sealed class FragmentsController : HrController
             cancellationToken: cancellationToken);
     }
 
-    [HttpGet("errors/500")]
+    [HttpGet("incidents/drills/backend-failure")]
     [HtmxRequest]
-    public Task<IResult> ServerErrorStatus(CancellationToken cancellationToken)
+    public Task<IResult> IncidentBackendFailureDrill(CancellationToken cancellationToken)
     {
         _swapService.QueueHtml(
             targetId: $"error-toast-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
@@ -150,8 +150,8 @@ public sealed class FragmentsController : HrController
             selector: "#toast-stack");
 
         QueueInspectorUpdate(
-            action: "status-500",
-            details: "Returned a 500 response fragment and appended an OOB toast.");
+            action: "incident-drill-backend-failure",
+            details: "Returned a 500 response fragment and appended an OOB incident toast.");
 
         return HrzResults.ServerError<ErrorStatusResult>(
             HttpContext,
@@ -164,9 +164,9 @@ public sealed class FragmentsController : HrController
             cancellationToken: cancellationToken);
     }
 
-    [HttpPost("head/update")]
+    [HttpPost("settings/branding")]
     [HtmxRequest]
-    public Task<IResult> HeadUpdate(
+    public Task<IResult> UpdateBrandingSettings(
         [FromForm] string? title,
         [FromForm] string? description,
         [FromForm] string? accent,
@@ -190,7 +190,7 @@ public sealed class FragmentsController : HrController
             key: "head-demo-script");
 
         QueueInspectorUpdate(
-            action: "head-update",
+            action: "settings-branding",
             details: $"Queued title/meta/style/script via IHrzHeadService. Title=\"{normalizedTitle}\", accent={accentPreset.Name}.");
 
         return PartialView<HeadUpdateResult>(new
@@ -202,8 +202,8 @@ public sealed class FragmentsController : HrController
         }, cancellationToken);
     }
 
-    [HttpPost("users/create")]
-    public Task<IResult> CreateUser([FromForm] string? displayName, CancellationToken cancellationToken)
+    [HttpPost("users/provision")]
+    public Task<IResult> ProvisionUser([FromForm] string? displayName, CancellationToken cancellationToken)
     {
         var normalizedName = string.IsNullOrWhiteSpace(displayName)
             ? "New User"
@@ -219,15 +219,15 @@ public sealed class FragmentsController : HrController
         });
 
         QueueInspectorUpdate(
-            action: "create-user",
+            action: "users-provision",
             details: $"Created {normalizedName} (#{count}).");
 
         return PartialView<UserCreateResult>(new { DisplayName = normalizedName, Count = count }, cancellationToken);
     }
 
-    [HttpPost("users/create-rendered")]
+    [HttpPost("users/provision-rendered")]
     [HtmxRequest]
-    public async Task<IResult> CreateUserRendered([FromForm] string? displayName, CancellationToken cancellationToken)
+    public async Task<IResult> ProvisionUserRendered([FromForm] string? displayName, CancellationToken cancellationToken)
     {
         var normalizedName = string.IsNullOrWhiteSpace(displayName)
             ? "New User"
@@ -244,7 +244,7 @@ public sealed class FragmentsController : HrController
         });
 
         QueueInspectorUpdate(
-            action: "create-user-rendered",
+            action: "users-provision-rendered",
             details: $"Created {normalizedName} (#{count}) via IHrzSwapService.RenderToString(clear: true).");
 
         var oobMarkup = await _swapService.RenderToString(clear: true, cancellationToken);
@@ -264,9 +264,9 @@ public sealed class FragmentsController : HrController
             builder => builder.AddMarkupContent(0, oobMarkup));
     }
 
-    [HttpPost("users/create-validated")]
+    [HttpPost("users/invite")]
     [HtmxRequest]
-    public Task<IResult> CreateUserValidated(
+    public Task<IResult> ValidateUserInvite(
         [FromForm] string? displayName,
         [FromForm] string? email,
         CancellationToken cancellationToken)
@@ -283,7 +283,7 @@ public sealed class FragmentsController : HrController
             });
 
             QueueInspectorUpdate(
-                action: "validate-user",
+                action: "users-invite",
                 details: $"Invalid submission with {errors.Count} error(s).");
 
             return PartialView<UserCreateValidationResult>(new
@@ -304,7 +304,7 @@ public sealed class FragmentsController : HrController
         });
 
         QueueInspectorUpdate(
-            action: "validate-user",
+            action: "users-invite",
             details: $"Valid submission for {normalizedName} ({normalizedEmail}).");
 
         return PartialView<UserCreateValidationResult>(new
@@ -316,23 +316,38 @@ public sealed class FragmentsController : HrController
         }, cancellationToken);
     }
 
-    [HttpPost("navigation/soft")]
-    public IActionResult SoftRedirect()
+    [HttpPost("access-requests/{requestId:int}/review")]
+    [HtmxRequest]
+    public Task<IResult> ReviewAccessRequest(
+        int requestId,
+        [FromForm] string? ticketId,
+        [FromForm] string? justification,
+        CancellationToken cancellationToken)
     {
+        var normalizedTicketId = ticketId?.Trim() ?? string.Empty;
+        var normalizedJustification = justification?.Trim() ?? string.Empty;
+        var errors = ValidateAccessReviewInput(normalizedTicketId, normalizedJustification);
+
+        if (errors.Count > 0)
+        {
+            QueueInspectorUpdate(
+                action: "review-access-request",
+                details: $"Request #{requestId} failed validation with {errors.Count} error(s).");
+
+            return PartialView<AccessRequestReviewResult>(new
+            {
+                Errors = errors
+            }, cancellationToken);
+        }
+
         HttpContext.HtmxResponse().Location(new
         {
-            path = "/",
+            path = $"/access-requests?completed={requestId}",
             target = "#hrz-main-layout",
-            swap = "innerHTML"
+            swap = "innerHTML show:window:top"
         });
-        return NoContent();
-    }
 
-    [HttpPost("navigation/hard")]
-    public IActionResult HardRedirect()
-    {
-        HttpContext.HtmxResponse().Redirect("/");
-        return NoContent();
+        return Task.FromResult<IResult>(TypedResults.NoContent());
     }
 
     private static List<string> ValidateCreateUserInput(string displayName, string email)
@@ -362,6 +377,31 @@ public sealed class FragmentsController : HrController
             {
                 errors.Add("Email must be a valid address.");
             }
+        }
+
+        return errors;
+    }
+
+    private static List<string> ValidateAccessReviewInput(string ticketId, string justification)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(ticketId))
+        {
+            errors.Add("Ticket ID is required before approving access.");
+        }
+        else if (ticketId.Length < 5)
+        {
+            errors.Add("Ticket ID must include the system prefix and numeric identifier.");
+        }
+
+        if (string.IsNullOrWhiteSpace(justification))
+        {
+            errors.Add("A review justification is required.");
+        }
+        else if (justification.Length < 12)
+        {
+            errors.Add("Justification must be at least 12 characters.");
         }
 
         return errors;

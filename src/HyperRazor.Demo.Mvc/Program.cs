@@ -1,6 +1,7 @@
 using HyperRazor.Components;
-using HyperRazor.Demo.Mvc.Components.Pages;
 using HyperRazor.Demo.Mvc.Components.Layouts;
+using HyperRazor.Demo.Mvc.Components.Pages;
+using HyperRazor.Demo.Mvc.Components.Pages.Admin;
 using HyperRazor.Hosting;
 using HyperRazor.Htmx;
 using HyperRazor.Htmx.AspNetCore;
@@ -26,7 +27,7 @@ builder.Services.AddHyperRazor(options =>
     options.LayoutBoundary.OnlyBoostedRequests = true;
     options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
     options.LayoutBoundary.LayoutFamilyHeaderName = HtmxHeaderNames.LayoutFamily;
-    options.LayoutBoundary.DefaultLayoutFamily = "main";
+    options.LayoutBoundary.DefaultLayoutFamily = "admin";
     options.LayoutBoundary.ShellTargetSelector = "#hrz-app-shell";
     options.LayoutBoundary.ShellSwapStyle = "outerHTML";
     options.LayoutBoundary.ShellReselectSelector = "#hrz-app-shell";
@@ -76,12 +77,13 @@ app.UseRouting();
 
 app.UseHyperRazor();
 
-// Minimal API parity routes reuse the same page components as the MVC demo controller.
-var minimalPages = app.MapGroup("/minimal");
-minimalPages.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>
-    HrzResults.Page<HomePage>(context, cancellationToken: cancellationToken));
-minimalPages.MapGet("/basic", (HttpContext context, CancellationToken cancellationToken) =>
-    HrzResults.Page<BasicDemoPage>(context, cancellationToken: cancellationToken));
+// AdminLayout routes are intentionally served via Minimal API so the demo shows parity in a real app area.
+app.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<DashboardPage>(context, cancellationToken: cancellationToken));
+app.MapGet("/users", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<UsersPage>(context, cancellationToken: cancellationToken));
+app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<BrandingSettingsPage>(context, cancellationToken: cancellationToken));
 
 app.MapControllers();
 

@@ -13,19 +13,19 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
-    public async Task OobDemo_CreateUser_UpdatesMainAndOobRegions()
+    public async Task UsersPage_ProvisionUser_UpdatesMainAndOobRegions()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
         await using var context = await _fixture.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/oob");
+        await page.GotoAsync($"{_fixture.BaseUrl}/users");
         await WaitForHtmxAsync(page);
         await page.FillAsync("#displayName", "Jordan Avery");
         var response = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync("form[hx-post='/fragments/users/create'] button[type='submit']"),
-            r => r.Url.Contains("/fragments/users/create", StringComparison.Ordinal));
+            async () => await page.ClickAsync("form[hx-post='/fragments/users/provision'] button[type='submit']"),
+            r => r.Url.Contains("/fragments/users/provision", StringComparison.Ordinal));
 
         Assert.Equal(200, response.Status);
         var html = await response.TextAsync();
@@ -33,24 +33,26 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Contains("beforeend:#toast-stack", html, StringComparison.Ordinal);
         Assert.Contains("beforeend:#activity-feed", html, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob", html, StringComparison.Ordinal);
-        Assert.Contains("create-user", html, StringComparison.Ordinal);
+        Assert.Contains("users-provision", html, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#users-list")).ToContainTextAsync("Jordan Avery");
+        await Assertions.Expect(page.Locator("#activity-feed")).ToContainTextAsync("Jordan Avery");
     }
 
     [SkippableFact]
-    public async Task ValidationDemo_InvalidThenValid_SubmitsAndSwapsExpectedMarkup()
+    public async Task UsersPage_Invite_InvalidThenValid_SubmitsAndSwapsExpectedMarkup()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
         await using var context = await _fixture.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/validation");
+        await page.GotoAsync($"{_fixture.BaseUrl}/users");
         await WaitForHtmxAsync(page);
         await page.FillAsync("#validation-display-name", "A");
         await page.FillAsync("#validation-email", "invalid");
         var invalidResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#validation-form button[type='submit']"),
-            response => response.Url.Contains("/fragments/users/create-validated", StringComparison.Ordinal));
+            response => response.Url.Contains("/fragments/users/invite", StringComparison.Ordinal));
 
         Assert.Equal(200, invalidResponse.Status);
         var invalidHtml = await invalidResponse.TextAsync();
@@ -62,115 +64,124 @@ public sealed class DemoMvcFlowsE2ETests
         await page.FillAsync("#validation-email", "riley@example.com");
         var validResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#validation-form button[type='submit']"),
-            response => response.Url.Contains("/fragments/users/create-validated", StringComparison.Ordinal));
+            response => response.Url.Contains("/fragments/users/invite", StringComparison.Ordinal));
 
         Assert.Equal(200, validResponse.Status);
         var validHtml = await validResponse.TextAsync();
         Assert.Contains("Validation Passed", validHtml, StringComparison.Ordinal);
         Assert.Contains("riley@example.com", validHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-result")).ToContainTextAsync("Validation Passed");
     }
 
     [SkippableFact]
-    public async Task RedirectDemo_SoftAndHardRedirects_NavigateToHome()
+    public async Task AccessReview_TaskFlow_InvalidThenValid_ReturnsToWorkbenchViaHxLocation()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
         await using var context = await _fixture.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/redirects");
+        await page.GotoAsync($"{_fixture.BaseUrl}/access-requests");
         await WaitForHtmxAsync(page);
-        var softResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync("button:has-text('Soft redirect (HX-Location)')"),
-            response => response.Url.Contains("/fragments/navigation/soft", StringComparison.Ordinal));
 
-        Assert.Equal(204, softResponse.Status);
-        var softHeaders = await softResponse.AllHeadersAsync();
-        Assert.True(softHeaders.ContainsKey("hx-location"));
-        Assert.Contains("\"path\":\"/\"", softHeaders["hx-location"], StringComparison.Ordinal);
+        var reviewPageResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("a[href='/access-requests/104/review']"),
+            response => response.Url.Contains("/access-requests/104/review", StringComparison.Ordinal));
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/redirects");
-        var hardResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync("button:has-text('Hard redirect (HX-Redirect)')"),
-            response => response.Url.Contains("/fragments/navigation/hard", StringComparison.Ordinal));
+        Assert.Equal(200, reviewPageResponse.Status);
+        await ExpectHeadingAsync(page, "Complete the workflow, then return to the queue.");
 
-        Assert.Equal(204, hardResponse.Status);
-        var hardHeaders = await hardResponse.AllHeadersAsync();
-        Assert.True(hardHeaders.ContainsKey("hx-redirect"));
-        Assert.Equal("/", hardHeaders["hx-redirect"]);
+        await page.FillAsync("#review-ticket-id", "SEC");
+        await page.FillAsync("#review-justification", "short");
+        var invalidResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#review-request-form button[type='submit']"),
+            response => response.Url.Contains("/fragments/access-requests/104/review", StringComparison.Ordinal));
+
+        Assert.Equal(200, invalidResponse.Status);
+        var invalidHtml = await invalidResponse.TextAsync();
+        Assert.Contains("Review Validation Errors", invalidHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#review-request-result")).ToContainTextAsync("Review Validation Errors");
+
+        await page.FillAsync("#review-ticket-id", "SEC-104");
+        await page.FillAsync("#review-justification", "Approve temporary billing export access for the planned change window.");
+        var validResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#review-request-form button[type='submit']"),
+            response => response.Url.Contains("/fragments/access-requests/104/review", StringComparison.Ordinal));
+
+        Assert.Equal(204, validResponse.Status);
+        var headers = await validResponse.AllHeadersAsync();
+        Assert.True(headers.ContainsKey("hx-location"));
+        Assert.Contains("/access-requests?completed=104", headers["hx-location"], StringComparison.Ordinal);
+
+        await page.WaitForFunctionAsync(
+            "() => window.location.pathname + window.location.search === '/access-requests?completed=104'");
+        await Assertions.Expect(page.Locator("main#hrz-main-layout")).ToContainTextAsync("Request processed");
+        await Assertions.Expect(page.Locator("#workbench-layout-shell")).ToBeVisibleAsync();
     }
 
     [SkippableFact]
-    public async Task StatusDemo_500_SwapsErrorPanelAndOobToast()
+    public async Task IncidentsPage_BackendFailure_SwapsErrorPanelAndOobToast()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
         await using var context = await _fixture.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/errors");
+        await page.GotoAsync($"{_fixture.BaseUrl}/incidents");
         await WaitForHtmxAsync(page);
         var response = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync("button:has-text('Simulate 500')"),
-            r => r.Url.Contains("/fragments/errors/500", StringComparison.Ordinal));
+            async () => await page.ClickAsync("button:has-text('Backend failure')"),
+            r => r.Url.Contains("/fragments/incidents/drills/backend-failure", StringComparison.Ordinal));
 
         Assert.Equal(500, response.Status);
         var html = await response.TextAsync();
         Assert.Contains("500 Server Error", html, StringComparison.Ordinal);
-        Assert.Contains("Server-side failure demo", html, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob", html, StringComparison.Ordinal);
         await Assertions.Expect(page.Locator("#status-result")).ToContainTextAsync("500 Server Error");
         await Assertions.Expect(page.Locator("#toast-stack")).ToContainTextAsync("Server-side failure demo (500) with OOB toast.");
     }
 
     [SkippableFact]
-    public async Task HeadDemo_Submit_UpdatesDocumentTitle()
+    public async Task BrandingPage_Submit_UpdatesDocumentTitleAndDedupesScript()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
         await using var context = await _fixture.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/demos/head");
+        await page.GotoAsync($"{_fixture.BaseUrl}/settings/branding");
         await WaitForHtmxAsync(page);
-        await page.FillAsync("#head-title-input", "E2E Head Title");
-        await page.FillAsync("#head-description-input", "E2E head description.");
+        await page.FillAsync("#head-title-input", "E2E Branding Title");
+        await page.FillAsync("#head-description-input", "E2E branding description.");
         await page.SelectOptionAsync("#head-accent-input", "amber");
         var response = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#head-demo-form button[type='submit']"),
-            r => r.Url.Contains("/fragments/head/update", StringComparison.Ordinal));
+            r => r.Url.Contains("/fragments/settings/branding", StringComparison.Ordinal));
 
         Assert.Equal(200, response.Status);
-        Assert.Equal("xhr", response.Request.ResourceType);
-        Assert.Equal("true", response.Request.Headers["hx-request"]);
-        if (response.Request.Headers.TryGetValue("hx-request-type", out var requestTypeHeader))
-        {
-            Assert.NotEqual("full", requestTypeHeader);
-        }
         var html = await response.TextAsync();
-        Assert.Contains("E2E Head Title", html, StringComparison.Ordinal);
+        Assert.Contains("E2E Branding Title", html, StringComparison.Ordinal);
         Assert.Contains("<head", html, StringComparison.Ordinal);
         Assert.Contains("hx-head=\"merge\"", html, StringComparison.Ordinal);
-        Assert.Contains("<title>E2E Head Title</title>", html, StringComparison.Ordinal);
-        await Assertions.Expect(page).ToHaveTitleAsync("E2E Head Title");
+        await Assertions.Expect(page).ToHaveTitleAsync("E2E Branding Title");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Head Updated");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Accent preset: Amber");
         await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Load count: 1");
 
-        await page.FillAsync("#head-title-input", "E2E Head Title 2");
+        await page.FillAsync("#head-title-input", "E2E Branding Title 2");
         await page.SelectOptionAsync("#head-accent-input", "rose");
         var secondResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#head-demo-form button[type='submit']"),
-            r => r.Url.Contains("/fragments/head/update", StringComparison.Ordinal));
+            r => r.Url.Contains("/fragments/settings/branding", StringComparison.Ordinal));
 
         Assert.Equal(200, secondResponse.Status);
-        await Assertions.Expect(page).ToHaveTitleAsync("E2E Head Title 2");
+        await Assertions.Expect(page).ToHaveTitleAsync("E2E Branding Title 2");
         await Assertions.Expect(page.Locator("#head-demo-result")).ToContainTextAsync("Accent preset: Rose");
         await Assertions.Expect(page.Locator("#head-script-status")).ToContainTextAsync("Load count: 1");
     }
 
     [SkippableFact]
-    public async Task AppNav_BoostedLinks_SwapMainRegionAndPushUrl()
+    public async Task AppNav_BoostedLinks_SwapAcrossAdminAndWorkbenchLayouts()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
@@ -190,89 +201,54 @@ public sealed class DemoMvcFlowsE2ETests
         await page.GotoAsync($"{_fixture.BaseUrl}/");
         await WaitForHtmxAsync(page);
 
-        var searchResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync(".app-nav a[href='/demos/search']"),
-            response => response.Url.Contains("/demos/search", StringComparison.Ordinal));
+        var usersResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync(".app-nav a[href='/users']"),
+            response => response.Url.Contains("/users", StringComparison.Ordinal));
 
-        Assert.Equal(200, searchResponse.Status);
-        Assert.Equal("xhr", searchResponse.Request.ResourceType);
-        Assert.Equal("true", searchResponse.Request.Headers["hx-request"]);
-        var searchHtml = await searchResponse.TextAsync();
-        Assert.Contains("Live Search", searchHtml, StringComparison.Ordinal);
-        await ExpectHeadingAsync(page, "Live Search");
-        Assert.EndsWith("/demos/search", page.Url, StringComparison.Ordinal);
+        Assert.Equal(200, usersResponse.Status);
+        Assert.Equal("xhr", usersResponse.Request.ResourceType);
+        Assert.Equal("true", usersResponse.Request.Headers["hx-request"]);
+        await ExpectHeadingAsync(page, "User Administration");
+        Assert.EndsWith("/users", page.Url, StringComparison.Ordinal);
         Assert.Equal(1, await page.Locator("#app-shell").CountAsync());
         Assert.Empty(pageErrors);
         Assert.Empty(consoleErrors);
 
-        var validationResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync(".app-nav a[href='/demos/validation']"),
-            response => response.Url.Contains("/demos/validation", StringComparison.Ordinal));
+        var accessResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync(".app-nav a[href='/access-requests']"),
+            response => response.Url.Contains("/access-requests", StringComparison.Ordinal));
 
-        Assert.Equal(200, validationResponse.Status);
-        await ExpectHeadingAsync(page, "Form Validation");
-        Assert.EndsWith("/demos/validation", page.Url, StringComparison.Ordinal);
-        Assert.Equal(1, await page.Locator("#app-shell").CountAsync());
-    }
+        Assert.Equal(200, accessResponse.Status);
+        Assert.Equal("admin", accessResponse.Request.Headers["x-hrz-layout-family"]);
+        var accessHeaders = await accessResponse.AllHeadersAsync();
+        Assert.True(accessHeaders.TryGetValue("hx-retarget", out var accessRetarget));
+        Assert.Equal("#hrz-app-shell", accessRetarget);
+        await ExpectHeadingAsync(page, "Access Requests");
+        await Assertions.Expect(page.Locator("#workbench-layout-shell")).ToBeVisibleAsync();
+        Assert.EndsWith("/access-requests", page.Url, StringComparison.Ordinal);
 
-    [SkippableFact]
-    public async Task LayoutSwapDemo_NavigatesAcrossTopNavAndSideNavLayouts()
-    {
-        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+        var incidentsResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync(".side-layout-nav a[href='/incidents']"),
+            response => response.Url.Contains("/incidents", StringComparison.Ordinal));
 
-        await using var context = await _fixture.NewContextAsync();
-        var page = await context.NewPageAsync();
+        Assert.Equal(200, incidentsResponse.Status);
+        Assert.Equal("workbench", incidentsResponse.Request.Headers["x-hrz-layout-family"]);
+        var incidentsHeaders = await incidentsResponse.AllHeadersAsync();
+        Assert.False(incidentsHeaders.ContainsKey("hx-retarget"));
+        await ExpectHeadingAsync(page, "Incidents");
+        Assert.EndsWith("/incidents", page.Url, StringComparison.Ordinal);
 
-        await page.GotoAsync($"{_fixture.BaseUrl}/minimal/basic");
-        await WaitForHtmxAsync(page);
+        var backResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync(".side-layout-nav a[href='/users']"),
+            response => response.Url.Contains("/users", StringComparison.Ordinal));
 
-        var layoutIntroResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync(".app-nav a[href='/demos/layout-swap']"),
-            response => response.Url.Contains("/demos/layout-swap", StringComparison.Ordinal));
-
-        Assert.Equal(200, layoutIntroResponse.Status);
-        Assert.Equal("main", layoutIntroResponse.Request.Headers["x-hrz-layout-family"]);
-        var layoutIntroHeaders = await layoutIntroResponse.AllHeadersAsync();
-        Assert.True(layoutIntroHeaders.TryGetValue("hx-retarget", out var layoutIntroRetarget));
-        Assert.Equal("#hrz-app-shell", layoutIntroRetarget);
-        Assert.True(layoutIntroHeaders.TryGetValue("hx-reswap", out var layoutIntroReswap));
-        Assert.Equal("outerHTML", layoutIntroReswap);
-        Assert.True(layoutIntroHeaders.TryGetValue("hx-reselect", out var layoutIntroReselect));
-        Assert.Equal("#hrz-app-shell", layoutIntroReselect);
-        await ExpectHeadingAsync(page, "Layout Swap Demo");
-        await Assertions.Expect(page.Locator("#side-nav-layout-shell")).ToBeVisibleAsync();
-        await Assertions.Expect(page.Locator(".app-nav")).ToHaveCountAsync(0);
-        Assert.EndsWith("/demos/layout-swap", page.Url, StringComparison.Ordinal);
-
-        var layoutDetailsResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync(".side-layout-nav a[href='/demos/layout-swap/details']"),
-            response => response.Url.Contains("/demos/layout-swap/details", StringComparison.Ordinal));
-
-        Assert.Equal(200, layoutDetailsResponse.Status);
-        Assert.Equal("side", layoutDetailsResponse.Request.Headers["x-hrz-layout-family"]);
-        var layoutDetailsHeaders = await layoutDetailsResponse.AllHeadersAsync();
-        Assert.False(layoutDetailsHeaders.ContainsKey("hx-retarget"));
-        Assert.False(layoutDetailsHeaders.ContainsKey("hx-reswap"));
-        Assert.False(layoutDetailsHeaders.ContainsKey("hx-reselect"));
-        await ExpectHeadingAsync(page, "Layout Swap Details");
-        Assert.EndsWith("/demos/layout-swap/details", page.Url, StringComparison.Ordinal);
-
-        var backToTopNavResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.ClickAsync(".side-layout-nav a[href='/minimal/basic']"),
-            response => response.Url.Contains("/minimal/basic", StringComparison.Ordinal));
-
-        Assert.Equal(200, backToTopNavResponse.Status);
-        Assert.Equal("side", backToTopNavResponse.Request.Headers["x-hrz-layout-family"]);
-        var backToTopHeaders = await backToTopNavResponse.AllHeadersAsync();
-        Assert.True(backToTopHeaders.TryGetValue("hx-retarget", out var backToTopRetarget));
-        Assert.Equal("#hrz-app-shell", backToTopRetarget);
-        Assert.True(backToTopHeaders.TryGetValue("hx-reswap", out var backToTopReswap));
-        Assert.Equal("outerHTML", backToTopReswap);
-        Assert.True(backToTopHeaders.TryGetValue("hx-reselect", out var backToTopReselect));
-        Assert.Equal("#hrz-app-shell", backToTopReselect);
-        await ExpectHeadingAsync(page, "Server Trigger");
-        Assert.EndsWith("/minimal/basic", page.Url, StringComparison.Ordinal);
-        Assert.Equal(1, await page.Locator("#app-shell").CountAsync());
+        Assert.Equal(200, backResponse.Status);
+        Assert.Equal("workbench", backResponse.Request.Headers["x-hrz-layout-family"]);
+        var backHeaders = await backResponse.AllHeadersAsync();
+        Assert.True(backHeaders.TryGetValue("hx-retarget", out var backRetarget));
+        Assert.Equal("#hrz-app-shell", backRetarget);
+        await ExpectHeadingAsync(page, "User Administration");
+        Assert.EndsWith("/users", page.Url, StringComparison.Ordinal);
         await Assertions.Expect(page.Locator(".app-nav")).ToHaveCountAsync(1);
     }
 

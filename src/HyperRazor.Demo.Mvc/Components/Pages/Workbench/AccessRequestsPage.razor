@@ -1,0 +1,59 @@
+<section class="panel">
+    <h2>Access Requests</h2>
+    <p>Queue-first workbench page. Review tasks leave this layout and return through <code>HX-Location</code>.</p>
+</section>
+
+@if (CompletedRequestId is int completedRequestId)
+{
+    <section class="panel success-banner">
+        <h3>Request processed</h3>
+        <p>Request <strong>#@completedRequestId</strong> returned to the queue after a server-driven <code>HX-Location</code> response.</p>
+    </section>
+}
+
+<section class="panel">
+    <h3>Review Queue</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> open any request below, complete the focused task form, and watch the queue route load back into the workbench.
+    </div>
+    <div class="queue-list" hx-boost="true" hx-target="#hrz-main-layout" hx-swap="innerHTML show:window:top" hx-push-url="true">
+        <article class="queue-card">
+            <p class="app-kicker">Finance</p>
+            <h4>Request #104</h4>
+            <p>Finley Chen needs temporary billing export access for quarter-close.</p>
+            <a href="/access-requests/104/review">Review Request</a>
+        </article>
+        <article class="queue-card">
+            <p class="app-kicker">Support</p>
+            <h4>Request #105</h4>
+            <p>Avery Stone needs elevated case-management permissions for weekend coverage.</p>
+            <a href="/access-requests/105/review">Review Request</a>
+        </article>
+        <article class="queue-card">
+            <p class="app-kicker">Billing</p>
+            <h4>Request #106</h4>
+            <p>Morgan Lake needs read-only settlement access for a customer audit.</p>
+            <a href="/access-requests/106/review">Review Request</a>
+        </article>
+    </div>
+</section>
+
+<section class="panel queue-summary-grid">
+    <section class="panel">
+        <h3>Queue Summary</h3>
+        <ul class="debug-list">
+            <li><strong>9</strong> pending reviews</li>
+            <li><strong>3</strong> high-sensitivity requests</li>
+            <li><strong>2</strong> expiring within 24 hours</li>
+        </ul>
+    </section>
+    <section class="panel">
+        <h3>Why This Matters</h3>
+        <p class="demo-caption">This page is where layout-family navigation becomes practical: list-heavy workbench views link into focused task screens without giving up SSR or HTMX inspection.</p>
+    </section>
+</section>
+
+@code {
+    [Parameter]
+    public int? CompletedRequestId { get; set; }
+}

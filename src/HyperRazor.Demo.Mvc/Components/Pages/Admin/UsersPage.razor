@@ -1,0 +1,130 @@
+<section class="panel">
+    <h2>User Administration</h2>
+    <p>Manage directory search, invite validation, and multi-region provisioning updates from one admin surface.</p>
+</section>
+
+<section id="live-search-demo" class="panel">
+    <h3>Directory Search</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> search by name or username, change sort, then use the pager buttons.
+    </div>
+    <p class="demo-caption">Expected outcome: results swap in place and inspector reflects every query change.</p>
+
+    <form
+        id="search-controls"
+        action="/fragments/users/search"
+        hx-get="/fragments/users/search"
+        hx-target="#search-results"
+        hx-swap="innerHTML"
+        hx-indicator="#search-indicator"
+        hx-disabled-elt="find button"
+        hx-trigger="submit, keyup changed delay:250ms from:#search-box, change from:#sort-select">
+        <label for="search-box">Query</label>
+        <input id="search-box" type="search" name="query" placeholder="Search people or usernames..." autocomplete="off" />
+
+        <label for="sort-select">Sort</label>
+        <select id="sort-select" name="sort">
+            <option value="name-asc" selected>Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="username-asc">Username (A-Z)</option>
+            <option value="username-desc">Username (Z-A)</option>
+        </select>
+
+        <input type="hidden" name="page" value="1" />
+        <input type="hidden" name="pageSize" value="4" />
+        <button type="submit">Search Directory</button>
+        <span id="search-indicator" class="hrz-indicator" aria-live="polite">Searching…</span>
+    </form>
+
+    <div id="search-results">
+        <p>Run a query to load directory results.</p>
+    </div>
+</section>
+
+<section class="panel user-admin-grid">
+    <section class="panel">
+        <h3>Provision Account</h3>
+        <p>One HTMX request updates the latest-created user, count badge, activity feed, toast stack, and inspector.</p>
+        <p>Users: <span id="user-count-shell" class="count-badge">5</span></p>
+        <form
+            action="/fragments/users/provision"
+            hx-post="/fragments/users/provision"
+            hx-target="#users-list"
+            hx-swap="outerHTML focus-scroll:true"
+            hx-indicator="#oob-indicator"
+            hx-disabled-elt="find button">
+            <HrzAntiforgeryInput />
+
+            <label for="displayName">Display Name</label>
+            <input id="displayName" name="displayName" value="Taylor Reed" />
+            <button type="submit">Provision User</button>
+        </form>
+
+        <form
+            id="render-to-string-form"
+            action="/fragments/users/provision-rendered"
+            hx-post="/fragments/users/provision-rendered"
+            hx-target="#render-to-string-demo-result"
+            hx-swap="outerHTML focus-scroll:true"
+            hx-indicator="#oob-indicator"
+            hx-disabled-elt="find button">
+            <HrzAntiforgeryInput />
+
+            <label for="displayNameRendered">Display Name (Server-rendered OOB)</label>
+            <input id="displayNameRendered" name="displayName" value="Morgan Lake" />
+            <button type="submit">Provision Via RenderToString</button>
+        </form>
+
+        <span id="oob-indicator" class="hrz-indicator" aria-live="polite">Applying updates…</span>
+
+        <section id="users-list" class="panel">
+            <h3>Latest Provisioned User</h3>
+            <p>No users provisioned in this session.</p>
+        </section>
+
+        <section id="render-to-string-demo-result" class="panel">
+            <h3>Server-rendered OOB Result</h3>
+            <p class="empty">Submit the second form to inspect the <code>RenderToString()</code> payload preview.</p>
+        </section>
+
+        <div id="toast-stack" class="toast-stack"></div>
+    </section>
+
+    <section class="panel">
+        <h3>Invite Validation</h3>
+        <p class="empty">Try invalid input first, then send a valid invite.</p>
+        <div class="demo-note" role="note">
+            <strong>How To Test:</strong> submit an invalid name/email first, then a valid invite. Errors and success both stay scoped to the result region.
+        </div>
+        <form
+            id="validation-form"
+            action="/fragments/users/invite"
+            hx-post="/fragments/users/invite"
+            hx-target="#validation-result"
+            hx-swap="innerHTML focus-scroll:true"
+            hx-indicator="#validation-indicator"
+            hx-disabled-elt="find button"
+            novalidate>
+            <HrzAntiforgeryInput />
+
+            <label for="validation-display-name">Display Name</label>
+            <input id="validation-display-name" name="displayName" value="Riley Stone" />
+
+            <label for="validation-email">Email</label>
+            <input id="validation-email" name="email" type="email" value="riley@example.com" />
+
+            <button type="submit">Validate Invite</button>
+            <span id="validation-indicator" class="hrz-indicator" aria-live="polite">Validating…</span>
+        </form>
+
+        <div id="validation-result">
+            <p class="empty">Awaiting submission.</p>
+        </div>
+
+        <section class="panel">
+            <h3>Provisioning Activity</h3>
+            <p class="empty">Each provision request appends a new feed item.</p>
+            <div id="activity-feed" class="activity-feed"></div>
+        </section>
+    </section>
+</section>

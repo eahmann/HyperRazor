@@ -3,61 +3,16 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HyperRazor HTMX Demo</title>
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <title>HyperRazor Demo</title>
     <link rel="stylesheet" href="/app.css" />
 </head>
 <body>
     <main id="main" class="layout">
-        <h1>HyperRazor HTMX Demo</h1>
-        <p>Phase 1 baseline: typed HTMX headers + MVC fragment endpoints.</p>
-
         <section class="panel">
-            <h2>Live User Search</h2>
-            <input
-                id="search-box"
-                type="search"
-                name="query"
-                placeholder="Type to search..."
-                hx-get="/fragments/users/search"
-                hx-trigger="keyup changed delay:200ms"
-                hx-target="#search-results"
-                hx-swap="innerHTML"
-                autocomplete="off" />
-            <div id="search-results">
-                <p>Start typing to load users.</p>
-            </div>
-        </section>
-
-        <section class="panel">
-            <h2>Server Trigger</h2>
-            <button
-                type="button"
-                hx-get="/fragments/toast/success"
-                hx-target="#toast-region"
-                hx-swap="innerHTML">
-                Trigger success event
-            </button>
-            <div id="toast-region"></div>
-            <p id="event-log" aria-live="polite">No server events yet.</p>
-        </section>
-
-        <section class="panel">
-            <h2>Redirect Patterns</h2>
-            <button type="button" hx-post="/fragments/navigation/soft">Soft redirect (HX-Location)</button>
-            <button type="button" hx-post="/fragments/navigation/hard">Hard redirect (HX-Redirect)</button>
+            <h1>HyperRazor Demo</h1>
+            <p>This application is intended to be explored through the server-rendered demo routes.</p>
+            <p>Start at <a href="/">/</a> for the Operations Console shell.</p>
         </section>
     </main>
-
-    <script>
-        document.body.addEventListener("toast:show", function (event) {
-            var detail = event.detail || {};
-            var message = detail.message || "Server event received.";
-            var log = document.getElementById("event-log");
-            if (log) {
-                log.textContent = message;
-            }
-        });
-    </script>
 </body>
 </html>

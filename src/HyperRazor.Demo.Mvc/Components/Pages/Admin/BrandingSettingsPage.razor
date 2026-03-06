@@ -1,0 +1,46 @@
+<section class="panel">
+    <h2>Branding Settings</h2>
+    <p>Update document title, metadata, styling, and one page-specific asset from a realistic settings form.</p>
+    <p class="demo-caption">This admin area is served through Minimal API routes while the form action remains an inspectable MVC fragment endpoint.</p>
+</section>
+
+<section id="head-demo" class="panel">
+    <h3>Branding Preview + Head Updates</h3>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> submit this form twice with different values. The browser title should change, the preview chip should restyle, and the script load count should stay at <code>1</code>.
+    </div>
+    <p class="demo-caption">Expected outcome: repeated submits replace keyed head items instead of duplicating them.</p>
+
+    <form
+        id="head-demo-form"
+        action="/fragments/settings/branding"
+        hx-post="/fragments/settings/branding"
+        hx-target="#head-demo-result"
+        hx-swap="outerHTML"
+        hx-ext="head-support"
+        hx-indicator="#head-indicator"
+        hx-disabled-elt="find button">
+        <HrzAntiforgeryInput />
+
+        <label for="head-title-input">Browser Title</label>
+        <input id="head-title-input" name="title" value="Operations Console • Branding" />
+
+        <label for="head-description-input">Meta Description</label>
+        <input id="head-description-input" name="description" value="Updated via HrzHeadService + head-support." />
+
+        <label for="head-accent-input">Accent</label>
+        <select id="head-accent-input" name="accent">
+            <option value="teal" selected>Teal</option>
+            <option value="amber">Amber</option>
+            <option value="rose">Rose</option>
+        </select>
+
+        <button type="submit">Apply Branding Update</button>
+        <span id="head-indicator" class="hrz-indicator" aria-live="polite">Updating branding…</span>
+    </form>
+
+    <section id="head-demo-result" class="panel">
+        <h3>Awaiting update</h3>
+        <p>Submit the form to queue a keyed branding update from the server.</p>
+    </section>
+</section>

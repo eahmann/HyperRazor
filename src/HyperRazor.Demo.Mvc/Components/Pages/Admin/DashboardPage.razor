@@ -1,0 +1,65 @@
+<section class="panel">
+    <h2>Operations Console</h2>
+    <p>Product-style demo shell for HyperRazor. This area uses Minimal API page routes on <code>AdminLayout</code>.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Use This Demo:</strong> move between admin, workbench, and task routes, then compare what changed visually with the inspector data below.
+    </div>
+</section>
+
+<section class="metric-grid" hx-boost="true" hx-target="#hrz-main-layout" hx-swap="innerHTML show:window:top" hx-push-url="true">
+    <a class="panel metric-card" href="/users">
+        <p class="app-kicker">Admin</p>
+        <h3>Users</h3>
+        <p><strong>42</strong> active people, <strong>5</strong> pending invites.</p>
+        <p class="demo-caption">Search, provision, validate, and watch OOB updates land together.</p>
+    </a>
+
+    <a class="panel metric-card" href="/access-requests">
+        <p class="app-kicker">Workbench</p>
+        <h3>Access Requests</h3>
+        <p><strong>9</strong> waiting reviews across finance, support, and billing.</p>
+        <p class="demo-caption">Move from queue view into a focused review task and back out.</p>
+    </a>
+
+    <a class="panel metric-card" href="/incidents">
+        <p class="app-kicker">Workbench</p>
+        <h3>Incidents</h3>
+        <p><strong>3</strong> open incidents, <strong>1</strong> paging escalation.</p>
+        <p class="demo-caption">Use realistic 4xx/5xx responses from an operational screen.</p>
+    </a>
+
+    <a class="panel metric-card" href="/settings/branding">
+        <p class="app-kicker">Admin</p>
+        <h3>Branding</h3>
+        <p><strong>1</strong> pending style refresh for the support portal.</p>
+        <p class="demo-caption">Proves head updates with title/meta/style/script dedupe.</p>
+    </a>
+</section>
+
+<section class="panel">
+    <h3>Quick Operational Checks</h3>
+    <p class="empty">These actions keep the shell in place and show server-triggered responses in context.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> run both checks and compare the toast body with the inspector's <code>HX-Trigger</code> header.
+    </div>
+    <div class="status-actions">
+        <button type="button" hx-get="/fragments/dashboard/sync-check" hx-target="#dashboard-sync-status" hx-swap="innerHTML">Run Sync Check</button>
+        <button type="button" hx-get="/fragments/dashboard/banner-check" hx-target="#dashboard-sync-status" hx-swap="innerHTML">Broadcast Banner</button>
+    </div>
+    <div id="dashboard-sync-status" class="panel">
+        <h3>Awaiting action</h3>
+        <p>Run a check to inspect a server-triggered fragment response.</p>
+    </div>
+    <p id="dashboard-event-log" aria-live="polite">No workflow events yet.</p>
+</section>
+
+<script>
+    document.body.addEventListener("toast:show", function (event) {
+        var detail = event.detail || {};
+        var message = detail.message || "Workflow event received.";
+        var log = document.getElementById("dashboard-event-log");
+        if (log) {
+            log.textContent = message;
+        }
+    });
+</script>

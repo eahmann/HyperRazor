@@ -41,11 +41,31 @@ public static class HyperRazorHtmxDiagnosticsApplicationBuilderExtensions
 
             await next();
 
+            if (context.Items.TryGetValue(typeof(HtmxLayoutPromotionDiagnostics), out var diagnosticsValue)
+                && diagnosticsValue is HtmxLayoutPromotionDiagnostics promotionDiagnostics)
+            {
+                logger.LogInformation(
+                    "HTMX request processed: {Method} {Path} => {StatusCode}; clientLayoutFamily={ClientLayoutFamily}; routeLayoutFamily={RouteLayoutFamily}; promotionMode={PromotionMode}; promotionApplied={PromotionApplied}",
+                    context.Request.Method,
+                    context.Request.Path,
+                    context.Response.StatusCode,
+                    Display(promotionDiagnostics.ClientLayoutFamily),
+                    Display(promotionDiagnostics.RouteLayoutFamily),
+                    promotionDiagnostics.PromotionMode,
+                    promotionDiagnostics.PromotionApplied);
+                return;
+            }
+
             logger.LogInformation(
                 "HTMX request processed: {Method} {Path} => {StatusCode}",
                 context.Request.Method,
                 context.Request.Path,
                 context.Response.StatusCode);
         });
+    }
+
+    private static string Display(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "(none)" : value;
     }
 }

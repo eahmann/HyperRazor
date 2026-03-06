@@ -50,11 +50,17 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         var shellContext = new HrzShellContext(routeLayoutFamily);
         var modelState = ResolveModelState(context);
         EnsureVaryForHtmxBranching(context.Response.Headers);
+        var clientLayoutFamily = ResolveClientLayoutFamily(
+            request,
+            context,
+            routeLayoutFamily,
+            _options.LayoutBoundary.LayoutFamilyHeaderName);
 
         var promotionMode = ResolvePromotionMode(
             request: request,
-            context: context,
-            routeLayoutFamily: routeLayoutFamily);
+            routeLayoutFamily: routeLayoutFamily,
+            clientLayoutFamily: clientLayoutFamily);
+        StoreLayoutPromotionDiagnostics(context, clientLayoutFamily, routeLayoutFamily, promotionMode);
 
         if (promotionMode == HrzLayoutBoundaryPromotionMode.Redirect)
         {
@@ -234,8 +240,8 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
 
     private HrzLayoutBoundaryPromotionMode ResolvePromotionMode(
         HtmxRequest request,
-        HttpContext context,
-        string routeLayoutFamily)
+        string routeLayoutFamily,
+        string? clientLayoutFamily)
     {
         var options = _options.LayoutBoundary;
         if (!options.Enabled || options.PromotionMode == HrzLayoutBoundaryPromotionMode.Off)
@@ -253,7 +259,6 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
             return HrzLayoutBoundaryPromotionMode.Off;
         }
 
-        var clientLayoutFamily = ResolveClientLayoutFamily(request, context, routeLayoutFamily, options.LayoutFamilyHeaderName);
         if (string.IsNullOrWhiteSpace(clientLayoutFamily))
         {
             return options.PromotionMode;
@@ -284,6 +289,19 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         }
 
         return null;
+    }
+
+    private static void StoreLayoutPromotionDiagnostics(
+        HttpContext context,
+        string? clientLayoutFamily,
+        string routeLayoutFamily,
+        HrzLayoutBoundaryPromotionMode promotionMode)
+    {
+        context.Items[typeof(HtmxLayoutPromotionDiagnostics)] = new HtmxLayoutPromotionDiagnostics(
+            ClientLayoutFamily: clientLayoutFamily,
+            RouteLayoutFamily: routeLayoutFamily,
+            PromotionMode: promotionMode.ToString(),
+            PromotionApplied: promotionMode != HrzLayoutBoundaryPromotionMode.Off);
     }
 
     private static string GetRequestPathAndQuery(HttpRequest request)

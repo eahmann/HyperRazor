@@ -125,7 +125,65 @@ public class HrzComponentViewServiceTests
         Assert.DoesNotContain("Loading", html, StringComparison.Ordinal);
     }
 
-    private static async Task<TestFixture> CreateFixtureAsync(Action<IHeaderDictionary>? configureHeaders = null)
+    [Fact]
+    public async Task View_WithCrossFamilyBoostedRequest_StoresLayoutPromotionDiagnostics()
+    {
+        await using var fixture = await CreateFixtureAsync(
+            headers =>
+            {
+                headers[HtmxHeaderNames.Request] = "true";
+                headers[HtmxHeaderNames.Boosted] = "true";
+                headers[HtmxHeaderNames.LayoutFamily] = "main";
+            },
+            options =>
+            {
+                options.LayoutBoundary.Enabled = true;
+                options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
+            });
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.View<SideGreetingComponent>(new { Name = "Ava" });
+        _ = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        var diagnostics = Assert.IsType<HtmxLayoutPromotionDiagnostics>(
+            fixture.HttpContext.Items[typeof(HtmxLayoutPromotionDiagnostics)]);
+        Assert.Equal("main", diagnostics.ClientLayoutFamily);
+        Assert.Equal("side", diagnostics.RouteLayoutFamily);
+        Assert.Equal(nameof(HrzLayoutBoundaryPromotionMode.ShellSwap), diagnostics.PromotionMode);
+        Assert.True(diagnostics.PromotionApplied);
+    }
+
+    [Fact]
+    public async Task View_WithSameFamilyBoostedRequest_StoresNonAppliedLayoutPromotionDiagnostics()
+    {
+        await using var fixture = await CreateFixtureAsync(
+            headers =>
+            {
+                headers[HtmxHeaderNames.Request] = "true";
+                headers[HtmxHeaderNames.Boosted] = "true";
+                headers[HtmxHeaderNames.LayoutFamily] = "main";
+            },
+            options =>
+            {
+                options.LayoutBoundary.Enabled = true;
+                options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
+            });
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        _ = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        var diagnostics = Assert.IsType<HtmxLayoutPromotionDiagnostics>(
+            fixture.HttpContext.Items[typeof(HtmxLayoutPromotionDiagnostics)]);
+        Assert.Equal("main", diagnostics.ClientLayoutFamily);
+        Assert.Equal("main", diagnostics.RouteLayoutFamily);
+        Assert.Equal(nameof(HrzLayoutBoundaryPromotionMode.Off), diagnostics.PromotionMode);
+        Assert.False(diagnostics.PromotionApplied);
+    }
+
+    private static async Task<TestFixture> CreateFixtureAsync(
+        Action<IHeaderDictionary>? configureHeaders = null,
+        Action<HrzOptions>? configureOptions = null)
     {
         var services = new ServiceCollection();
 
@@ -146,6 +204,7 @@ public class HrzComponentViewServiceTests
         {
             options.RootComponent = typeof(HrzApp<HrzAppLayout>);
             options.UseMinimalLayoutForHtmx = true;
+            configureOptions?.Invoke(options);
         });
         services.AddOptions<HrzSwapOptions>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
@@ -257,6 +316,29 @@ public class HrzComponentViewServiceTests
             builder.OpenElement(0, "p");
             builder.AddContent(1, _message);
             builder.CloseElement();
+        }
+    }
+
+    [Layout(typeof(SideTestLayout))]
+    private sealed class SideGreetingComponent : ComponentBase
+    {
+        [Parameter]
+        public string Name { get; set; } = string.Empty;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "p");
+            builder.AddContent(1, $"Hello {Name}");
+            builder.CloseElement();
+        }
+    }
+
+    [HrzLayoutFamily("side")]
+    private sealed class SideTestLayout : LayoutComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.AddContent(0, Body);
         }
     }
 

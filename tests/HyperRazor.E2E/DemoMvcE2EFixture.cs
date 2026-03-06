@@ -8,12 +8,13 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
 {
     private const string Host = "127.0.0.1";
     private const int Port = 5076;
+    private const string DefaultBrowserCachePath = "/tmp/ms-playwright";
 
     private readonly StringBuilder _serverOutput = new();
     private Process? _serverProcess;
     private IPlaywright? _playwright;
     private IBrowser? _browser;
-    private readonly string _browserCachePath = "/tmp/ms-playwright";
+    private readonly string _browserCachePath = ResolveBrowserCachePath();
 
     public string BaseUrl => $"http://{Host}:{Port}";
 
@@ -74,7 +75,13 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
         }
         catch (Exception launchException)
         {
-            SkipReason = $"Playwright Chromium could not launch: {launchException.Message}";
+            var reason = $"Playwright Chromium could not launch from '{_browserCachePath}': {launchException.Message}";
+            if (IsCi())
+            {
+                throw new InvalidOperationException(reason, launchException);
+            }
+
+            SkipReason = reason;
         }
     }
 
@@ -156,5 +163,19 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
         {
             _serverOutput.AppendLine(e.Data);
         }
+    }
+
+    private static string ResolveBrowserCachePath()
+    {
+        var configured = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH");
+        return string.IsNullOrWhiteSpace(configured) ? DefaultBrowserCachePath : configured;
+    }
+
+    private static bool IsCi()
+    {
+        return string.Equals(
+            Environment.GetEnvironmentVariable("CI"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
     }
 }

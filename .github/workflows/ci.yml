@@ -32,8 +32,8 @@ jobs:
         include:
           - name: Htmx
             project: tests/HyperRazor.Htmx.Tests/HyperRazor.Htmx.Tests.csproj
-          - name: Htmx.AspNetCore
-            project: tests/HyperRazor.Htmx.AspNetCore.Tests/HyperRazor.Htmx.AspNetCore.Tests.csproj
+          - name: Htmx.Core
+            project: tests/HyperRazor.Htmx.Core.Tests/HyperRazor.Htmx.Core.Tests.csproj
           - name: Rendering
             project: tests/HyperRazor.Rendering.Tests/HyperRazor.Rendering.Tests.csproj
           - name: Demo.Mvc

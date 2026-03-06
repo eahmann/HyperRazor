@@ -13,8 +13,8 @@ This plan is based on the repository state as of today, not assumptions.
 - Full test suite passes:
   - `HyperRazor.Htmx.Core.Tests`: 11/11
   - `HyperRazor.Htmx.Tests`: 9/9
-  - `HyperRazor.Rendering.Tests`: 23/23
-  - `HyperRazor.Demo.Mvc.Tests`: 36/36
+  - `HyperRazor.Rendering.Tests`: 28/28
+  - `HyperRazor.Demo.Mvc.Tests`: 35/35
   - `HyperRazor.E2E`: 7/7
 - Core platform already in place:
   - HTMX parsing/writing (`HtmxRequest`, `HtmxResponse`, `HtmxResponseWriter`)
@@ -51,9 +51,13 @@ Definition of done:
 
 ---
 
-## 3) Active Phase 4 workstreams
+## 3) Phase 4 workstreams
 
 ### A) API cohesion + onboarding docs
+
+Status:
+
+- complete on 2026-03-06
 
 Deliverables:
 
@@ -73,6 +77,10 @@ Acceptance:
 
 ### B) Diagnostics for layout promotion decisions
 
+Status:
+
+- complete on 2026-03-06
+
 Deliverables:
 
 - Extend Development diagnostics scope/logs to include:
@@ -88,6 +96,10 @@ Acceptance:
 
 ### C) OOB API ergonomics (without changing core behavior)
 
+Status:
+
+- complete on 2026-03-06
+
 Deliverables:
 
 - Add ergonomic queue methods (or aliases) on `IHrzSwapService` such as:
@@ -102,6 +114,10 @@ Acceptance:
 - Demo app updates at least one endpoint to use the ergonomic API.
 
 ### D) Head-management v2
+
+Status:
+
+- complete on 2026-03-06
 
 Deliverables:
 

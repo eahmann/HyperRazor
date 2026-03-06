@@ -97,16 +97,17 @@ For Minimal APIs, the canonical result helpers are:
 - `HrzResults.Partial<TComponent>(...)` for fragment endpoints
 
 ```csharp
-using HyperRazor.Demo.Mvc.Components.Pages;
+using HyperRazor.Demo.Mvc.Components.Pages.Admin;
 using HyperRazor.Mvc;
 
-var minimalPages = app.MapGroup("/minimal");
+app.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<DashboardPage>(context, cancellationToken: cancellationToken));
 
-minimalPages.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>
-    HrzResults.Page<HomePage>(context, cancellationToken: cancellationToken));
+app.MapGet("/users", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<UsersPage>(context, cancellationToken: cancellationToken));
 
-minimalPages.MapGet("/basic", (HttpContext context, CancellationToken cancellationToken) =>
-    HrzResults.Page<BasicDemoPage>(context, cancellationToken: cancellationToken));
+app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<BrandingSettingsPage>(context, cancellationToken: cancellationToken));
 ```
 
 `Page<TComponent>` is the preferred name here because it represents a routable component endpoint, not an MVC view file.

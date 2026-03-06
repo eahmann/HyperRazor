@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\HyperRazor.Htmx.AspNetCore\HyperRazor.Htmx.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\HyperRazor.Htmx\HyperRazor.Htmx.csproj" />
   </ItemGroup>
 
   <ItemGroup>

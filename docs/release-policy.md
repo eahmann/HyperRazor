@@ -6,10 +6,10 @@ This is the release and versioning policy for the repository as Phase 4 wraps.
 
 Public entry-point packages:
 
-- `HyperRazor` from `src/HyperRazor.Hosting`
+- `HyperRazor` from `src/HyperRazor`
 - `HyperRazor.Htmx`
   - the public HTMX-only ASP.NET Core package
-  - produced from `src/HyperRazor.Htmx.AspNetCore`
+  - produced from `src/HyperRazor.Htmx`
 
 Advanced/composition packages that still publish separately:
 

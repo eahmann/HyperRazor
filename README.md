@@ -17,10 +17,14 @@ Advanced composition packages:
 - `HyperRazor.Htmx.Components`
 - `HyperRazor.Mvc`
 - `HyperRazor.Rendering`
+
+Includes:
 - request context/profile parsing for HTMX 2 and HTMX 4-style headers
 - OOB swap queue + `RenderToString()` support
 - first-party head queue/flush support (`IHrzHeadService` + `HrzHeadContent`)
 - antiforgery token meta/input helpers and client request wiring
 - diagnostics middleware + operations-console demo app
+
+Non-packable demo applications:
 - `HyperRazor.Demo.Api`
 - `HyperRazor.Demo.Mvc`

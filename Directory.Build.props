@@ -1,5 +1,5 @@
 <Project>
-  <PropertyGroup Condition="'$(IsPackable)' != 'false' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('HyperRazor.'))">
+  <PropertyGroup Condition="'$(IsPackable)' != 'false' and ('$(MSBuildProjectName)' == 'HyperRazor' or $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('HyperRazor.')))">
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

@@ -1,6 +1,7 @@
 using HyperRazor.Components.Services;
 using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace HyperRazor;
@@ -32,6 +33,9 @@ public static class HyperRazorServiceCollectionExtensions
                 swapOptions.AllowRawContentOnNonHtmx = hrzOptions.Value.AllowRawContentOnNonHtmx;
             });
 
+        services.TryAddSingleton(HrzFieldPathResolver.Default);
+        services.TryAddSingleton<IHrzFieldPathResolver>(serviceProvider =>
+            serviceProvider.GetRequiredService<HrzFieldPathResolver>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();

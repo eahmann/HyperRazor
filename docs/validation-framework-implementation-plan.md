@@ -1,14 +1,14 @@
 # HyperRazor Validation Framework Implementation Plan
 
 **Date:** 2026-03-07  
-**Status:** Implementation plan (ready to execute)  
+**Status:** Historical implementation roadmap; phases 1-4 implemented on 2026-03-07  
 **Source spec:** `docs/validation-framework-spec-greenfield.md`
 
 ---
 
 ## 0) Executive Summary
 
-We will implement the validation framework in four phases so the public contracts stabilize before the demo and live-validation behavior are layered on top. The sequence is:
+This plan is retained as the implementation roadmap that produced the current validation runtime. The sequence was:
 
 1. Freeze the shared validation primitives and registration surface.
 2. Wire submit-time MVC and rendering behavior around those primitives.
@@ -157,4 +157,3 @@ The implementation plan is complete when:
 - each phase exit criterion is met
 - the demo and test suite cover every supported validation path in the spec
 - legacy `ModelState` behavior is either still functional or explicitly marked as deprecated-but-supported
-

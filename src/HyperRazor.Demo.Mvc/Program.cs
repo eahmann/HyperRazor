@@ -12,6 +12,7 @@ using HyperRazor.Htmx;
 using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -243,6 +244,54 @@ app.MapPost("/validation/minimal/proxy", async (
 
     return Results.Redirect("/validation");
 });
+app.MapPost("/validation/live", async (
+    HttpContext context,
+    IAntiforgery antiforgery,
+    CancellationToken cancellationToken) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+
+    var scope = await context.BindLiveValidationScopeAsync(cancellationToken);
+    if (scope is null || scope.Fields.Count == 0)
+    {
+        return Results.NoContent();
+    }
+
+    var formPostState = await context.BindFormAsync<InviteUserInput>(scope.RootId, cancellationToken);
+    if (!UserInviteValidationDefinitions.TryResolve(scope.RootId, formPostState.Model, out var form))
+    {
+        return Results.NoContent();
+    }
+
+    var primaryField = ResolvePrimaryField(scope);
+    if (primaryField is null)
+    {
+        return Results.NoContent();
+    }
+
+    var livePatch = BuildInviteLiveValidationPatch(scope, formPostState.Model);
+    if (livePatch is null)
+    {
+        return Results.NoContent();
+    }
+
+    var fragments = new List<RenderFragment>
+    {
+        BuildFieldSlotFragment(form, primaryField, livePatch, swapOob: false)
+    };
+
+    foreach (var affectedField in livePatch.AffectedFields.Where(field => !field.Equals(primaryField)))
+    {
+        fragments.Add(BuildFieldSlotFragment(form, affectedField, livePatch, swapOob: true));
+    }
+
+    if (livePatch.ReplaceSummary)
+    {
+        fragments.Add(BuildSummarySlotFragment(form, livePatch, swapOob: true));
+    }
+
+    return await HrzResults.Partial(context, cancellationToken, fragments.ToArray());
+});
 
 app.MapControllers();
 
@@ -250,6 +299,121 @@ static int CountErrors(HrzSubmitValidationState validationState)
 {
     return validationState.SummaryErrors.Count
         + validationState.FieldErrors.Sum(static pair => pair.Value.Count);
+}
+
+static HrzFieldPath? ResolvePrimaryField(HrzValidationScope scope)
+{
+    return scope.ValidateAll
+        ? UserInviteValidationForm.EmailPath
+        : scope.Fields.FirstOrDefault(static field =>
+            field.Equals(UserInviteValidationForm.EmailPath)
+            || field.Equals(UserInviteValidationForm.DisplayNamePath));
+}
+
+static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
+{
+    var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
+    var validatesDisplayName = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.DisplayNamePath);
+    if (!validatesEmail && !validatesDisplayName)
+    {
+        return null;
+    }
+
+    var email = input.Email?.Trim();
+    var displayName = input.DisplayName?.Trim();
+    var requiresTeamDisplayName = string.Equals(email, "shared-mailbox@example.com", StringComparison.OrdinalIgnoreCase);
+    if ((validatesEmail && string.IsNullOrWhiteSpace(email))
+        || (requiresTeamDisplayName && string.IsNullOrWhiteSpace(displayName)))
+    {
+        return null;
+    }
+
+    var affectedFields = new List<HrzFieldPath>();
+    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
+    var summaryErrors = new List<string>();
+
+    if (validatesEmail)
+    {
+        affectedFields.Add(UserInviteValidationForm.EmailPath);
+        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
+
+        var emailErrors = string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
+            ? new[] { "Email already exists in the upstream directory." }
+            : Array.Empty<string>();
+        fieldErrors[UserInviteValidationForm.EmailPath] = emailErrors;
+
+        if (emailErrors.Length > 0)
+        {
+            summaryErrors.Add("Backend would reject this invite on submit.");
+        }
+    }
+
+    if (validatesDisplayName || validatesEmail)
+    {
+        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
+
+        var displayNameErrors = requiresTeamDisplayName
+            && !displayName!.Contains("team", StringComparison.OrdinalIgnoreCase)
+            ? new[] { "Shared mailbox invites must use a team display name." }
+            : Array.Empty<string>();
+        fieldErrors[UserInviteValidationForm.DisplayNamePath] = displayNameErrors;
+
+        if (displayNameErrors.Length > 0)
+        {
+            summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
+        }
+    }
+
+    if (!fieldErrors.ContainsKey(UserInviteValidationForm.EmailPath) && validatesDisplayName)
+    {
+        fieldErrors[UserInviteValidationForm.EmailPath] = Array.Empty<string>();
+    }
+
+    return new HrzLiveValidationPatch(
+        scope.RootId,
+        affectedFields.Distinct().ToArray(),
+        fieldErrors,
+        ReplaceSummary: true,
+        SummaryErrors: summaryErrors);
+}
+
+static RenderFragment BuildFieldSlotFragment(
+    InviteValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    HrzLiveValidationPatch patch,
+    bool swapOob)
+{
+    var slotId = fieldPath.Equals(UserInviteValidationForm.DisplayNamePath)
+        ? $"{form.IdPrefix}-display-name-server"
+        : $"{form.IdPrefix}-email-server";
+    var errors = patch.FieldErrors.TryGetValue(fieldPath, out var messages)
+        ? messages
+        : Array.Empty<string>();
+
+    return builder =>
+    {
+        builder.OpenComponent<ValidationServerFieldSlot>(0);
+        builder.AddAttribute(1, nameof(ValidationServerFieldSlot.Id), slotId);
+        builder.AddAttribute(2, nameof(ValidationServerFieldSlot.FieldPath), fieldPath.Value);
+        builder.AddAttribute(3, nameof(ValidationServerFieldSlot.Errors), errors);
+        builder.AddAttribute(4, nameof(ValidationServerFieldSlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildSummarySlotFragment(
+    InviteValidationFormViewModel form,
+    HrzLiveValidationPatch patch,
+    bool swapOob)
+{
+    return builder =>
+    {
+        builder.OpenComponent<ValidationServerSummarySlot>(0);
+        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), $"{form.IdPrefix}-server-summary");
+        builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), patch.SummaryErrors);
+        builder.AddAttribute(3, nameof(ValidationServerSummarySlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
 }
 
 app.Run();

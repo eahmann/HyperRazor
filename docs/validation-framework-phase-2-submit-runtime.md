@@ -1,7 +1,7 @@
 # HyperRazor Validation Framework — Phase 2 Submit Runtime
 
 **Date:** 2026-03-07  
-**Status:** Ready to execute  
+**Status:** Implemented on 2026-03-07  
 **Depends on:** `docs/validation-framework-phase-1-foundations.md`
 
 ---
@@ -176,4 +176,3 @@ dotnet test tests/HyperRazor.Demo.Mvc.Tests/HyperRazor.Demo.Mvc.Tests.csproj
 - accidentally making `EditForm` the primary surface instead of plain forms
 - clearing live or client-side state from submit-time bridge logic
 - introducing root inference from rendered HTML instead of explicit server data
-

@@ -23,6 +23,10 @@ public sealed class InviteValidationFormViewModel
 
     public string SuccessVerb { get; init; } = "Created";
 
+    public string? LiveValidationPath { get; init; }
+
+    public bool EnableClientValidation { get; init; }
+
     public InviteUserInput Input { get; init; } = new();
 
     public bool Success { get; init; }

@@ -634,6 +634,10 @@ button:disabled {
     font-size: 0.92rem;
 }
 
+.validation-message--client {
+    color: var(--bs-warning-text-emphasis);
+}
+
 .validation-success {
     margin: 0;
     padding: 0.8rem 0.9rem;

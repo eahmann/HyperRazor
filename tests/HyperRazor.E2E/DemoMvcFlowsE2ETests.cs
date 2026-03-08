@@ -75,6 +75,74 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ValidationPage_LiveServerValidation_UpdatesOnlyServerOwnedRegions()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.FillAsync("#validation-minimal-proxy-display-name", "A");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-client"))
+            .ToContainTextAsync("Display name must be at least 3 characters.");
+
+        await page.ClickAsync("#validation-minimal-proxy-email");
+        await page.PressAsync("#validation-minimal-proxy-email", "Control+A");
+        await page.PressAsync("#validation-minimal-proxy-email", "Backspace");
+        var liveResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-minimal-proxy-email", "backend-taken@example.com"),
+            response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var liveHtml = await liveResponse.TextAsync();
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", liveHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"validation-minimal-proxy-form-shell\"", liveHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-client"))
+            .ToContainTextAsync("Display name must be at least 3 characters.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email-server"))
+            .ToContainTextAsync("Email already exists in the upstream directory.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-server-summary"))
+            .ToContainTextAsync("Backend would reject this invite on submit.");
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_LiveServerValidation_UpdatesDependentFieldSlotsOutOfBand()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        var emailResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-minimal-proxy-email", "shared-mailbox@example.com"),
+            response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var emailHtml = await emailResponse.TextAsync();
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", emailHtml, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", emailHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-server"))
+            .ToContainTextAsync("Shared mailbox invites must use a team display name.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-server-summary"))
+            .ToContainTextAsync("Shared mailbox invites need a team display name before the backend will accept them.");
+
+        var displayNameResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-minimal-proxy-display-name", "Team Inbox"),
+            response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var displayNameHtml = await displayNameResponse.TextAsync();
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", displayNameHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-server"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-server-summary"))
+            .ToBeEmptyAsync();
+    }
+
+    [SkippableFact]
     public async Task AccessReview_TaskFlow_InvalidThenValid_ReturnsToWorkbenchViaHxLocation()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

@@ -1,8 +1,10 @@
 # HyperRazor Validation Framework — Phase 4 Live Validation, Demo, and Docs
 
 **Date:** 2026-03-07  
-**Status:** Ready to execute  
+**Status:** Implemented on 2026-03-07  
 **Depends on:** `docs/validation-framework-phase-2-submit-runtime.md`, `docs/validation-framework-phase-3-api-and-proxy.md`
+
+> Implemented surface: the live-validation harness runs on `/validation` with `/validation/live`, using targeted server-owned field slots and OOB summary/dependency updates.
 
 ---
 
@@ -89,7 +91,7 @@ Support affected-field updates when one field depends on another:
 
 ### 4.4 Add a concrete demo flow
 
-Use the existing `/users` surface for the first live field if it is enough to demonstrate the patch model. If dependent-field scenarios outgrow that surface, add a dedicated validation demo page after the framework behavior is already proven in tests.
+Implemented on the dedicated `/validation` harness so the live-validation path could exercise local client slots, targeted server slots, and dependent-field OOB updates without overloading the `/users` page.
 
 The demo must show:
 
@@ -161,4 +163,3 @@ dotnet test tests/HyperRazor.E2E/HyperRazor.E2E.csproj
 - replacing whole forms during live validation and wiping client state
 - mixing client-owned and server-owned validation content in the same DOM slot
 - leaving old docs in place that describe removed routes or pre-framework spikes
-

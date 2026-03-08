@@ -1,5 +1,7 @@
 using System.Net;
+using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Demo.Mvc.Infrastructure;
+using HyperRazor.Demo.Mvc.Models;
 using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -658,6 +660,168 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("Upstream directory rejected the invite.", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
         Assert.Contains("value=\"backend-taken@example.com\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LiveValidation_WithReservedEmail_ReturnsTargetedServerSlotAndSummaryOob()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Riley Stone",
+            ["email"] = "backend-taken@example.com",
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.EmailPath.Value
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"validation-minimal-proxy-form-shell\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LiveValidation_WithMissingEmail_ReturnsNoContent()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Riley Stone",
+            ["email"] = string.Empty,
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.EmailPath.Value
+        });
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task LiveValidation_WithSharedMailboxEmail_ReturnsDependentDisplayNameOob()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Riley Stone",
+            ["email"] = "shared-mailbox@example.com",
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.EmailPath.Value
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
+        Assert.Contains("Shared mailbox invites need a team display name before the backend will accept them.", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"validation-minimal-proxy-form-shell\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LiveValidation_WithMissingDisplayNameDependency_ReturnsNoContent()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = string.Empty,
+            ["email"] = "shared-mailbox@example.com",
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.EmailPath.Value
+        });
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task LiveValidation_DisplayNameScope_ClearsDependentMessageWhenRuleIsSatisfied()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Team Inbox",
+            ["email"] = "shared-mailbox@example.com",
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.DisplayNamePath.Value
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-summary--empty", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Submit_InvalidAfterLiveValidationRoundTrip_StillRerendersFormErrors()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+
+        using (var liveRequest = new HttpRequestMessage(HttpMethod.Post, "/validation/live"))
+        {
+            liveRequest.Headers.Add(HtmxHeaderNames.Request, "true");
+            liveRequest.Headers.Add("RequestVerificationToken", antiforgeryToken);
+            liveRequest.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["displayName"] = "Riley Stone",
+                ["email"] = "backend-taken@example.com",
+                ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+                ["__hrz_fields"] = UserInviteValidationForm.EmailPath.Value
+            });
+
+            using var liveResponse = await client.SendAsync(liveRequest);
+            Assert.Equal(HttpStatusCode.OK, liveResponse.StatusCode);
+        }
+
+        using var submitRequest = new HttpRequestMessage(HttpMethod.Post, "/validation/minimal/proxy");
+        submitRequest.Headers.Add(HtmxHeaderNames.Request, "true");
+        submitRequest.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        submitRequest.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "A",
+            ["email"] = "invalid"
+        });
+
+        var submitResponse = await client.SendAsync(submitRequest);
+        var submitBody = await submitResponse.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, submitResponse.StatusCode);
+        Assert.Contains("Display name must be at least 3 characters.", submitBody, StringComparison.Ordinal);
+        Assert.Contains("Email must be a valid address.", submitBody, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,7 +1,7 @@
 # HyperRazor Validation Framework — Phase 1 Foundations
 
 **Date:** 2026-03-07  
-**Status:** Ready to execute  
+**Status:** Implemented on 2026-03-07  
 **Depends on:** `docs/validation-framework-spec-greenfield.md`
 
 ---
@@ -153,4 +153,3 @@ dotnet test tests/HyperRazor.Rendering.Tests/HyperRazor.Rendering.Tests.csproj
 - putting the shared primitives in the wrong package layer and forcing later moves
 - allowing any public path-construction route to bypass canonicalization
 - widening attempted-value shape after shipping v1
-

@@ -1,8 +1,10 @@
 # Live Email Feedback Design Spec
 
 **Date:** 2026-03-06  
-**Status:** Ready for implementation  
-**Scope:** `src/HyperRazor.Demo.Mvc` validation demo only
+**Status:** Superseded by the implemented validation framework and `/validation` harness  
+**Scope:** Historical demo-only note retained for discussion context
+
+> Historical note: the current implementation uses `/validation` and `/validation/live` with `ValidationPage`, `ValidationController`, `UserInviteValidationForm`, and `HrzValidationBridge`. Use `docs/validation-framework-spec-greenfield.md` and the phase docs for the current framework direction.
 
 ## Summary
 

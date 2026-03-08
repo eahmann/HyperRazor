@@ -1,3 +1,5 @@
+using HyperRazor.Rendering;
+
 namespace HyperRazor.Demo.Mvc.Models;
 
 public static class UserInviteValidationDefinitions
@@ -77,10 +79,31 @@ public static class UserInviteValidationDefinitions
             HxPost = "/validation/minimal/proxy",
             PanelDescription = "Minimal API short-circuits local invalid input and only calls the backend when local binding succeeds.",
             ButtonText = "Validate Minimal + Backend",
-            Instructions = "The Minimal API route short-circuits local invalid input, then maps backend 422 JSON back into HTML.",
+            Instructions = "Local client checks run immediately. Use backend-taken@example.com for email-only live server feedback, then try shared-mailbox@example.com with and without a team display name to see dependent-field OOB updates before submit.",
+            LiveValidationPath = "/validation/live",
+            EnableClientValidation = true,
             Input = input ?? new InviteUserInput(),
             Success = success,
             Count = count
         };
+    }
+
+    public static bool TryResolve(
+        HrzValidationRootId rootId,
+        InviteUserInput? input,
+        out InviteValidationFormViewModel form)
+    {
+        ArgumentNullException.ThrowIfNull(rootId);
+
+        form = rootId.Value switch
+        {
+            "users-invite" => MvcLocal(input),
+            "validation-mvc-proxy" => MvcProxy(input),
+            "validation-minimal-local" => MinimalLocal(input),
+            "validation-minimal-proxy" => MinimalProxy(input),
+            _ => null!
+        };
+
+        return form is not null;
     }
 }

@@ -1,7 +1,7 @@
 # HyperRazor Validation Framework — Phase 3 API and Proxy Paths
 
 **Date:** 2026-03-07  
-**Status:** Ready to execute  
+**Status:** Implemented on 2026-03-07  
 **Depends on:** `docs/validation-framework-phase-1-foundations.md`, `docs/validation-framework-phase-2-submit-runtime.md`
 
 ---
@@ -148,4 +148,3 @@ dotnet test tests/HyperRazor.Demo.Mvc.Tests/HyperRazor.Demo.Mvc.Tests.csproj
 - accidentally treating backend JSON as a browser-facing contract
 - losing attempted values after a locally valid bind but backend-invalid response
 - duplicating validation logic instead of centralizing it in `IHrzModelValidator`
-

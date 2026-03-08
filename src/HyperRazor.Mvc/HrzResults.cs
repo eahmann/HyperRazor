@@ -42,6 +42,20 @@ public static class HrzResults
     }
 
     /// <summary>
+    /// Renders one or more fragments without page-shell semantics.
+    /// </summary>
+    public static Task<IResult> Partial(
+        HttpContext context,
+        CancellationToken cancellationToken = default,
+        params RenderFragment[] fragments)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(fragments);
+
+        return ResolveViewService(context).PartialView(cancellationToken, fragments);
+    }
+
+    /// <summary>
     /// Renders a fragment component and applies the supplied status code.
     /// </summary>
     public static async Task<IResult> Validation<TComponent>(

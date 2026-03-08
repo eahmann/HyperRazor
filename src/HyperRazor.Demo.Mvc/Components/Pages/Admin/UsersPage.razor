@@ -16,7 +16,6 @@
         hx-get="/fragments/users/search"
         hx-target="#search-results"
         hx-swap="innerHTML"
-        hx-indicator="#search-indicator"
         hx-disabled-elt="find button"
         hx-trigger="submit, keyup changed delay:250ms from:#search-box, change from:#sort-select">
         <label for="search-box">Query</label>
@@ -33,7 +32,6 @@
         <input type="hidden" name="page" value="1" />
         <input type="hidden" name="pageSize" value="4" />
         <button type="submit">Search Directory</button>
-        <span id="search-indicator" class="hrz-indicator" aria-live="polite">Searching…</span>
     </form>
 
     <div id="search-results">
@@ -51,7 +49,6 @@
             hx-post="/fragments/users/provision"
             hx-target="#users-list"
             hx-swap="outerHTML focus-scroll:true"
-            hx-indicator="#oob-indicator"
             hx-disabled-elt="find button">
             <HrzAntiforgeryInput />
 
@@ -66,7 +63,6 @@
             hx-post="/fragments/users/provision-rendered"
             hx-target="#render-to-string-demo-result"
             hx-swap="outerHTML focus-scroll:true"
-            hx-indicator="#oob-indicator"
             hx-disabled-elt="find button">
             <HrzAntiforgeryInput />
 
@@ -74,8 +70,6 @@
             <input id="displayNameRendered" name="displayName" value="Morgan Lake" />
             <button type="submit">Provision Via RenderToString</button>
         </form>
-
-        <span id="oob-indicator" class="hrz-indicator" aria-live="polite">Applying updates…</span>
 
         <section id="users-list" class="panel">
             <h3>Latest Provisioned User</h3>

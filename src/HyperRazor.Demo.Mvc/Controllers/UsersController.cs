@@ -20,6 +20,10 @@ public sealed class UsersController : HrController
         {
             TriggerInvalid(ModelState.ErrorCount);
             SetSubmitValidationState(UserInviteValidationRoots.MvcLocal);
+            DemoInspectorUpdates.Queue(
+                HttpContext,
+                action: "users-invite-invalid",
+                details: $"Invite validation failed locally with {ModelState.ErrorCount} error(s).");
             return UserInviteValidationResponses.RenderUsersAsync(
                 HttpContext,
                 nameof(Components.Pages.Admin.UsersPage.MvcInviteForm),
@@ -29,6 +33,10 @@ public sealed class UsersController : HrController
 
         var count = Interlocked.Increment(ref _inviteCount);
         TriggerValid(input, count);
+        DemoInspectorUpdates.Queue(
+            HttpContext,
+            action: "users-invite-valid",
+            details: $"Invite validated locally and created {input.DisplayName} (#{count}).");
 
         if (HttpContext.HtmxRequest().IsHtmx)
         {

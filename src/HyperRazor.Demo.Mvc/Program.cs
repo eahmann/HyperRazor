@@ -144,6 +144,10 @@ app.MapPost("/validation/minimal/local", async (
         {
             errorCount = CountErrors(formPostState.ValidationState)
         });
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-minimal-local-invalid",
+            details: $"Minimal API local validation failed with {CountErrors(formPostState.ValidationState)} error(s).");
 
         return await UserInviteValidationResponses.RenderValidationAsync(
             context,
@@ -159,6 +163,10 @@ app.MapPost("/validation/minimal/local", async (
         email = formPostState.Model.Email,
         count
     });
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-minimal-local-valid",
+        details: $"Minimal API local validation accepted {formPostState.Model.DisplayName} (#{count}).");
 
     if (context.HtmxRequest().IsHtmx)
     {
@@ -192,6 +200,10 @@ app.MapPost("/validation/minimal/proxy", async (
         {
             errorCount = CountErrors(formPostState.ValidationState)
         });
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-minimal-proxy-invalid",
+            details: $"Minimal API proxy validation failed locally with {CountErrors(formPostState.ValidationState)} error(s) before the backend call.");
 
         return await UserInviteValidationResponses.RenderValidationAsync(
             context,
@@ -213,6 +225,10 @@ app.MapPost("/validation/minimal/proxy", async (
         {
             errorCount = CountErrors(validationState)
         });
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-minimal-proxy-backend-invalid",
+            details: "Minimal API proxy mapped backend validation JSON back into the server-rendered form fragment.");
 
         return await UserInviteValidationResponses.RenderValidationAsync(
             context,
@@ -227,6 +243,10 @@ app.MapPost("/validation/minimal/proxy", async (
         email = formPostState.Model.Email,
         count = backendResult.Count
     });
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-minimal-proxy-valid",
+        details: $"Minimal API proxy validated successfully and the backend accepted {formPostState.Model.DisplayName} (#{backendResult.Count}).");
 
     if (context.HtmxRequest().IsHtmx)
     {
@@ -289,6 +309,11 @@ app.MapPost("/validation/live", async (
     {
         fragments.Add(BuildSummarySlotFragment(form, livePatch, swapOob: true));
     }
+
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-live",
+        details: $"Live validation updated {string.Join(", ", livePatch.AffectedFields.Select(static field => field.Value))}.");
 
     return await HrzResults.Partial(context, cancellationToken, fragments.ToArray());
 });

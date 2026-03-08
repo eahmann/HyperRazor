@@ -390,10 +390,7 @@ public sealed class FragmentsController : HrController
 
     private void QueueInspectorUpdate(string action, string details)
     {
-        _swapService.QueueComponent<HxRequestResponseInspector>(
-            targetId: "hx-debug-shell",
-            parameters: BuildInspectorParameters(HttpContext, action, details),
-            swapStyle: SwapStyle.OuterHtml);
+        DemoInspectorUpdates.Queue(HttpContext, action, details);
     }
 
     private void QueueDashboardEventLog(string message)
@@ -425,47 +422,6 @@ public sealed class FragmentsController : HrController
         }
 
         return $"{compact[..maxLength]}...";
-    }
-
-    private static IReadOnlyDictionary<string, object?> BuildInspectorParameters(
-        HttpContext context,
-        string action,
-        string details)
-    {
-        var requestHeaders = context.Request.Headers;
-        var response = context.Response.Headers;
-        var parsedRequest = context.HtmxRequest();
-        var route = $"{context.Request.Method} {context.Request.Path}{context.Request.QueryString}";
-
-        return new Dictionary<string, object?>
-        {
-            [nameof(HxRequestResponseInspector.ActionName)] = action,
-            [nameof(HxRequestResponseInspector.Details)] = details,
-            [nameof(HxRequestResponseInspector.Route)] = route,
-            [nameof(HxRequestResponseInspector.HxRequest)] = ReadHeader(requestHeaders, HtmxHeaderNames.Request),
-            [nameof(HxRequestResponseInspector.HxRequestType)] = ReadHeader(requestHeaders, HtmxHeaderNames.RequestType),
-            [nameof(HxRequestResponseInspector.HxTarget)] = ReadHeader(requestHeaders, HtmxHeaderNames.Target),
-            [nameof(HxRequestResponseInspector.HxTrigger)] = ReadHeader(requestHeaders, HtmxHeaderNames.Trigger),
-            [nameof(HxRequestResponseInspector.HxSource)] = ReadHeader(requestHeaders, HtmxHeaderNames.Source),
-            [nameof(HxRequestResponseInspector.HxCurrentUrl)] = ReadHeader(requestHeaders, HtmxHeaderNames.CurrentUrl),
-            [nameof(HxRequestResponseInspector.ParsedVersion)] = parsedRequest.Version.ToString(),
-            [nameof(HxRequestResponseInspector.ParsedRequestType)] = parsedRequest.RequestType.ToString(),
-            [nameof(HxRequestResponseInspector.HxTriggerResponse)] = ReadHeader(response, HtmxHeaderNames.TriggerResponse),
-            [nameof(HxRequestResponseInspector.HxRedirect)] = ReadHeader(response, HtmxHeaderNames.Redirect),
-            [nameof(HxRequestResponseInspector.HxLocation)] = ReadHeader(response, HtmxHeaderNames.Location),
-            [nameof(HxRequestResponseInspector.HxPushUrl)] = ReadHeader(response, HtmxHeaderNames.PushUrl),
-            [nameof(HxRequestResponseInspector.StatusCode)] = context.Response.StatusCode
-        };
-    }
-
-    private static string ReadHeader(IHeaderDictionary headers, string key)
-    {
-        if (!headers.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
-        {
-            return "(none)";
-        }
-
-        return value.ToString();
     }
 
     private static (string Name, string Hex) NormalizeHeadAccent(string? accent)

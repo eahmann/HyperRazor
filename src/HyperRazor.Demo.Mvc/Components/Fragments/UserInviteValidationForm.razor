@@ -32,7 +32,6 @@
         hx-post="@ResolvedHxPost"
         hx-target="@($"#{FormShellId}")"
         hx-swap="outerHTML focus-scroll:true"
-        hx-indicator="@($"#{IndicatorId}")"
         hx-disabled-elt="find button"
         novalidate>
         <HrzAntiforgeryInput />
@@ -96,7 +95,6 @@
         </div>
 
         <button type="submit">@Form.ButtonText</button>
-        <span id="@IndicatorId" class="hrz-indicator" aria-live="polite">Validating…</span>
     </form>
 </section>
 
@@ -128,7 +126,6 @@
     private string? EmailLiveValidationValuesJson => BuildLiveValidationValuesJson(EmailPath);
     private string FormShellId => $"{Form.IdPrefix}-form-shell";
     private string FormId => $"{Form.IdPrefix}-form";
-    private string IndicatorId => $"{Form.IdPrefix}-indicator";
     private string SummaryId => $"{Form.IdPrefix}-server-summary";
     private string DisplayNameInputId => $"{Form.IdPrefix}-display-name";
     private string DisplayNameClientId => $"{Form.IdPrefix}-display-name-client";

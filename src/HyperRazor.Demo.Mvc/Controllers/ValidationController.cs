@@ -25,6 +25,10 @@ public sealed class ValidationController : HrController
         {
             TriggerInvalid(ModelState.ErrorCount);
             SetSubmitValidationState(UserInviteValidationRoots.MvcProxy);
+            DemoInspectorUpdates.Queue(
+                HttpContext,
+                action: "validation-mvc-proxy-invalid",
+                details: $"MVC proxy validation failed locally with {ModelState.ErrorCount} error(s) before the backend call.");
             return await UserInviteValidationResponses.RenderValidationAsync(
                 HttpContext,
                 nameof(Components.Pages.Admin.ValidationPage.MvcProxyInviteForm),
@@ -41,6 +45,10 @@ public sealed class ValidationController : HrController
                 resolver,
                 HrzAttemptedValues.FromRequest(Request)));
             TriggerInvalid(HttpContext.GetSubmitValidationState(UserInviteValidationRoots.MvcProxy)?.FieldErrors.Count ?? 1);
+            DemoInspectorUpdates.Queue(
+                HttpContext,
+                action: "validation-mvc-proxy-backend-invalid",
+                details: "MVC proxy mapped backend validation JSON back into the server-rendered form fragment.");
 
             return await UserInviteValidationResponses.RenderValidationAsync(
                 HttpContext,
@@ -50,6 +58,10 @@ public sealed class ValidationController : HrController
         }
 
         TriggerValid(input, backendResult.Count);
+        DemoInspectorUpdates.Queue(
+            HttpContext,
+            action: "validation-mvc-proxy-valid",
+            details: $"MVC proxy validated successfully and the backend accepted {input.DisplayName} (#{backendResult.Count}).");
         if (HttpContext.HtmxRequest().IsHtmx)
         {
             return await PartialView<UserInviteValidationForm>(

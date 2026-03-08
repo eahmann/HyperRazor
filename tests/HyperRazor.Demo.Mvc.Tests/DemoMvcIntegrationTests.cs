@@ -531,6 +531,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("value=\"invalid\"", body, StringComparison.Ordinal);
         Assert.Contains("Display name must be at least 3 characters.", body, StringComparison.Ordinal);
         Assert.Contains("Email must be a valid address.", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("users-invite-invalid", body, StringComparison.Ordinal);
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.TriggerResponse, out var values));
         Assert.Contains("form:invalid", string.Join(',', values), StringComparison.Ordinal);
     }
@@ -557,6 +559,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("Created <strong>Riley Stone</strong>", body, StringComparison.Ordinal);
         Assert.Contains("Riley Stone", body, StringComparison.Ordinal);
         Assert.Contains("riley@example.com", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("users-invite-valid", body, StringComparison.Ordinal);
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.TriggerResponse, out var values));
         Assert.Contains("form:valid", string.Join(',', values), StringComparison.Ordinal);
     }
@@ -588,6 +592,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(0, backend.InvocationCount);
         Assert.Contains("id=\"validation-mvc-proxy-form-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("Display name must be at least 3 characters.", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-mvc-proxy-invalid", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -612,6 +618,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("Upstream directory rejected the invite.", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
         Assert.Contains("value=\"backend-taken@example.com\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-mvc-proxy-backend-invalid", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -636,6 +644,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("Display name must be at least 3 characters.", body, StringComparison.Ordinal);
         Assert.Contains("Email must be a valid address.", body, StringComparison.Ordinal);
         Assert.Contains("value=\"A\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-minimal-local-invalid", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -660,6 +670,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("Upstream directory rejected the invite.", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
         Assert.Contains("value=\"backend-taken@example.com\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-minimal-proxy-backend-invalid", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -685,6 +697,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-live", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"validation-minimal-proxy-form-shell\"", body, StringComparison.Ordinal);
     }

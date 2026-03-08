@@ -27,10 +27,9 @@
         <strong>How To Test:</strong> run the policy/playbook/backend drills and compare the status code with the inspector output.
     </div>
     <div class="status-actions">
-        <button type="button" hx-get="/fragments/incidents/drills/permission" hx-target="#status-result" hx-swap="outerHTML" hx-indicator="#status-indicator" hx-disabled-elt="this">Permission denied</button>
-        <button type="button" hx-get="/fragments/incidents/drills/playbook-missing" hx-target="#status-result" hx-swap="outerHTML" hx-indicator="#status-indicator" hx-disabled-elt="this">Missing playbook</button>
-        <button type="button" hx-get="/fragments/incidents/drills/backend-failure" hx-target="#status-result" hx-swap="outerHTML" hx-indicator="#status-indicator" hx-disabled-elt="this">Backend failure</button>
-        <span id="status-indicator" class="hrz-indicator" aria-live="polite">Loading incident drill…</span>
+        <button type="button" hx-get="/fragments/incidents/drills/permission" hx-target="#status-result" hx-swap="outerHTML" hx-disabled-elt="this">Permission denied</button>
+        <button type="button" hx-get="/fragments/incidents/drills/playbook-missing" hx-target="#status-result" hx-swap="outerHTML" hx-disabled-elt="this">Missing playbook</button>
+        <button type="button" hx-get="/fragments/incidents/drills/backend-failure" hx-target="#status-result" hx-swap="outerHTML" hx-disabled-elt="this">Backend failure</button>
     </div>
 
     <section id="status-result" class="panel status-result">

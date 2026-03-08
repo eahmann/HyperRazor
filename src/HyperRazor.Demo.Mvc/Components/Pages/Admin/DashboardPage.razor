@@ -47,9 +47,8 @@
         <strong>How To Test:</strong> run both checks and compare the toast body with the inspector's <code>HX-Trigger</code> header.
     </div>
     <div class="status-actions">
-        <button type="button" hx-get="/fragments/dashboard/sync-check" hx-target="#dashboard-sync-status" hx-swap="outerHTML" hx-indicator="#dashboard-check-indicator">Run Sync Check</button>
-        <button type="button" hx-get="/fragments/dashboard/banner-check" hx-target="#dashboard-sync-status" hx-swap="outerHTML" hx-indicator="#dashboard-check-indicator">Broadcast Banner</button>
-        <span id="dashboard-check-indicator" class="hrz-indicator" aria-live="polite">Running check…</span>
+        <button type="button" hx-get="/fragments/dashboard/sync-check" hx-target="#dashboard-sync-status" hx-swap="outerHTML">Run Sync Check</button>
+        <button type="button" hx-get="/fragments/dashboard/banner-check" hx-target="#dashboard-sync-status" hx-swap="outerHTML">Broadcast Banner</button>
     </div>
     <section id="dashboard-sync-status" class="panel">
         <p class="empty mb-0">Run a check to render the server result card here.</p>

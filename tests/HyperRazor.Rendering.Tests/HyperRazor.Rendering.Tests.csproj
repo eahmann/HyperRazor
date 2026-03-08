@@ -15,8 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\HyperRazor\HyperRazor.csproj" />
     <ProjectReference Include="..\..\src\HyperRazor.Components\HyperRazor.Components.csproj" />
     <ProjectReference Include="..\..\src\HyperRazor.Htmx\HyperRazor.Htmx.csproj" />
+    <ProjectReference Include="..\..\src\HyperRazor.Mvc\HyperRazor.Mvc.csproj" />
     <ProjectReference Include="..\..\src\HyperRazor.Rendering\HyperRazor.Rendering.csproj" />
   </ItemGroup>
 

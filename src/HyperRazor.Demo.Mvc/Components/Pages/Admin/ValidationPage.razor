@@ -1,0 +1,24 @@
+<section class="panel">
+    <h2>Validation Paths</h2>
+    <p>Compare MVC and Minimal API form-post validation flows, including backend-proxy mapping back into HTML fragments.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> trigger a local invalid submit first, then use <code>backend-taken@example.com</code> to force backend <code>422</code> mapping.
+    </div>
+</section>
+
+<section class="panel validation-path-grid">
+    <UserInviteValidationForm Form="MvcProxyInviteForm" />
+    <UserInviteValidationForm Form="MinimalInviteForm" />
+    <UserInviteValidationForm Form="MinimalProxyInviteForm" />
+</section>
+
+@code {
+    [Parameter]
+    public InviteValidationFormViewModel MvcProxyInviteForm { get; set; } = UserInviteValidationDefinitions.MvcProxy();
+
+    [Parameter]
+    public InviteValidationFormViewModel MinimalInviteForm { get; set; } = UserInviteValidationDefinitions.MinimalLocal();
+
+    [Parameter]
+    public InviteValidationFormViewModel MinimalProxyInviteForm { get; set; } = UserInviteValidationDefinitions.MinimalProxy();
+}

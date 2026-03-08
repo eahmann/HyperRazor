@@ -91,7 +91,7 @@
     </section>
 
     <section class="panel">
-        <UserInviteValidationForm Input="InviteInput" Success="InviteSuccess" Count="InviteCount" />
+        <UserInviteValidationForm Form="MvcInviteForm" />
 
         <section class="panel">
             <h3>Provisioning Activity</h3>
@@ -103,11 +103,5 @@
 
 @code {
     [Parameter]
-    public InviteUserInput InviteInput { get; set; } = new();
-
-    [Parameter]
-    public bool InviteSuccess { get; set; }
-
-    [Parameter]
-    public int InviteCount { get; set; }
+    public InviteValidationFormViewModel MvcInviteForm { get; set; } = UserInviteValidationDefinitions.MvcLocal();
 }

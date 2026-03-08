@@ -52,25 +52,26 @@ public sealed class DemoMvcFlowsE2ETests
         await page.FillAsync("#validation-email", "invalid");
         var invalidResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#validation-form button[type='submit']"),
-            response => response.Url.Contains("/fragments/users/invite", StringComparison.Ordinal));
+            response => response.Url.Contains("/users/invite", StringComparison.Ordinal));
 
         Assert.Equal(200, invalidResponse.Status);
         var invalidHtml = await invalidResponse.TextAsync();
-        Assert.Contains("Validation Errors", invalidHtml, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-form-shell\"", invalidHtml, StringComparison.Ordinal);
         Assert.Contains("Display name must be at least 3 characters.", invalidHtml, StringComparison.Ordinal);
         Assert.Contains("Email must be a valid address.", invalidHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-form-shell")).ToContainTextAsync("Display name must be at least 3 characters.");
 
         await page.FillAsync("#validation-display-name", "Riley Stone");
         await page.FillAsync("#validation-email", "riley@example.com");
         var validResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#validation-form button[type='submit']"),
-            response => response.Url.Contains("/fragments/users/invite", StringComparison.Ordinal));
+            response => response.Url.Contains("/users/invite", StringComparison.Ordinal));
 
         Assert.Equal(200, validResponse.Status);
         var validHtml = await validResponse.TextAsync();
-        Assert.Contains("Validation Passed", validHtml, StringComparison.Ordinal);
+        Assert.Contains("Created <strong>Riley Stone</strong>", validHtml, StringComparison.Ordinal);
         Assert.Contains("riley@example.com", validHtml, StringComparison.Ordinal);
-        await Assertions.Expect(page.Locator("#validation-result")).ToContainTextAsync("Validation Passed");
+        await Assertions.Expect(page.Locator("#validation-form-shell")).ToContainTextAsync("Created Riley Stone");
     }
 
     [SkippableFact]

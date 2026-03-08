@@ -3,27 +3,27 @@
 @using Microsoft.AspNetCore.Http
 
 <section
-    id="validation-form-shell"
+    id="@FormShellId"
     class="panel validation-form-shell"
-    data-hrz-validation-root="@RootId.Value"
+    data-hrz-validation-root="@Form.RootId.Value"
     data-hrz-validation-region>
-    <h3>Invite Validation</h3>
-    <p class="empty">Try invalid input first, then send a valid invite.</p>
+    <h3>@Form.PanelTitle</h3>
+    <p class="empty">@Form.PanelDescription</p>
     <div class="demo-note" role="note">
-        <strong>How To Test:</strong> submit an invalid name/email first, then a valid invite. Invalid responses rerender the form fragment with server field errors.
+        <strong>How To Test:</strong> @Form.Instructions
     </div>
 
-    @if (Success)
+    @if (Form.Success)
     {
         <p class="validation-success">
-            Created <strong>@Input.DisplayName</strong> (<code>@Input.Email</code>) as user #@Count.
+            @Form.SuccessVerb <strong>@Form.Input.DisplayName</strong> (<code>@Form.Input.Email</code>) as user #@Form.Count.
         </p>
     }
 
     @if (ValidationState?.SummaryErrors.Count > 0)
     {
         <div
-            id="validation-server-summary"
+            id="@SummaryId"
             class="validation-summary"
             data-hrz-server-validation-summary>
             <ul class="validation-errors">
@@ -37,37 +37,37 @@
     else
     {
         <div
-            id="validation-server-summary"
+            id="@SummaryId"
             class="validation-summary validation-summary--empty"
             data-hrz-server-validation-summary></div>
     }
 
     <form
-        id="validation-form"
+        id="@FormId"
         class="validation-form"
-        action="/users/invite"
-        hx-post="/users/invite"
-        hx-target="#validation-form-shell"
+        action="@Form.Action"
+        hx-post="@ResolvedHxPost"
+        hx-target="@($"#{FormShellId}")"
         hx-swap="outerHTML focus-scroll:true"
-        hx-indicator="#validation-indicator"
+        hx-indicator="@($"#{IndicatorId}")"
         hx-disabled-elt="find button"
         novalidate>
         <HrzAntiforgeryInput />
 
         <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, DisplayNamePath) ? "validation-field--invalid" : null)">
-            <label for="validation-display-name">Display Name</label>
+            <label for="@DisplayNameInputId">Display Name</label>
             <input
-                id="validation-display-name"
+                id="@DisplayNameInputId"
                 name="displayName"
-                value="@HrzFormRendering.ValueOrAttempted(ValidationState, DisplayNamePath, Input.DisplayName)"
+                value="@HrzFormRendering.ValueOrAttempted(ValidationState, DisplayNamePath, Form.Input.DisplayName)"
                 aria-invalid="@HrzFormRendering.HasErrors(ValidationState, DisplayNamePath)"
-                aria-describedby="validation-display-name-client validation-display-name-server" />
+                aria-describedby="@($"{DisplayNameClientId} {DisplayNameServerId}")" />
             <div
-                id="validation-display-name-client"
+                id="@DisplayNameClientId"
                 class="validation-slot validation-slot--client"
                 data-hrz-client-validation-for="@DisplayNamePath.Value"></div>
             <div
-                id="validation-display-name-server"
+                id="@DisplayNameServerId"
                 class="validation-slot validation-slot--server"
                 data-hrz-server-validation-for="@DisplayNamePath.Value">
                 @foreach (var error in HrzFormRendering.ErrorsFor(ValidationState, DisplayNamePath))
@@ -78,20 +78,20 @@
         </div>
 
         <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, EmailPath) ? "validation-field--invalid" : null)">
-            <label for="validation-email">Email</label>
+            <label for="@EmailInputId">Email</label>
             <input
-                id="validation-email"
+                id="@EmailInputId"
                 name="email"
                 type="email"
-                value="@HrzFormRendering.ValueOrAttempted(ValidationState, EmailPath, Input.Email)"
+                value="@HrzFormRendering.ValueOrAttempted(ValidationState, EmailPath, Form.Input.Email)"
                 aria-invalid="@HrzFormRendering.HasErrors(ValidationState, EmailPath)"
-                aria-describedby="validation-email-client validation-email-server" />
+                aria-describedby="@($"{EmailClientId} {EmailServerId}")" />
             <div
-                id="validation-email-client"
+                id="@EmailClientId"
                 class="validation-slot validation-slot--client"
                 data-hrz-client-validation-for="@EmailPath.Value"></div>
             <div
-                id="validation-email-server"
+                id="@EmailServerId"
                 class="validation-slot validation-slot--server"
                 data-hrz-server-validation-for="@EmailPath.Value">
                 @foreach (var error in HrzFormRendering.ErrorsFor(ValidationState, EmailPath))
@@ -101,28 +101,34 @@
             </div>
         </div>
 
-        <button type="submit">Validate Invite</button>
-        <span id="validation-indicator" class="hrz-indicator" aria-live="polite">Validating…</span>
+        <button type="submit">@Form.ButtonText</button>
+        <span id="@IndicatorId" class="hrz-indicator" aria-live="polite">Validating…</span>
     </form>
 </section>
 
 @code {
-    public static HrzValidationRootId RootId { get; } = new("users-invite");
+    public static HrzValidationRootId RootId { get; } = UserInviteValidationRoots.MvcLocal;
     public static HrzFieldPath DisplayNamePath { get; } = HrzFieldPaths.FromFieldName(nameof(InviteUserInput.DisplayName));
     public static HrzFieldPath EmailPath { get; } = HrzFieldPaths.FromFieldName(nameof(InviteUserInput.Email));
 
     [Parameter]
-    public InviteUserInput Input { get; set; } = new();
-
-    [Parameter]
-    public bool Success { get; set; }
-
-    [Parameter]
-    public int Count { get; set; }
+    public InviteValidationFormViewModel Form { get; set; } = UserInviteValidationDefinitions.MvcLocal();
 
     [CascadingParameter]
     public HttpContext? HttpContext { get; set; }
 
     private HrzSubmitValidationState? ValidationState =>
-        HttpContext?.GetSubmitValidationState(RootId);
+        HttpContext?.GetSubmitValidationState(Form.RootId);
+
+    private string ResolvedHxPost => string.IsNullOrWhiteSpace(Form.HxPost) ? Form.Action : Form.HxPost;
+    private string FormShellId => $"{Form.IdPrefix}-form-shell";
+    private string FormId => $"{Form.IdPrefix}-form";
+    private string IndicatorId => $"{Form.IdPrefix}-indicator";
+    private string SummaryId => $"{Form.IdPrefix}-server-summary";
+    private string DisplayNameInputId => $"{Form.IdPrefix}-display-name";
+    private string DisplayNameClientId => $"{Form.IdPrefix}-display-name-client";
+    private string DisplayNameServerId => $"{Form.IdPrefix}-display-name-server";
+    private string EmailInputId => $"{Form.IdPrefix}-email";
+    private string EmailClientId => $"{Form.IdPrefix}-email-client";
+    private string EmailServerId => $"{Form.IdPrefix}-email-server";
 }

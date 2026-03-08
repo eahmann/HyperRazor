@@ -577,6 +577,16 @@ button:disabled {
     gap: 0.9rem;
 }
 
+.validation-path-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.validation-path-grid > .panel {
+    margin-bottom: 0;
+}
+
 .validation-form {
     display: grid;
     gap: 0.95rem;

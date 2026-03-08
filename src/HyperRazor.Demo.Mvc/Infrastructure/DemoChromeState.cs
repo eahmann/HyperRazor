@@ -30,6 +30,7 @@ public sealed record DemoChromeState(
         var value = NormalizePath(path);
         return value == "/"
             || value == "/users"
+            || value == "/validation"
             || value == "/access-requests"
             || value.StartsWith("/access-requests/", StringComparison.OrdinalIgnoreCase)
             || value == "/incidents"
@@ -125,6 +126,11 @@ public sealed record DemoChromeState(
         if (value.StartsWith("/settings/", StringComparison.OrdinalIgnoreCase))
         {
             return "/settings/branding";
+        }
+
+        if (value == "/validation" || value.StartsWith("/validation/", StringComparison.OrdinalIgnoreCase))
+        {
+            return "/validation";
         }
 
         return value == "/users" ? "/users" : "/";

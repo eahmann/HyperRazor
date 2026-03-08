@@ -139,7 +139,8 @@ public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
     private static string Normalize(string value)
     {
         var trimmed = value.Trim();
-        while (trimmed.StartsWith("Model.", StringComparison.Ordinal) || trimmed.StartsWith("Input.", StringComparison.Ordinal))
+        while (trimmed.StartsWith("Model.", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("Input.", StringComparison.OrdinalIgnoreCase))
         {
             trimmed = trimmed[(trimmed.IndexOf('.') + 1)..];
         }

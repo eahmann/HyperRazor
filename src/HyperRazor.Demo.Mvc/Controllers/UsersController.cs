@@ -1,9 +1,11 @@
 using HyperRazor.Demo.Mvc.Components.Fragments;
-using HyperRazor.Demo.Mvc.Components.Pages.Admin;
+using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Demo.Mvc.Models;
 using HyperRazor.Htmx;
 using HyperRazor.Mvc;
+using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HyperRazor.Demo.Mvc.Controllers;
 
@@ -16,51 +18,55 @@ public sealed class UsersController : HrController
     {
         if (!ModelState.IsValid)
         {
-            HttpContext.HtmxResponse().Trigger("form:invalid", new
-            {
-                errorCount = ModelState.ErrorCount
-            });
-
-            if (HttpContext.HtmxRequest().IsHtmx)
-            {
-                return PartialView<UserInviteValidationForm>(
-                    new
-                    {
-                        Input = input
-                    },
-                    cancellationToken,
-                    UserInviteValidationForm.RootId);
-            }
-
-            return View<UsersPage>(
-                new
-                {
-                    InviteInput = input
-                },
-                cancellationToken,
-                UserInviteValidationForm.RootId);
+            TriggerInvalid(ModelState.ErrorCount);
+            SetSubmitValidationState(UserInviteValidationRoots.MvcLocal);
+            return UserInviteValidationResponses.RenderUsersAsync(
+                HttpContext,
+                nameof(Components.Pages.Admin.UsersPage.MvcInviteForm),
+                UserInviteValidationDefinitions.MvcLocal(input),
+                cancellationToken);
         }
 
         var count = Interlocked.Increment(ref _inviteCount);
-        HttpContext.HtmxResponse().Trigger("form:valid", new
-        {
-            name = input.DisplayName,
-            email = input.Email,
-            count
-        });
+        TriggerValid(input, count);
 
         if (HttpContext.HtmxRequest().IsHtmx)
         {
             return PartialView<UserInviteValidationForm>(
                 new
                 {
-                    Input = input,
-                    Success = true,
-                    Count = count
+                    Form = UserInviteValidationDefinitions.MvcLocal(input, success: true, count: count)
                 },
                 cancellationToken);
         }
 
         return Task.FromResult<IResult>(Results.Redirect("/users"));
+    }
+
+    private void TriggerInvalid(int errorCount)
+    {
+        HttpContext.HtmxResponse().Trigger("form:invalid", new
+        {
+            errorCount
+        });
+    }
+
+    private void TriggerValid(InviteUserInput input, int count)
+    {
+        HttpContext.HtmxResponse().Trigger("form:valid", new
+        {
+            name = input.DisplayName,
+            email = input.Email,
+            count
+        });
+    }
+
+    private void SetSubmitValidationState(HrzValidationRootId rootId)
+    {
+        var resolver = HttpContext.RequestServices.GetRequiredService<IHrzFieldPathResolver>();
+        HttpContext.SetSubmitValidationState(ModelState.ToSubmitValidationState(
+            rootId,
+            resolver,
+            HrzAttemptedValues.FromRequest(Request)));
     }
 }

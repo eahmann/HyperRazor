@@ -91,35 +91,7 @@
     </section>
 
     <section class="panel">
-        <h3>Invite Validation</h3>
-        <p class="empty">Try invalid input first, then send a valid invite.</p>
-        <div class="demo-note" role="note">
-            <strong>How To Test:</strong> submit an invalid name/email first, then a valid invite. Errors and success both stay scoped to the result region.
-        </div>
-        <form
-            id="validation-form"
-            action="/fragments/users/invite"
-            hx-post="/fragments/users/invite"
-            hx-target="#validation-result"
-            hx-swap="innerHTML focus-scroll:true"
-            hx-indicator="#validation-indicator"
-            hx-disabled-elt="find button"
-            novalidate>
-            <HrzAntiforgeryInput />
-
-            <label for="validation-display-name">Display Name</label>
-            <input id="validation-display-name" name="displayName" value="Riley Stone" />
-
-            <label for="validation-email">Email</label>
-            <input id="validation-email" name="email" type="email" value="riley@example.com" />
-
-            <button type="submit">Validate Invite</button>
-            <span id="validation-indicator" class="hrz-indicator" aria-live="polite">Validating…</span>
-        </form>
-
-        <div id="validation-result">
-            <p class="empty mb-0">Validation output will render here after submit.</p>
-        </div>
+        <UserInviteValidationForm Input="InviteInput" Success="InviteSuccess" Count="InviteCount" />
 
         <section class="panel">
             <h3>Provisioning Activity</h3>
@@ -128,3 +100,14 @@
         </section>
     </section>
 </section>
+
+@code {
+    [Parameter]
+    public InviteUserInput InviteInput { get; set; } = new();
+
+    [Parameter]
+    public bool InviteSuccess { get; set; }
+
+    [Parameter]
+    public int InviteCount { get; set; }
+}

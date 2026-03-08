@@ -4,6 +4,7 @@ using HyperRazor.Components.Layouts;
 using HyperRazor.Components.Services;
 using HyperRazor.Htmx;
 using HyperRazor.Rendering;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +13,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Primitives;
+using System.Linq.Expressions;
 
 namespace HyperRazor.Rendering.Tests;
 
@@ -180,6 +183,47 @@ public class HrzComponentViewServiceTests
         Assert.False(diagnostics.PromotionApplied);
     }
 
+    [Fact]
+    public async Task PartialView_WithSubmitValidationState_RendersAttemptedValueFromHttpContext()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.HttpContext.SetSubmitValidationState(new HrzSubmitValidationState(
+            new HrzValidationRootId("test-form"),
+            Array.Empty<string>(),
+            new Dictionary<HrzFieldPath, IReadOnlyList<string>>(),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>
+            {
+                [HrzFieldPaths.FromFieldName("Email")] = new(new StringValues("typed@example.com"), Array.Empty<HrzAttemptedFile>())
+            }));
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<AttemptedValueComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("value=\"typed@example.com\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_WithSubmitValidationState_BridgeHydratesValidationSummaryAndFieldMessage()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.HttpContext.SetSubmitValidationState(new HrzSubmitValidationState(
+            new HrzValidationRootId("edit-form"),
+            new[] { "Form summary error." },
+            new Dictionary<HrzFieldPath, IReadOnlyList<string>>
+            {
+                [HrzFieldPaths.FromFieldName("Email")] = new[] { "Email must be unique." }
+            },
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>()));
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<EditFormBridgeComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("Form summary error.", html, StringComparison.Ordinal);
+        Assert.Contains("Email must be unique.", html, StringComparison.Ordinal);
+    }
+
     private static async Task<TestFixture> CreateFixtureAsync(
         Action<IHeaderDictionary>? configureHeaders = null,
         Action<HrzOptions>? configureOptions = null)
@@ -207,6 +251,7 @@ public class HrzComponentViewServiceTests
         });
         services.AddOptions<HrzSwapOptions>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
+        services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
@@ -339,6 +384,62 @@ public class HrzComponentViewServiceTests
         {
             builder.AddContent(0, Body);
         }
+    }
+
+    private sealed class AttemptedValueComponent : ComponentBase
+    {
+        private static readonly HrzValidationRootId RootId = new("test-form");
+        private static readonly HrzFieldPath EmailPath = HrzFieldPaths.FromFieldName("Email");
+
+        [CascadingParameter]
+        public HttpContext? HttpContext { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "input");
+            builder.AddAttribute(1, "value", HrzFormRendering.ValueOrAttempted(
+                HttpContext?.GetSubmitValidationState(RootId),
+                EmailPath,
+                "default@example.com"));
+            builder.CloseElement();
+        }
+    }
+
+    private sealed class EditFormBridgeComponent : ComponentBase
+    {
+        private readonly EditFormBridgeModel _model = new();
+        private EditContext? _editContext;
+        private static readonly HrzValidationRootId RootId = new("edit-form");
+
+        protected override void OnInitialized()
+        {
+            _editContext = new EditContext(_model);
+        }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<CascadingValue<EditContext>>(0);
+            builder.AddAttribute(1, nameof(CascadingValue<EditContext>.Value), _editContext);
+            builder.AddAttribute(2, nameof(CascadingValue<EditContext>.ChildContent), (RenderFragment)(childBuilder =>
+            {
+                childBuilder.OpenComponent<HrzValidationBridge>(0);
+                childBuilder.AddAttribute(1, nameof(HrzValidationBridge.RootId), RootId);
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<ValidationSummary>(2);
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<ValidationMessage<string>>(3);
+                childBuilder.AddAttribute(4, nameof(ValidationMessage<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class EditFormBridgeModel
+    {
+        public string Email { get; set; } = string.Empty;
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

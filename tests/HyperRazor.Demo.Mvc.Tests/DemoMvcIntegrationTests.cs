@@ -48,7 +48,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("<h2>User Administration</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"search-controls\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-post=\"/fragments/users/provision\"", body, StringComparison.Ordinal);
-        Assert.Contains("hx-post=\"/fragments/users/invite\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/users/invite\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-validation-root=\"users-invite\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -425,17 +426,14 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task ValidateUserInvite_RequiresHtmxRequest()
+    public async Task InviteUser_WithoutAntiforgery_IsRejected()
     {
         using var client = CreateClient();
-        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/invite");
-        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/users/invite");
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["displayName"] = "Riley Stone",
-            ["email"] = "riley@example.com"
+            ["displayName"] = "A",
+            ["email"] = "invalid"
         });
 
         var response = await client.SendAsync(request);
@@ -444,11 +442,36 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task ValidateUserInvite_WithHxRequest_InvalidInputReturnsErrors()
+    public async Task InviteUser_InvalidNormalPost_RerendersFullPageWithAttemptedValuesAndErrors()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/invite");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/users/invite");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "A",
+            ["email"] = "invalid"
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<header id=\"app-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-form-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("value=\"A\"", body, StringComparison.Ordinal);
+        Assert.Contains("value=\"invalid\"", body, StringComparison.Ordinal);
+        Assert.Contains("Display name must be at least 3 characters.", body, StringComparison.Ordinal);
+        Assert.Contains("Email must be a valid address.", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InviteUser_WithHxRequest_InvalidInputReturnsFormFragmentErrors()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/users/invite");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -461,20 +484,24 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"validated-user-result\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-form-shell\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-validation-for=\"DisplayName\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-validation-for=\"Email\"", body, StringComparison.Ordinal);
+        Assert.Contains("value=\"A\"", body, StringComparison.Ordinal);
+        Assert.Contains("value=\"invalid\"", body, StringComparison.Ordinal);
         Assert.Contains("Display name must be at least 3 characters.", body, StringComparison.Ordinal);
         Assert.Contains("Email must be a valid address.", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.TriggerResponse, out var values));
         Assert.Contains("form:invalid", string.Join(',', values), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ValidateUserInvite_WithHxRequest_ValidInputReturnsSuccess()
+    public async Task InviteUser_WithHxRequest_ValidInputReturnsSuccess()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/fragments/users/invite");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/users/invite");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -487,10 +514,10 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Validation Passed", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-form-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("Created <strong>Riley Stone</strong>", body, StringComparison.Ordinal);
         Assert.Contains("Riley Stone", body, StringComparison.Ordinal);
         Assert.Contains("riley@example.com", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.TriggerResponse, out var values));
         Assert.Contains("form:valid", string.Join(',', values), StringComparison.Ordinal);
     }

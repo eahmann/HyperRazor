@@ -20,4 +20,17 @@ public static class HrzValidationHttpContextExtensions
             ? value as HrzSubmitValidationState
             : null;
     }
+
+    public static HrzSubmitValidationState? GetSubmitValidationState(
+        this HttpContext context,
+        HrzValidationRootId rootId)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(rootId);
+
+        var state = context.GetSubmitValidationState();
+        return state is not null && state.RootId == rootId
+            ? state
+            : null;
+    }
 }

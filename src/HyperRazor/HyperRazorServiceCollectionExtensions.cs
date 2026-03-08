@@ -33,7 +33,7 @@ public static class HyperRazorServiceCollectionExtensions
                 swapOptions.AllowRawContentOnNonHtmx = hrzOptions.Value.AllowRawContentOnNonHtmx;
             });
 
-        services.TryAddSingleton(HrzFieldPathResolver.Default);
+        services.TryAddSingleton<HrzFieldPathResolver>();
         services.TryAddSingleton<IHrzFieldPathResolver>(serviceProvider =>
             serviceProvider.GetRequiredService<HrzFieldPathResolver>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();

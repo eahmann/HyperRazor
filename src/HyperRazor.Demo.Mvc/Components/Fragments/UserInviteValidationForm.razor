@@ -1,0 +1,128 @@
+@using HyperRazor.Demo.Mvc.Models
+@using HyperRazor.Rendering
+@using Microsoft.AspNetCore.Http
+
+<section
+    id="validation-form-shell"
+    class="panel validation-form-shell"
+    data-hrz-validation-root="@RootId.Value"
+    data-hrz-validation-region>
+    <h3>Invite Validation</h3>
+    <p class="empty">Try invalid input first, then send a valid invite.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> submit an invalid name/email first, then a valid invite. Invalid responses rerender the form fragment with server field errors.
+    </div>
+
+    @if (Success)
+    {
+        <p class="validation-success">
+            Created <strong>@Input.DisplayName</strong> (<code>@Input.Email</code>) as user #@Count.
+        </p>
+    }
+
+    @if (ValidationState?.SummaryErrors.Count > 0)
+    {
+        <div
+            id="validation-server-summary"
+            class="validation-summary"
+            data-hrz-server-validation-summary>
+            <ul class="validation-errors">
+                @foreach (var error in ValidationState.SummaryErrors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div
+            id="validation-server-summary"
+            class="validation-summary validation-summary--empty"
+            data-hrz-server-validation-summary></div>
+    }
+
+    <form
+        id="validation-form"
+        class="validation-form"
+        action="/users/invite"
+        hx-post="/users/invite"
+        hx-target="#validation-form-shell"
+        hx-swap="outerHTML focus-scroll:true"
+        hx-indicator="#validation-indicator"
+        hx-disabled-elt="find button"
+        novalidate>
+        <HrzAntiforgeryInput />
+
+        <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, DisplayNamePath) ? "validation-field--invalid" : null)">
+            <label for="validation-display-name">Display Name</label>
+            <input
+                id="validation-display-name"
+                name="displayName"
+                value="@HrzFormRendering.ValueOrAttempted(ValidationState, DisplayNamePath, Input.DisplayName)"
+                aria-invalid="@HrzFormRendering.HasErrors(ValidationState, DisplayNamePath)"
+                aria-describedby="validation-display-name-client validation-display-name-server" />
+            <div
+                id="validation-display-name-client"
+                class="validation-slot validation-slot--client"
+                data-hrz-client-validation-for="@DisplayNamePath.Value"></div>
+            <div
+                id="validation-display-name-server"
+                class="validation-slot validation-slot--server"
+                data-hrz-server-validation-for="@DisplayNamePath.Value">
+                @foreach (var error in HrzFormRendering.ErrorsFor(ValidationState, DisplayNamePath))
+                {
+                    <p class="validation-message">@error</p>
+                }
+            </div>
+        </div>
+
+        <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, EmailPath) ? "validation-field--invalid" : null)">
+            <label for="validation-email">Email</label>
+            <input
+                id="validation-email"
+                name="email"
+                type="email"
+                value="@HrzFormRendering.ValueOrAttempted(ValidationState, EmailPath, Input.Email)"
+                aria-invalid="@HrzFormRendering.HasErrors(ValidationState, EmailPath)"
+                aria-describedby="validation-email-client validation-email-server" />
+            <div
+                id="validation-email-client"
+                class="validation-slot validation-slot--client"
+                data-hrz-client-validation-for="@EmailPath.Value"></div>
+            <div
+                id="validation-email-server"
+                class="validation-slot validation-slot--server"
+                data-hrz-server-validation-for="@EmailPath.Value">
+                @foreach (var error in HrzFormRendering.ErrorsFor(ValidationState, EmailPath))
+                {
+                    <p class="validation-message">@error</p>
+                }
+            </div>
+        </div>
+
+        <button type="submit">Validate Invite</button>
+        <span id="validation-indicator" class="hrz-indicator" aria-live="polite">Validating…</span>
+    </form>
+</section>
+
+@code {
+    public static HrzValidationRootId RootId { get; } = new("users-invite");
+    public static HrzFieldPath DisplayNamePath { get; } = HrzFieldPaths.FromFieldName(nameof(InviteUserInput.DisplayName));
+    public static HrzFieldPath EmailPath { get; } = HrzFieldPaths.FromFieldName(nameof(InviteUserInput.Email));
+
+    [Parameter]
+    public InviteUserInput Input { get; set; } = new();
+
+    [Parameter]
+    public bool Success { get; set; }
+
+    [Parameter]
+    public int Count { get; set; }
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    private HrzSubmitValidationState? ValidationState =>
+        HttpContext?.GetSubmitValidationState(RootId);
+}

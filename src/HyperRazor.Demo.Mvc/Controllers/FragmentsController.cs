@@ -287,58 +287,6 @@ public sealed class FragmentsController : HrController
             builder => builder.AddMarkupContent(0, oobMarkup));
     }
 
-    [HttpPost("users/invite")]
-    [HtmxRequest]
-    public Task<IResult> ValidateUserInvite(
-        [FromForm] string? displayName,
-        [FromForm] string? email,
-        CancellationToken cancellationToken)
-    {
-        var normalizedName = displayName?.Trim() ?? string.Empty;
-        var normalizedEmail = email?.Trim() ?? string.Empty;
-        var errors = ValidateCreateUserInput(normalizedName, normalizedEmail);
-
-        if (errors.Count > 0)
-        {
-            HttpContext.HtmxResponse().Trigger("form:invalid", new
-            {
-                errorCount = errors.Count
-            });
-
-            QueueInspectorUpdate(
-                action: "users-invite",
-                details: $"Invalid submission with {errors.Count} error(s).");
-
-            return PartialView<UserCreateValidationResult>(new
-            {
-                Success = false,
-                DisplayName = normalizedName,
-                Email = normalizedEmail,
-                Errors = errors
-            }, cancellationToken);
-        }
-
-        var count = Interlocked.Increment(ref _userCount);
-        HttpContext.HtmxResponse().Trigger("form:valid", new
-        {
-            name = normalizedName,
-            email = normalizedEmail,
-            count
-        });
-
-        QueueInspectorUpdate(
-            action: "users-invite",
-            details: $"Valid submission for {normalizedName} ({normalizedEmail}).");
-
-        return PartialView<UserCreateValidationResult>(new
-        {
-            Success = true,
-            DisplayName = normalizedName,
-            Email = normalizedEmail,
-            Count = count
-        }, cancellationToken);
-    }
-
     [HttpPost("access-requests/{requestId:int}/review")]
     [HtmxRequest]
     public Task<IResult> ReviewAccessRequest(
@@ -371,38 +319,6 @@ public sealed class FragmentsController : HrController
         });
 
         return Task.FromResult<IResult>(TypedResults.NoContent());
-    }
-
-    private static List<string> ValidateCreateUserInput(string displayName, string email)
-    {
-        var errors = new List<string>();
-
-        if (string.IsNullOrWhiteSpace(displayName))
-        {
-            errors.Add("Display name is required.");
-        }
-        else if (displayName.Length < 3)
-        {
-            errors.Add("Display name must be at least 3 characters.");
-        }
-
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            errors.Add("Email is required.");
-        }
-        else
-        {
-            var atIndex = email.IndexOf('@');
-            var dotIndex = email.LastIndexOf('.');
-            var looksValid = atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < email.Length - 1;
-
-            if (!looksValid)
-            {
-                errors.Add("Email must be a valid address.");
-            }
-        }
-
-        return errors;
     }
 
     private static List<string> ValidateAccessReviewInput(string ticketId, string justification)

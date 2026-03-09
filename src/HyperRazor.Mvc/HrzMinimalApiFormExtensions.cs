@@ -12,10 +12,6 @@ namespace HyperRazor.Mvc;
 
 public static class HrzMinimalApiFormExtensions
 {
-    private const string ValidationRootField = "__hrz_root";
-    private const string ValidationFieldsField = "__hrz_fields";
-    private const string ValidateAllField = "__hrz_validate_all";
-
     public static async Task<HrzFormPostState<TModel>> BindFormAsync<TModel>(
         this HttpContext context,
         HrzValidationRootId rootId,
@@ -98,14 +94,14 @@ public static class HrzMinimalApiFormExtensions
         var form = context.Request.HasFormContentType
             ? await context.Request.ReadFormAsync(cancellationToken)
             : null;
-        var rootValue = ReadValue(form, context.Request.Query, ValidationRootField);
+        var rootValue = ReadValue(form, context.Request.Query, HrzValidationFormFields.Root);
         if (string.IsNullOrWhiteSpace(rootValue))
         {
             return null;
         }
 
-        var fieldList = ReadValue(form, context.Request.Query, ValidationFieldsField);
-        var validateAll = bool.TryParse(ReadValue(form, context.Request.Query, ValidateAllField), out var parsedValidateAll)
+        var fieldList = ReadValue(form, context.Request.Query, HrzValidationFormFields.Fields);
+        var validateAll = bool.TryParse(ReadValue(form, context.Request.Query, HrzValidationFormFields.ValidateAll), out var parsedValidateAll)
             && parsedValidateAll;
         var fields = string.IsNullOrWhiteSpace(fieldList)
             ? Array.Empty<HrzFieldPath>()

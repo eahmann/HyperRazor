@@ -1,0 +1,49 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "HyperRazor.Demo.Mvc (https)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/HyperRazor.Demo.Mvc/HyperRazor.Demo.Mvc.csproj",
+      "launchConfigurationId": "TargetFramework=;https"
+    },
+    {
+      "name": "HyperRazor.Demo.Mvc (http)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/HyperRazor.Demo.Mvc/HyperRazor.Demo.Mvc.csproj",
+      "launchConfigurationId": "TargetFramework=;http"
+    },
+    {
+      "name": "HyperRazor.Demo.Api (https)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/HyperRazor.Demo.Api/HyperRazor.Demo.Api.csproj",
+      "launchConfigurationId": "TargetFramework=;https"
+    },
+    {
+      "name": "HyperRazor.Demo.Api (http)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/HyperRazor.Demo.Api/HyperRazor.Demo.Api.csproj",
+      "launchConfigurationId": "TargetFramework=;http"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "HyperRazor Demo Apps (https)",
+      "configurations": [
+        "HyperRazor.Demo.Mvc (https)",
+        "HyperRazor.Demo.Api (https)"
+      ]
+    },
+    {
+      "name": "HyperRazor Demo Apps (http)",
+      "configurations": [
+        "HyperRazor.Demo.Mvc (http)",
+        "HyperRazor.Demo.Api (http)"
+      ]
+    }
+  ]
+}

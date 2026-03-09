@@ -85,8 +85,8 @@ public sealed class DemoMvcFlowsE2ETests
         await page.GotoAsync($"{_fixture.BaseUrl}/validation");
         await WaitForHtmxAsync(page);
 
-        await page.FillAsync("#validation-minimal-proxy-display-name", "A");
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-client"))
+        await page.FillAsync("#validation-minimal-proxy-displayname", "A");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
             .ToContainTextAsync("Display name must be at least 3 characters.");
 
         await page.ClickAsync("#validation-minimal-proxy-email");
@@ -97,13 +97,13 @@ public sealed class DemoMvcFlowsE2ETests
             response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
 
         var liveHtml = await liveResponse.TextAsync();
-        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", liveHtml, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-email-message--server\"", liveHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"validation-minimal-proxy-form-shell\"", liveHtml, StringComparison.Ordinal);
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-client"))
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
             .ToContainTextAsync("Display name must be at least 3 characters.");
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email-server"))
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email-message--server"))
             .ToContainTextAsync("Email already exists in the upstream directory.");
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-server-summary"))
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToContainTextAsync("Backend would reject this invite on submit.");
     }
 
@@ -123,22 +123,22 @@ public sealed class DemoMvcFlowsE2ETests
             response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
 
         var emailHtml = await emailResponse.TextAsync();
-        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", emailHtml, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", emailHtml, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", emailHtml, StringComparison.Ordinal);
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-server"))
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--server"))
             .ToContainTextAsync("Shared mailbox invites must use a team display name.");
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-server-summary"))
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToContainTextAsync("Shared mailbox invites need a team display name before the backend will accept them.");
 
         var displayNameResponse = await page.RunAndWaitForResponseAsync(
-            async () => await page.FillAsync("#validation-minimal-proxy-display-name", "Team Inbox"),
+            async () => await page.FillAsync("#validation-minimal-proxy-displayname", "Team Inbox"),
             response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
 
         var displayNameHtml = await displayNameResponse.TextAsync();
-        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", displayNameHtml, StringComparison.Ordinal);
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-display-name-server"))
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", displayNameHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--server"))
             .ToBeEmptyAsync();
-        await Assertions.Expect(page.Locator("#validation-minimal-proxy-server-summary"))
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToBeEmptyAsync();
     }
 

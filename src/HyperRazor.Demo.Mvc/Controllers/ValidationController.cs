@@ -29,6 +29,7 @@ public sealed class ValidationController : HrController
                 HttpContext,
                 action: "validation-mvc-proxy-invalid",
                 details: $"MVC proxy validation failed locally with {ModelState.ErrorCount} error(s) before the backend call.");
+
             return await UserInviteValidationResponses.RenderValidationAsync(
                 HttpContext,
                 nameof(Components.Pages.Admin.ValidationPage.MvcProxyInviteForm),

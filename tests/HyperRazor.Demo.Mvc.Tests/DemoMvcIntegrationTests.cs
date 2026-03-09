@@ -3,6 +3,7 @@ using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Demo.Mvc.Models;
 using HyperRazor.Htmx;
+using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -632,6 +633,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
+            [HrzValidationFormFields.Root] = UserInviteValidationRoots.MinimalLocal.Value,
             ["displayName"] = "A",
             ["email"] = "invalid"
         });
@@ -658,6 +660,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         request.Headers.Add("RequestVerificationToken", antiforgeryToken);
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
+            [HrzValidationFormFields.Root] = UserInviteValidationRoots.MinimalProxy.Value,
             ["displayName"] = "Riley Stone",
             ["email"] = "backend-taken@example.com"
         });
@@ -694,9 +697,9 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-email-message--server\"", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-summary\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("validation-live", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -744,8 +747,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-email-message--server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites need a team display name before the backend will accept them.", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -793,8 +796,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-summary\"", body, StringComparison.Ordinal);
         Assert.Contains("validation-summary--empty", body, StringComparison.Ordinal);
         Assert.DoesNotContain("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
     }
@@ -826,6 +829,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         submitRequest.Headers.Add("RequestVerificationToken", antiforgeryToken);
         submitRequest.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
+            [HrzValidationFormFields.Root] = UserInviteValidationRoots.MinimalProxy.Value,
             ["displayName"] = "A",
             ["email"] = "invalid"
         });

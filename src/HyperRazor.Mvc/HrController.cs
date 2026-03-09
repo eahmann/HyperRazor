@@ -60,20 +60,56 @@ public abstract class HrController : ControllerBase
         return ViewService.PartialView(cancellationToken, fragments);
     }
 
+    protected Task<IResult> HrzInvalid<TComponent>(
+        object? data = null,
+        CancellationToken cancellationToken = default,
+        HrzValidationRootId? validationRootId = null)
+        where TComponent : IComponent
+    {
+        var validationState = validationRootId is not null
+            ? HrzValidationRequestRenderer.NormalizeModelState(HttpContext, ModelState, validationRootId)
+            : HttpContext.GetSubmitValidationState()
+                ?? throw new InvalidOperationException(
+                    $"{nameof(HrzInvalid)} requires either an explicit {nameof(HrzValidationRootId)} or a pre-populated {nameof(HrzSubmitValidationState)}.");
+
+        return HrzInvalid<TComponent>(validationState, data, cancellationToken);
+    }
+
+    protected Task<IResult> HrzInvalid<TComponent>(
+        HrzSubmitValidationState validationState,
+        object? data = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        ArgumentNullException.ThrowIfNull(validationState);
+
+        HrzValidationRequestRenderer.CaptureModelState(HttpContext, ModelState);
+        HttpContext.SetSubmitValidationState(validationState);
+        return HrzValidationRequestRenderer.RenderForRequestAsync<TComponent>(HttpContext, data, cancellationToken);
+    }
+
+    protected Task<IResult> HrzValid<TComponent>(
+        object? data = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        HrzValidationRequestRenderer.CaptureModelState(HttpContext, ModelState);
+        HttpContext.ClearSubmitValidationState();
+        return HrzValidationRequestRenderer.RenderForRequestAsync<TComponent>(HttpContext, data, cancellationToken);
+    }
+
     private IHrzComponentViewService ViewService =>
         HttpContext.RequestServices.GetRequiredService<IHrzComponentViewService>();
 
     private void CaptureValidationState(HrzValidationRootId? validationRootId)
     {
-        HttpContext.Items[HrzContextItemKeys.ModelState] = ModelState;
+        HrzValidationRequestRenderer.CaptureModelState(HttpContext, ModelState);
 
         if (validationRootId is null)
         {
             return;
         }
 
-        var resolver = HttpContext.RequestServices.GetRequiredService<IHrzFieldPathResolver>();
-        var attemptedValues = HrzAttemptedValues.FromRequest(Request);
-        HttpContext.SetSubmitValidationState(ModelState.ToSubmitValidationState(validationRootId, resolver, attemptedValues));
+        HttpContext.SetSubmitValidationState(HrzValidationRequestRenderer.NormalizeModelState(HttpContext, ModelState, validationRootId));
     }
 }

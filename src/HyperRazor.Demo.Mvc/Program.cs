@@ -128,45 +128,42 @@ app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancell
     HrzResults.Page<BrandingSettingsPage>(context, cancellationToken: cancellationToken));
 app.MapPost("/validation/minimal/local", async (
     HttpContext context,
+    HrzPosted<InviteUserInput> posted,
     IAntiforgery antiforgery,
     CancellationToken cancellationToken) =>
 {
     await antiforgery.ValidateRequestAsync(context);
 
-    var formPostState = await context.BindFormAndValidateAsync<InviteUserInput>(
-        UserInviteValidationRoots.MinimalLocal,
-        cancellationToken);
-
-    if (!formPostState.ValidationState.IsValid)
+    if (!posted.IsValid)
     {
-        context.SetSubmitValidationState(formPostState.ValidationState);
+        context.SetSubmitValidationState(posted.ValidationState);
         context.HtmxResponse().Trigger("form:invalid", new
         {
-            errorCount = CountErrors(formPostState.ValidationState)
+            errorCount = CountErrors(posted.ValidationState)
         });
         DemoInspectorUpdates.Queue(
             context,
             action: "validation-minimal-local-invalid",
-            details: $"Minimal API local validation failed with {CountErrors(formPostState.ValidationState)} error(s).");
+            details: $"Minimal API local validation failed with {CountErrors(posted.ValidationState)} error(s).");
 
         return await UserInviteValidationResponses.RenderValidationAsync(
             context,
             nameof(ValidationPage.MinimalInviteForm),
-            UserInviteValidationDefinitions.MinimalLocal(formPostState.Model),
+            UserInviteValidationDefinitions.MinimalLocal(posted.Model),
             cancellationToken);
     }
 
     var count = Random.Shared.Next(100, 200);
     context.HtmxResponse().Trigger("form:valid", new
     {
-        name = formPostState.Model.DisplayName,
-        email = formPostState.Model.Email,
+        name = posted.Model.DisplayName,
+        email = posted.Model.Email,
         count
     });
     DemoInspectorUpdates.Queue(
         context,
         action: "validation-minimal-local-valid",
-        details: $"Minimal API local validation accepted {formPostState.Model.DisplayName} (#{count}).");
+        details: $"Minimal API local validation accepted {posted.Model.DisplayName} (#{count}).");
 
     if (context.HtmxRequest().IsHtmx)
     {
@@ -174,7 +171,7 @@ app.MapPost("/validation/minimal/local", async (
             context,
             new
             {
-                Form = UserInviteValidationDefinitions.MinimalLocal(formPostState.Model, success: true, count: count)
+                Form = UserInviteValidationDefinitions.MinimalLocal(posted.Model, success: true, count: count)
             },
             cancellationToken: cancellationToken);
     }
@@ -183,43 +180,40 @@ app.MapPost("/validation/minimal/local", async (
 });
 app.MapPost("/validation/minimal/proxy", async (
     HttpContext context,
+    HrzPosted<InviteUserInput> posted,
     IAntiforgery antiforgery,
     IInviteValidationBackend inviteValidationBackend,
     CancellationToken cancellationToken) =>
 {
     await antiforgery.ValidateRequestAsync(context);
 
-    var formPostState = await context.BindFormAndValidateAsync<InviteUserInput>(
-        UserInviteValidationRoots.MinimalProxy,
-        cancellationToken);
-
-    if (!formPostState.ValidationState.IsValid)
+    if (!posted.IsValid)
     {
-        context.SetSubmitValidationState(formPostState.ValidationState);
+        context.SetSubmitValidationState(posted.ValidationState);
         context.HtmxResponse().Trigger("form:invalid", new
         {
-            errorCount = CountErrors(formPostState.ValidationState)
+            errorCount = CountErrors(posted.ValidationState)
         });
         DemoInspectorUpdates.Queue(
             context,
             action: "validation-minimal-proxy-invalid",
-            details: $"Minimal API proxy validation failed locally with {CountErrors(formPostState.ValidationState)} error(s) before the backend call.");
+            details: $"Minimal API proxy validation failed locally with {CountErrors(posted.ValidationState)} error(s) before the backend call.");
 
         return await UserInviteValidationResponses.RenderValidationAsync(
             context,
             nameof(ValidationPage.MinimalProxyInviteForm),
-            UserInviteValidationDefinitions.MinimalProxy(formPostState.Model),
+            UserInviteValidationDefinitions.MinimalProxy(posted.Model),
             cancellationToken);
     }
 
-    var backendResult = await inviteValidationBackend.SubmitAsync(formPostState.Model, cancellationToken);
+    var backendResult = await inviteValidationBackend.SubmitAsync(posted.Model, cancellationToken);
     if (!backendResult.IsSuccess)
     {
         var resolver = context.RequestServices.GetRequiredService<IHrzFieldPathResolver>();
         var validationState = backendResult.ProblemDetails!.ToSubmitValidationState(
-            UserInviteValidationRoots.MinimalProxy,
+            posted.RootId,
             resolver,
-            formPostState.ValidationState.AttemptedValues);
+            posted.ValidationState.AttemptedValues);
         context.SetSubmitValidationState(validationState);
         context.HtmxResponse().Trigger("form:invalid", new
         {
@@ -233,20 +227,20 @@ app.MapPost("/validation/minimal/proxy", async (
         return await UserInviteValidationResponses.RenderValidationAsync(
             context,
             nameof(ValidationPage.MinimalProxyInviteForm),
-            UserInviteValidationDefinitions.MinimalProxy(formPostState.Model),
+            UserInviteValidationDefinitions.MinimalProxy(posted.Model),
             cancellationToken);
     }
 
     context.HtmxResponse().Trigger("form:valid", new
     {
-        name = formPostState.Model.DisplayName,
-        email = formPostState.Model.Email,
+        name = posted.Model.DisplayName,
+        email = posted.Model.Email,
         count = backendResult.Count
     });
     DemoInspectorUpdates.Queue(
         context,
         action: "validation-minimal-proxy-valid",
-        details: $"Minimal API proxy validated successfully and the backend accepted {formPostState.Model.DisplayName} (#{backendResult.Count}).");
+        details: $"Minimal API proxy validated successfully and the backend accepted {posted.Model.DisplayName} (#{backendResult.Count}).");
 
     if (context.HtmxRequest().IsHtmx)
     {
@@ -255,7 +249,7 @@ app.MapPost("/validation/minimal/proxy", async (
             new
             {
                 Form = UserInviteValidationDefinitions.MinimalProxy(
-                    formPostState.Model,
+                    posted.Model,
                     success: true,
                     count: backendResult.Count)
             },
@@ -295,19 +289,21 @@ app.MapPost("/validation/live", async (
         return Results.NoContent();
     }
 
+    var htmlIdGenerator = context.RequestServices.GetRequiredService<IHrzHtmlIdGenerator>();
+
     var fragments = new List<RenderFragment>
     {
-        BuildFieldSlotFragment(form, primaryField, livePatch, swapOob: false)
+        BuildFieldSlotFragment(form, primaryField, livePatch, htmlIdGenerator, swapOob: false)
     };
 
     foreach (var affectedField in livePatch.AffectedFields.Where(field => !field.Equals(primaryField)))
     {
-        fragments.Add(BuildFieldSlotFragment(form, affectedField, livePatch, swapOob: true));
+        fragments.Add(BuildFieldSlotFragment(form, affectedField, livePatch, htmlIdGenerator, swapOob: true));
     }
 
     if (livePatch.ReplaceSummary)
     {
-        fragments.Add(BuildSummarySlotFragment(form, livePatch, swapOob: true));
+        fragments.Add(BuildSummarySlotFragment(form, livePatch, htmlIdGenerator, swapOob: true));
     }
 
     DemoInspectorUpdates.Queue(
@@ -406,11 +402,10 @@ static RenderFragment BuildFieldSlotFragment(
     InviteValidationFormViewModel form,
     HrzFieldPath fieldPath,
     HrzLiveValidationPatch patch,
+    IHrzHtmlIdGenerator htmlIdGenerator,
     bool swapOob)
 {
-    var slotId = fieldPath.Equals(UserInviteValidationForm.DisplayNamePath)
-        ? $"{form.IdPrefix}-display-name-server"
-        : $"{form.IdPrefix}-email-server";
+    var slotId = $"{htmlIdGenerator.GetFieldMessageId(form.RootId.Value, fieldPath)}--server";
     var errors = patch.FieldErrors.TryGetValue(fieldPath, out var messages)
         ? messages
         : Array.Empty<string>();
@@ -429,12 +424,13 @@ static RenderFragment BuildFieldSlotFragment(
 static RenderFragment BuildSummarySlotFragment(
     InviteValidationFormViewModel form,
     HrzLiveValidationPatch patch,
+    IHrzHtmlIdGenerator htmlIdGenerator,
     bool swapOob)
 {
     return builder =>
     {
         builder.OpenComponent<ValidationServerSummarySlot>(0);
-        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), $"{form.IdPrefix}-server-summary");
+        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), htmlIdGenerator.GetSummaryId(form.RootId.Value));
         builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), patch.SummaryErrors);
         builder.AddAttribute(3, nameof(ValidationServerSummarySlot.SwapOob), swapOob);
         builder.CloseComponent();

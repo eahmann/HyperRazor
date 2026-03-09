@@ -33,4 +33,11 @@ public static class HrzValidationHttpContextExtensions
             ? state
             : null;
     }
+
+    public static void ClearSubmitValidationState(this HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        context.Items.Remove(HrzContextItemKeys.SubmitValidationState);
+    }
 }

@@ -140,7 +140,9 @@ public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
     {
         var trimmed = value.Trim();
         while (trimmed.StartsWith("Model.", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("Input.", StringComparison.OrdinalIgnoreCase))
+            || trimmed.StartsWith("Input.", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("Form.Model.", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("Form.Input.", StringComparison.OrdinalIgnoreCase))
         {
             trimmed = trimmed[(trimmed.IndexOf('.') + 1)..];
         }

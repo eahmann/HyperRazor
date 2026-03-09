@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 
 namespace HyperRazor.E2E;
@@ -48,8 +49,8 @@ public sealed class DemoMvcFlowsE2ETests
 
         await page.GotoAsync($"{_fixture.BaseUrl}/users");
         await WaitForHtmxAsync(page);
-        await page.FillAsync("#validation-display-name", "A");
-        await page.FillAsync("#validation-email", "invalid");
+        await page.FillAsync("#users-invite-displayname", "A");
+        await page.FillAsync("#users-invite-email", "invalid");
         var invalidResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#validation-form button[type='submit']"),
             response => response.Url.Contains("/users/invite", StringComparison.Ordinal));
@@ -61,8 +62,8 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Contains("Email must be a valid address.", invalidHtml, StringComparison.Ordinal);
         await Assertions.Expect(page.Locator("#validation-form-shell")).ToContainTextAsync("Display name must be at least 3 characters.");
 
-        await page.FillAsync("#validation-display-name", "Riley Stone");
-        await page.FillAsync("#validation-email", "riley@example.com");
+        await page.FillAsync("#users-invite-displayname", "Riley Stone");
+        await page.FillAsync("#users-invite-email", "riley@example.com");
         var validResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync("#validation-form button[type='submit']"),
             response => response.Url.Contains("/users/invite", StringComparison.Ordinal));
@@ -105,6 +106,42 @@ public sealed class DemoMvcFlowsE2ETests
             .ToContainTextAsync("Email already exists in the upstream directory.");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToContainTextAsync("Backend would reject this invite on submit.");
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_ClientValidation_ShowsRequiredOnBlurAndClearsInvalidStateWhenFixed()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.FillAsync("#validation-minimal-proxy-displayname", string.Empty);
+        await page.ClickAsync("#validation-minimal-proxy-email");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
+            .ToContainTextAsync("Display name is required.");
+
+        await page.FillAsync("#validation-minimal-proxy-email", string.Empty);
+        await page.ClickAsync("#validation-minimal-proxy-displayname");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email-message--client"))
+            .ToContainTextAsync("Email is required.");
+
+        await page.FillAsync("#validation-minimal-proxy-displayname", "A");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
+            .ToContainTextAsync("Display name must be at least 3 characters.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+
+        await page.FillAsync("#validation-minimal-proxy-displayname", "Alex");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("aria-invalid", "false");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveClassAsync(new Regex(@"\binput-validation-valid\b"));
     }
 
     [SkippableFact]

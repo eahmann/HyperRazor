@@ -28,8 +28,12 @@ internal static class HrzFieldControlRendering
 
         attributes.TryAdd("id", fieldContext.HtmlId);
         attributes["name"] = fieldContext.HtmlName;
-        attributes["aria-invalid"] = HrzFormRendering.HasErrors(fieldContext.Form.SubmitValidationState, fieldContext.Path);
+        attributes["aria-invalid"] = HrzFormRendering.HasErrors(fieldContext.Form.SubmitValidationState, fieldContext.Path)
+            ? "true"
+            : "false";
         attributes.TryAdd("aria-describedby", fieldContext.MessageId);
+        attributes["data-hrz-client-slot-id"] = GetClientSlotId(fieldContext.MessageId);
+        attributes["data-hrz-server-slot-id"] = GetServerSlotId(fieldContext.MessageId);
 
         if (fieldContext.Descriptor.LocalRules.Count > 0)
         {
@@ -55,8 +59,6 @@ internal static class HrzFieldControlRendering
                     [HrzValidationFormFields.Root] = fieldContext.Form.RootId.Value,
                     [HrzValidationFormFields.Fields] = fieldContext.Path.Value
                 }));
-            attributes["data-hrz-client-slot-id"] = GetClientSlotId(fieldContext.MessageId);
-            attributes["data-hrz-server-slot-id"] = GetServerSlotId(fieldContext.MessageId);
             attributes["data-hrz-summary-slot-id"] = fieldContext.Form.SummaryId;
         }
 

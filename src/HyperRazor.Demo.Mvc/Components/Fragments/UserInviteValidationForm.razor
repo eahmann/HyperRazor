@@ -1,6 +1,5 @@
 @using HyperRazor.Demo.Mvc.Models
 @using HyperRazor.Rendering
-@using Microsoft.AspNetCore.Http
 @using System.Text.Json
 
 <section
@@ -28,7 +27,7 @@
         AdditionalAttributes="@FormAttributes">
         <HrzValidationSummary />
 
-        <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, DisplayNamePath) ? "validation-field--invalid" : null)">
+        <div class="validation-field">
             <HrzField For="() => Form.Input.DisplayName">
                 <HrzLabel Text="Display Name" />
                 <HrzInput AdditionalAttributes="@DisplayNameInputAttributes" />
@@ -36,7 +35,7 @@
             </HrzField>
         </div>
 
-        <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, EmailPath) ? "validation-field--invalid" : null)">
+        <div class="validation-field">
             <HrzField For="() => Form.Input.Email">
                 <HrzLabel Text="Email" />
                 <HrzInput Type="email" AdditionalAttributes="@EmailInputAttributes" />
@@ -59,14 +58,7 @@
     [Parameter]
     public InviteValidationFormViewModel Form { get; set; } = UserInviteValidationDefinitions.MvcLocal();
 
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
-
-    private HrzSubmitValidationState? ValidationState =>
-        HttpContext?.GetSubmitValidationState(Form.RootId);
-
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(Form.HxPost) ? Form.Action : Form.HxPost;
-    private bool EnableClientValidation => Form.EnableClientValidation;
     private bool HasLiveValidation => !string.IsNullOrWhiteSpace(Form.LiveValidationPath);
     private string? DisplayNameLiveValidationPath => HasLiveValidation ? Form.LiveValidationPath : null;
     private string? EmailLiveValidationPath => HasLiveValidation ? Form.LiveValidationPath : null;
@@ -81,16 +73,15 @@
     private string FormId => $"{Form.IdPrefix}-form";
     private string SummaryId => HtmlIdGenerator.GetSummaryId(Form.RootId.Value);
     private string DisplayNameMessageId => HtmlIdGenerator.GetFieldMessageId(Form.RootId.Value, DisplayNamePath);
-    private string DisplayNameClientSlotId => $"{DisplayNameMessageId}--client";
     private string DisplayNameServerSlotId => $"{DisplayNameMessageId}--server";
     private string EmailMessageId => HtmlIdGenerator.GetFieldMessageId(Form.RootId.Value, EmailPath);
-    private string EmailClientSlotId => $"{EmailMessageId}--client";
     private string EmailServerSlotId => $"{EmailMessageId}--server";
 
     private IReadOnlyDictionary<string, object?> FormAttributes => new Dictionary<string, object?>
     {
         ["id"] = FormId,
         ["class"] = "validation-form",
+        ["data-hrz-client-validation-form"] = Form.EnableClientValidation ? "true" : null,
         ["hx-post"] = ResolvedHxPost,
         ["hx-target"] = $"#{FormShellId}",
         ["hx-swap"] = "outerHTML focus-scroll:true",
@@ -100,9 +91,7 @@
 
     private IReadOnlyDictionary<string, object?> DisplayNameInputAttributes => new Dictionary<string, object?>
     {
-        ["data-hrz-local-display-name"] = EnableClientValidation ? "true" : null,
-        ["data-hrz-client-slot-id"] = EnableClientValidation ? DisplayNameClientSlotId : null,
-        ["data-hrz-server-slot-id"] = HasLiveValidation ? DisplayNameServerSlotId : null,
+        ["data-val-event"] = Form.EnableClientValidation ? "input change blur" : null,
         ["data-hrz-summary-slot-id"] = HasLiveValidation ? SummaryId : null,
         ["hx-post"] = DisplayNameLiveValidationPath,
         ["hx-trigger"] = LiveValidationTrigger,
@@ -114,9 +103,7 @@
 
     private IReadOnlyDictionary<string, object?> EmailInputAttributes => new Dictionary<string, object?>
     {
-        ["data-hrz-local-email"] = EnableClientValidation ? "true" : null,
-        ["data-hrz-client-slot-id"] = EnableClientValidation ? EmailClientSlotId : null,
-        ["data-hrz-server-slot-id"] = HasLiveValidation ? EmailServerSlotId : null,
+        ["data-val-event"] = Form.EnableClientValidation ? "input change blur" : null,
         ["data-hrz-summary-slot-id"] = HasLiveValidation ? SummaryId : null,
         ["data-hrz-dependent-server-slot-ids"] = HasLiveValidation ? DisplayNameServerSlotId : null,
         ["hx-post"] = EmailLiveValidationPath,

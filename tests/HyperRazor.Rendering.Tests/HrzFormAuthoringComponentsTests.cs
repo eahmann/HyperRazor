@@ -136,8 +136,9 @@ public class HrzFormAuthoringComponentsTests
         Assert.Contains("id=\"users-invite-email-message--client\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-email-message--server\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-server-validation-for=\"Email\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-valmsg-for=\"Email\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-describedby=\"users-invite-email-message\"", html, StringComparison.Ordinal);
-        Assert.Contains("aria-invalid", html, StringComparison.Ordinal);
+        Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("Enter a valid email address.", html, StringComparison.Ordinal);
     }
 
@@ -182,6 +183,7 @@ public class HrzFormAuthoringComponentsTests
         Assert.Contains("data-hrz-client-slot-id=\"users-invite-email-message--client\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-message--server\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-summary-slot-id=\"users-invite-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-invalid=\"false\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -218,7 +220,7 @@ public class HrzFormAuthoringComponentsTests
         Assert.DoesNotContain("value=\"OriginalSecret!\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("value=\"AttemptedSecret!\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("hx-target=\"#users-invite-password-message--server\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-hrz-server-slot-id=\"users-invite-password-message--server\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"users-invite-password-message--server\"", html, StringComparison.Ordinal);
         Assert.Contains("data-val-required=\"Password is required.\"", html, StringComparison.Ordinal);
         Assert.Contains("data-val-minlength=\"Password must be at least 8 characters.\"", html, StringComparison.Ordinal);
     }

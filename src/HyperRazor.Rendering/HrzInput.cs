@@ -7,7 +7,7 @@ namespace HyperRazor.Rendering;
 public sealed class HrzInput : ComponentBase
 {
     private static readonly HashSet<string> SupportedTypes =
-        new(["text", "email", "search", "tel", "url", "password"], StringComparer.OrdinalIgnoreCase);
+        new(["text", "email", "search", "tel", "url", "password", "number"], StringComparer.OrdinalIgnoreCase);
 
     [CascadingParameter]
     private HrzFieldContext? FieldContext { get; set; }

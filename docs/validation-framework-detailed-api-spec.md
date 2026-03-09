@@ -258,6 +258,7 @@ Supported v1 types:
 - `tel`
 - `url`
 - `password`
+- `number`
 
 Shared rendering rules:
 

@@ -264,6 +264,42 @@ public class HrzFormAuthoringComponentsTests
     }
 
     [Fact]
+    public async Task HrzInput_Number_ReplaysAttemptedValueAndEmitsRangeMetadata()
+    {
+        var model = new AuthoringModel
+        {
+            Age = 42
+        };
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetSubmitValidationState(new HrzSubmitValidationState(
+            new HrzValidationRootId("users-invite"),
+            [],
+            new Dictionary<HrzFieldPath, IReadOnlyList<string>>(),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>
+            {
+                [HrzFieldPaths.FromFieldName("Age")] = new(
+                    new StringValues("17"),
+                    Array.Empty<HrzAttemptedFile>())
+            }));
+
+        var html = await RenderComponentAsync<HrzForm<AuthoringModel>>(
+            new Dictionary<string, object?>
+            {
+                [nameof(HrzForm<AuthoringModel>.Model)] = model,
+                [nameof(HrzForm<AuthoringModel>.Action)] = "/users/invite",
+                [nameof(HrzForm<AuthoringModel>.FormName)] = "users-invite",
+                [nameof(HrzForm<AuthoringModel>.ChildContent)] = BuildNumberInputContent(model)
+            },
+            httpContext);
+
+        Assert.Contains("type=\"number\"", html, StringComparison.Ordinal);
+        Assert.Contains("value=\"17\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range=\"Age must be between 18 and 120.\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range-min=\"18\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range-max=\"120\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task HrzLabel_UsesAmbientDisplayNameAndFieldId()
     {
         var model = new AuthoringModel
@@ -417,6 +453,22 @@ public class HrzFormAuthoringComponentsTests
         };
     }
 
+    private static RenderFragment BuildNumberInputContent(AuthoringModel model)
+    {
+        return builder =>
+        {
+            builder.OpenComponent<HrzField<int>>(0);
+            builder.AddAttribute(1, nameof(HrzField<int>.For), (Expression<Func<int>>)(() => model.Age));
+            builder.AddAttribute(2, nameof(HrzField<int>.ChildContent), (RenderFragment)(childBuilder =>
+            {
+                childBuilder.OpenComponent<HrzInput>(0);
+                childBuilder.AddAttribute(1, nameof(HrzInput.Type), "number");
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        };
+    }
+
     private static RenderFragment BuildCheckboxContent(AuthoringModel model)
     {
         return builder =>
@@ -513,6 +565,9 @@ public class HrzFormAuthoringComponentsTests
 
         [StringLength(200, ErrorMessage = "Description must be 200 characters or fewer.")]
         public string Description { get; set; } = string.Empty;
+
+        [Range(18, 120, ErrorMessage = "Age must be between 18 and 120.")]
+        public int Age { get; set; }
 
         [Range(typeof(bool), "true", "true", ErrorMessage = "Accept terms is required.")]
         public bool AcceptTerms { get; set; }

@@ -630,7 +630,7 @@ button:disabled {
 }
 
 .validation-message--client {
-    color: var(--bs-warning-text-emphasis);
+    color: var(--bs-danger-text-emphasis);
 }
 
 .validation-success {

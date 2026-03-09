@@ -106,6 +106,23 @@ public sealed class DemoMvcFlowsE2ETests
             .ToContainTextAsync("Email already exists in the upstream directory.");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToContainTextAsync("Backend would reject this invite on submit.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+
+        var clientErrorColor = await page.Locator("#validation-minimal-proxy-displayname-message--client .validation-message")
+            .EvaluateAsync<string>("node => getComputedStyle(node).color");
+        var serverErrorColor = await page.Locator("#validation-minimal-proxy-email-message--server .validation-message")
+            .EvaluateAsync<string>("node => getComputedStyle(node).color");
+        Assert.Equal(clientErrorColor, serverErrorColor);
+
+        var blurResponseTask = page.WaitForResponseAsync(
+            response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
+        await page.ClickAsync("#validation-minimal-proxy-displayname");
+        var serverMessageTextAfterBlur = await page.Locator("#validation-minimal-proxy-email-message--server").TextContentAsync();
+        Assert.Contains("Email already exists in the upstream directory.", serverMessageTextAfterBlur ?? string.Empty, StringComparison.Ordinal);
+        await blurResponseTask;
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
     }
 
     [SkippableFact]
@@ -142,6 +159,41 @@ public sealed class DemoMvcFlowsE2ETests
             .ToHaveAttributeAsync("aria-invalid", "false");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
             .ToHaveClassAsync(new Regex(@"\binput-validation-valid\b"));
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_LocalInvalidBlur_DoesNotClearExistingServerSummary()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        var liveResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-minimal-proxy-email", "backend-taken@example.com"),
+            response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
+
+        Assert.Equal(200, liveResponse.Status);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email-message--server"))
+            .ToContainTextAsync("Email already exists in the upstream directory.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
+            .ToContainTextAsync("Backend would reject this invite on submit.");
+
+        await page.FillAsync("#validation-minimal-proxy-displayname", string.Empty);
+        await page.ClickAsync("#validation-minimal-proxy-email");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
+            .ToContainTextAsync("Display name is required.");
+
+        await page.WaitForTimeoutAsync(650);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email-message--server"))
+            .ToContainTextAsync("Email already exists in the upstream directory.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
+            .ToContainTextAsync("Backend would reject this invite on submit.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
     }
 
     [SkippableFact]

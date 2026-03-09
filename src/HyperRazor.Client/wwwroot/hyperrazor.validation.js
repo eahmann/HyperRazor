@@ -28,13 +28,6 @@
         return id ? document.getElementById(id) : null;
     }
 
-    function getIds(value) {
-        return (value || "")
-            .split(",")
-            .map(function (id) { return id.trim(); })
-            .filter(Boolean);
-    }
-
     function escapeHtml(value) {
         return (value || "")
             .replace(/&/g, "&amp;")
@@ -58,30 +51,51 @@
         input.setAttribute("aria-invalid", invalid ? "true" : "false");
     }
 
-    function clearServerFeedback(input) {
-        var slotIds = [input.dataset.hrzServerSlotId].concat(getIds(input.dataset.hrzDependentServerSlotIds));
-        slotIds.forEach(function (slotId) {
-            var serverSlot = getById(slotId);
-            if (serverSlot) {
-                serverSlot.innerHTML = "";
-            }
-        });
-
-        var summarySlot = getById(input.dataset.hrzSummarySlotId);
-        if (summarySlot) {
-            summarySlot.innerHTML = "";
-            summarySlot.classList.add("validation-summary--empty");
-        }
+    function hasVisibleMessageContent(element) {
+        return !!(element && element.textContent && element.textContent.trim().length > 0);
     }
 
-    function clearFormServerFeedback(form) {
-        var fields = form.querySelectorAll('[data-val="true"]');
-        for (var i = 0; i < fields.length; i++) {
-            var field = fields[i];
-            if (isValidatable(field)) {
-                clearServerFeedback(field);
-            }
+    function syncManagedFieldState(input) {
+        if (!isManagedField(input)) {
+            return;
         }
+
+        var clientSlot = getById(input.dataset.hrzClientSlotId);
+        var serverSlot = getById(input.dataset.hrzServerSlotId);
+        syncInputState(input, hasVisibleMessageContent(clientSlot) || hasVisibleMessageContent(serverSlot));
+    }
+
+    function syncManagedFields(root) {
+        if (isManagedField(root)) {
+            syncManagedFieldState(root);
+            return;
+        }
+
+        var forms = [];
+        if (isManagedForm(root)) {
+            forms.push(root);
+        }
+        else if (root && root instanceof Element) {
+            var containingForm = root.closest('form[data-hrz-client-validation-form="true"]');
+            if (containingForm) {
+                forms.push(containingForm);
+            }
+
+            forms = forms.concat(Array.from(root.querySelectorAll('form[data-hrz-client-validation-form="true"]')));
+        }
+        else {
+            forms = Array.from(document.querySelectorAll('form[data-hrz-client-validation-form="true"]'));
+        }
+
+        forms.forEach(function (form) {
+            var fields = form.querySelectorAll('[data-val="true"]');
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i];
+                if (isManagedField(field)) {
+                    syncManagedFieldState(field);
+                }
+            }
+        });
     }
 
     function escapeAttributeValue(value) {
@@ -142,6 +156,7 @@
                 }
             }
 
+            syncManagedFieldState(input);
             this.renderSummary();
         };
 
@@ -171,6 +186,7 @@
                 }
             }
 
+            syncManagedFieldState(input);
             this.renderSummary();
         };
     }
@@ -201,40 +217,13 @@
         });
 
         scanManagedForms(service, document);
-
-        document.addEventListener("input", function (event) {
-            var target = event.target;
-            if (!isManagedField(target)) {
-                return;
-            }
-
-            clearServerFeedback(target);
-        });
-
-        document.addEventListener("change", function (event) {
-            var target = event.target;
-            if (!isManagedField(target)) {
-                return;
-            }
-
-            clearServerFeedback(target);
-        });
-
-        document.addEventListener("blur", function (event) {
-            var target = event.target;
-            if (!isManagedField(target)) {
-                return;
-            }
-
-            clearServerFeedback(target);
-        }, true);
+        syncManagedFields(document);
 
         document.body.addEventListener("htmx:configRequest", function (event) {
             var target = event.detail && event.detail.elt;
 
             if (isManagedField(target)) {
                 if (!service.isFieldValid(target)) {
-                    clearServerFeedback(target);
                     event.preventDefault();
                 }
 
@@ -243,7 +232,6 @@
 
             if (isManagedForm(target)) {
                 if (!service.isValid(target)) {
-                    clearFormServerFeedback(target);
                     event.preventDefault();
                 }
             }
@@ -251,6 +239,7 @@
 
         document.body.addEventListener("htmx:afterSettle", function (event) {
             scanManagedForms(service, event.target || document);
+            syncManagedFields(document);
         });
     }
 

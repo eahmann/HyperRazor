@@ -333,66 +333,55 @@ static HrzFieldPath? ResolvePrimaryField(HrzValidationScope scope)
 
 static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
 {
-    var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
-    var validatesDisplayName = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.DisplayNamePath);
-    if (!validatesEmail && !validatesDisplayName)
+    var validatesInviteForm = scope.ValidateAll
+        || scope.Fields.Contains(UserInviteValidationForm.EmailPath)
+        || scope.Fields.Contains(UserInviteValidationForm.DisplayNamePath);
+    if (!validatesInviteForm)
     {
         return null;
     }
 
     var email = input.Email?.Trim();
     var displayName = input.DisplayName?.Trim();
-    var requiresTeamDisplayName = string.Equals(email, "shared-mailbox@example.com", StringComparison.OrdinalIgnoreCase);
-    if ((validatesEmail && string.IsNullOrWhiteSpace(email))
-        || (requiresTeamDisplayName && string.IsNullOrWhiteSpace(displayName)))
+    if (string.IsNullOrWhiteSpace(email))
     {
         return null;
     }
 
-    var affectedFields = new List<HrzFieldPath>();
+    var requiresTeamDisplayName = string.Equals(email, "shared-mailbox@example.com", StringComparison.OrdinalIgnoreCase);
+    var affectedFields = new[]
+    {
+        UserInviteValidationForm.EmailPath,
+        UserInviteValidationForm.DisplayNamePath
+    };
     var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
     var summaryErrors = new List<string>();
 
-    if (validatesEmail)
+    var emailErrors = string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
+        ? new[] { "Email already exists in the upstream directory." }
+        : Array.Empty<string>();
+    fieldErrors[UserInviteValidationForm.EmailPath] = emailErrors;
+
+    if (emailErrors.Length > 0)
     {
-        affectedFields.Add(UserInviteValidationForm.EmailPath);
-        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
-
-        var emailErrors = string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
-            ? new[] { "Email already exists in the upstream directory." }
-            : Array.Empty<string>();
-        fieldErrors[UserInviteValidationForm.EmailPath] = emailErrors;
-
-        if (emailErrors.Length > 0)
-        {
-            summaryErrors.Add("Backend would reject this invite on submit.");
-        }
+        summaryErrors.Add("Backend would reject this invite on submit.");
     }
 
-    if (validatesDisplayName || validatesEmail)
+    var displayNameErrors = requiresTeamDisplayName
+        && (string.IsNullOrWhiteSpace(displayName)
+            || !displayName.Contains("team", StringComparison.OrdinalIgnoreCase))
+        ? new[] { "Shared mailbox invites must use a team display name." }
+        : Array.Empty<string>();
+    fieldErrors[UserInviteValidationForm.DisplayNamePath] = displayNameErrors;
+
+    if (displayNameErrors.Length > 0)
     {
-        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
-
-        var displayNameErrors = requiresTeamDisplayName
-            && !displayName!.Contains("team", StringComparison.OrdinalIgnoreCase)
-            ? new[] { "Shared mailbox invites must use a team display name." }
-            : Array.Empty<string>();
-        fieldErrors[UserInviteValidationForm.DisplayNamePath] = displayNameErrors;
-
-        if (displayNameErrors.Length > 0)
-        {
-            summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
-        }
-    }
-
-    if (!fieldErrors.ContainsKey(UserInviteValidationForm.EmailPath) && validatesDisplayName)
-    {
-        fieldErrors[UserInviteValidationForm.EmailPath] = Array.Empty<string>();
+        summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
     }
 
     return new HrzLiveValidationPatch(
         scope.RootId,
-        affectedFields.Distinct().ToArray(),
+        affectedFields,
         fieldErrors,
         ReplaceSummary: true,
         SummaryErrors: summaryErrors);

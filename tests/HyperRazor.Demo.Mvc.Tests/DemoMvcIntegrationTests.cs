@@ -75,6 +75,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("data-hrz-validation-root=\"validation-mvc-proxy\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-local\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-proxy\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-include=\"#validation-minimal-proxy-email\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-include=\"#validation-minimal-proxy-displayname\"", body, StringComparison.Ordinal);
     }
 
     [Fact]

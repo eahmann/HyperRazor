@@ -16,6 +16,7 @@ That means:
 
 - a field can post live-validation requests even before a backend-owned dependency rule is currently relevant
 - dependent-field behavior is resolved on the server after the request arrives
+- live requests already stay transport-scoped to the triggering field, reserved HyperRazor live fields, and any declared dependent fields
 - this keeps the model simple and predictable, but it is not selective
 
 Example:

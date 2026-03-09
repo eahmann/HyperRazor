@@ -66,7 +66,8 @@
     private string? DisplayNameLiveValidationTarget => HasLiveValidation ? $"#{DisplayNameServerSlotId}" : null;
     private string? EmailLiveValidationTarget => HasLiveValidation ? $"#{EmailServerSlotId}" : null;
     private string? LiveValidationSwap => HasLiveValidation ? "outerHTML" : null;
-    private string? LiveValidationInclude => HasLiveValidation ? "closest form" : null;
+    private string? DisplayNameLiveValidationInclude => BuildLiveValidationInclude(EmailPath);
+    private string? EmailLiveValidationInclude => BuildLiveValidationInclude(DisplayNamePath);
     private string? DisplayNameLiveValidationValuesJson => BuildLiveValidationValuesJson(DisplayNamePath);
     private string? EmailLiveValidationValuesJson => BuildLiveValidationValuesJson(EmailPath);
     private string FormShellId => $"{Form.IdPrefix}-form-shell";
@@ -97,7 +98,7 @@
         ["hx-trigger"] = LiveValidationTrigger,
         ["hx-target"] = DisplayNameLiveValidationTarget,
         ["hx-swap"] = LiveValidationSwap,
-        ["hx-include"] = LiveValidationInclude,
+        ["hx-include"] = DisplayNameLiveValidationInclude,
         ["hx-vals"] = DisplayNameLiveValidationValuesJson
     };
 
@@ -110,7 +111,7 @@
         ["hx-trigger"] = LiveValidationTrigger,
         ["hx-target"] = EmailLiveValidationTarget,
         ["hx-swap"] = LiveValidationSwap,
-        ["hx-include"] = LiveValidationInclude,
+        ["hx-include"] = EmailLiveValidationInclude,
         ["hx-vals"] = EmailLiveValidationValuesJson
     };
 
@@ -123,5 +124,17 @@
                 ["__hrz_fields"] = fieldPath.Value
             })
             : null;
+    }
+
+    private string? BuildLiveValidationInclude(params HrzFieldPath[] dependencyPaths)
+    {
+        if (!HasLiveValidation || dependencyPaths.Length == 0)
+        {
+            return null;
+        }
+
+        return string.Join(
+            ", ",
+            dependencyPaths.Select(path => $"#{HtmlIdGenerator.GetFieldId(Form.RootId.Value, path)}"));
     }
 }

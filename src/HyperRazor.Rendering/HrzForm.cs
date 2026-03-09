@@ -47,6 +47,7 @@ public sealed class HrzForm<TModel> : ComponentBase
         var formId = ResolveFormId();
         var rootId = new HrzValidationRootId(FormName);
         var modelType = Model.GetType();
+        var descriptor = ValidationDescriptorProvider.GetDescriptor(modelType);
 
         _formContext = new HrzFormContext
         {
@@ -57,7 +58,10 @@ public sealed class HrzForm<TModel> : ComponentBase
             FormId = formId,
             SummaryId = HtmlIdGenerator.GetSummaryId(FormName),
             Enhance = Enhance,
-            Descriptor = ValidationDescriptorProvider.GetDescriptor(modelType),
+            Descriptor = descriptor,
+            FieldIds = descriptor.Fields
+                .Keys
+                .ToDictionary(path => path, path => HtmlIdGenerator.GetFieldId(FormName, path)),
             SubmitValidationState = HttpContextAccessor.HttpContext?.GetSubmitValidationState(rootId)
         };
 

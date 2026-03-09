@@ -85,6 +85,10 @@ public sealed class DemoMvcFlowsE2ETests
 
         await page.GotoAsync($"{_fixture.BaseUrl}/validation");
         await WaitForHtmxAsync(page);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-email"))
+            .ToHaveAttributeAsync("hx-include", "#validation-minimal-proxy-displayname");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("hx-include", "#validation-minimal-proxy-email");
 
         await page.FillAsync("#validation-minimal-proxy-displayname", "A");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))

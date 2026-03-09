@@ -18,5 +18,7 @@ public sealed class HrzFormContext
 
     public required HrzValidationDescriptor Descriptor { get; init; }
 
+    public required IReadOnlyDictionary<HrzFieldPath, string> FieldIds { get; init; }
+
     public HrzSubmitValidationState? SubmitValidationState { get; init; }
 }

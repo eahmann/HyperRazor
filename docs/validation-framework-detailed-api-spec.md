@@ -379,11 +379,16 @@ When `HrzFieldDescriptor.LiveRule` is present, field controls emit:
 - `hx-trigger="<Trigger>"`
 - `hx-target="#<MessageId>--server"`
 - `hx-swap="outerHTML"`
-- `hx-include="closest form"`
+- `hx-include` for declared dependent fields only, derived from `LiveRule.AdditionalFields`
 - `hx-vals` carrying `__hrz_root` and `__hrz_fields`
 - `data-hrz-summary-slot-id="<SummaryId>"`
 
-If additional dependent fields are configured, they stay in the descriptor and are included by normal form-post inclusion rather than by bespoke per-field name lists.
+Transport rules:
+
+- the triggering control posts its own value normally through HTMX
+- `hx-include` adds only the declared dependent field controls needed for the live rule
+- unrelated form fields are not included by default
+- reserved HyperRazor live-validation fields still travel through `hx-vals`
 
 Password fields do not emit live-validation attributes by default.
 

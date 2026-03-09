@@ -51,7 +51,13 @@ internal static class HrzFieldControlRendering
             attributes.TryAdd("hx-trigger", liveRule.Trigger);
             attributes.TryAdd("hx-target", $"#{GetServerSlotId(fieldContext.MessageId)}");
             attributes.TryAdd("hx-swap", "outerHTML");
-            attributes.TryAdd("hx-include", "closest form");
+
+            var includeSelector = BuildLiveValidationIncludeSelector(fieldContext, liveRule);
+            if (!string.IsNullOrWhiteSpace(includeSelector))
+            {
+                attributes.TryAdd("hx-include", includeSelector);
+            }
+
             attributes.TryAdd(
                 "hx-vals",
                 JsonSerializer.Serialize(new Dictionary<string, string>
@@ -63,5 +69,38 @@ internal static class HrzFieldControlRendering
         }
 
         return attributes;
+    }
+
+    private static string? BuildLiveValidationIncludeSelector(
+        HrzFieldContext fieldContext,
+        HrzLiveRuleDescriptor liveRule)
+    {
+        if (liveRule.AdditionalFields.Count == 0)
+        {
+            return null;
+        }
+
+        var selectors = new List<string>(liveRule.AdditionalFields.Count);
+
+        foreach (var dependencyPath in liveRule.AdditionalFields)
+        {
+            if (!fieldContext.Form.FieldIds.TryGetValue(dependencyPath, out var dependencyId))
+            {
+                continue;
+            }
+
+            selectors.Add($"#{EscapeSelectorValue(dependencyId)}");
+        }
+
+        return selectors.Count == 0
+            ? null
+            : string.Join(", ", selectors.Distinct(StringComparer.Ordinal));
+    }
+
+    private static string EscapeSelectorValue(string value)
+    {
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal);
     }
 }

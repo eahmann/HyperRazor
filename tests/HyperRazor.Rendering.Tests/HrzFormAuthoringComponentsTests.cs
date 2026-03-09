@@ -160,6 +160,9 @@ public class HrzFormAuthoringComponentsTests
                     new StringValues("edited@example.com"),
                     Array.Empty<HrzAttemptedFile>())
             }));
+        var provider = CreateLiveDescriptorProvider();
+        var emailFieldPath = HrzFieldPaths.FromFieldName("Email");
+        Assert.Single(provider.GetDescriptor(typeof(AuthoringModel)).Fields[emailFieldPath].LiveRule!.AdditionalFields);
 
         var html = await RenderComponentAsync<HrzForm<AuthoringModel>>(
             new Dictionary<string, object?>
@@ -170,7 +173,7 @@ public class HrzFormAuthoringComponentsTests
                 [nameof(HrzForm<AuthoringModel>.ChildContent)] = BuildEmailInputContent(model)
             },
             httpContext,
-            services => services.AddSingleton<IHrzValidationDescriptorProvider>(CreateLiveDescriptorProvider()));
+            services => services.AddSingleton<IHrzValidationDescriptorProvider>(provider));
 
         Assert.Contains("type=\"email\"", html, StringComparison.Ordinal);
         Assert.Contains("value=\"edited@example.com\"", html, StringComparison.Ordinal);
@@ -179,7 +182,7 @@ public class HrzFormAuthoringComponentsTests
         Assert.Contains("data-val-email=\"Enter a valid email address.\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-post=\"/users/live-validate\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-target=\"#users-invite-email-message--server\"", html, StringComparison.Ordinal);
-        Assert.Contains("hx-include=\"closest form\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-include=\"#users-invite-displayname\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-client-slot-id=\"users-invite-email-message--client\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-message--server\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-summary-slot-id=\"users-invite-summary\"", html, StringComparison.Ordinal);
@@ -496,6 +499,9 @@ public class HrzFormAuthoringComponentsTests
 
     private sealed class AuthoringModel
     {
+        [Required(ErrorMessage = "Display name is required.")]
+        public string DisplayName { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Email is required.")]
         [Display(Name = "Email Address")]
         [EmailAddress(ErrorMessage = "Enter a valid email address.")]
@@ -535,7 +541,8 @@ public class HrzFormAuthoringComponentsTests
                 LocalRules = descriptor.Fields[resolver.FromFieldName("Email")].LocalRules,
                 LiveRule = new HrzLiveRuleDescriptor
                 {
-                    Endpoint = "/users/live-validate"
+                    Endpoint = "/users/live-validate",
+                    AdditionalFields = [resolver.FromFieldName("DisplayName")]
                 }
             },
             [resolver.FromFieldName("Password")] = new HrzFieldDescriptor

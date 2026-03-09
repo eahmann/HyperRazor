@@ -1,0 +1,287 @@
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+
+namespace HyperRazor.Analyzers;
+
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public sealed class HyperRazorComponentAttributeAnalyzer : DiagnosticAnalyzer
+{
+    public const string ScopeLiveIncludeDiagnosticId = "HRZ001";
+    public const string GeneratedIdOverrideDiagnosticId = "HRZ002";
+    public const string PasswordLiveValidationDiagnosticId = "HRZ003";
+    public const string PasswordValueDiagnosticId = "HRZ004";
+
+    private const string Category = "Usage";
+    private const string RenderTreeBuilderMetadataName = "Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder";
+    private const string HrzInputMetadataName = "HyperRazor.Rendering.HrzInput";
+    private const string HrzTextAreaMetadataName = "HyperRazor.Rendering.HrzTextArea";
+    private const string HrzCheckboxMetadataName = "HyperRazor.Rendering.HrzCheckbox";
+
+    private static readonly ImmutableHashSet<string> ControlMetadataNames =
+        ImmutableHashSet.Create(StringComparer.Ordinal, HrzInputMetadataName, HrzTextAreaMetadataName, HrzCheckboxMetadataName);
+
+    private static readonly ImmutableHashSet<string> LiveValidationAttributeNames =
+        ImmutableHashSet.Create(
+            StringComparer.OrdinalIgnoreCase,
+            "hx-post",
+            "hx-trigger",
+            "hx-target",
+            "hx-swap",
+            "hx-include",
+            "hx-vals");
+
+    private static readonly DiagnosticDescriptor ScopeLiveIncludeRule = new(
+        ScopeLiveIncludeDiagnosticId,
+        "Avoid whole-form live validation transport",
+        "Avoid 'hx-include=\"closest form\"' on '{0}'. Scope live validation requests to dependent fields instead.",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor GeneratedIdOverrideRule = new(
+        GeneratedIdOverrideDiagnosticId,
+        "Avoid overriding generated HyperRazor control ids",
+        "Avoid overriding the generated 'id' on '{0}'. Generated ids keep labels and validation message slots aligned.",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor PasswordLiveValidationRule = new(
+        PasswordLiveValidationDiagnosticId,
+        "Password inputs should not declare live validation transport",
+        "'HrzInput Type=\"password\"' should not declare live-validation attribute '{0}'.",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor PasswordValueRule = new(
+        PasswordValueDiagnosticId,
+        "Password inputs should not declare values",
+        "'HrzInput Type=\"password\"' should not declare a 'value' attribute.",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+        [
+            ScopeLiveIncludeRule,
+            GeneratedIdOverrideRule,
+            PasswordLiveValidationRule,
+            PasswordValueRule
+        ];
+
+    public override void Initialize(AnalysisContext context)
+    {
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
+        context.EnableConcurrentExecution();
+        context.RegisterSyntaxNodeAction(AnalyzeMethod, SyntaxKind.MethodDeclaration, SyntaxKind.LocalFunctionStatement);
+    }
+
+    private static void AnalyzeMethod(SyntaxNodeAnalysisContext context)
+    {
+        SyntaxNode? scope = context.Node switch
+        {
+            MethodDeclarationSyntax method => (SyntaxNode?)method.Body ?? method.ExpressionBody?.Expression,
+            LocalFunctionStatementSyntax localFunction => (SyntaxNode?)localFunction.Body ?? localFunction.ExpressionBody?.Expression,
+            _ => null
+        };
+
+        if (scope is null)
+        {
+            return;
+        }
+
+        var frames = new Stack<ComponentFrame>();
+        var invocations = scope
+            .DescendantNodesAndSelf()
+            .OfType<InvocationExpressionSyntax>()
+            .OrderBy(static invocation => invocation.SpanStart);
+
+        foreach (var invocation in invocations)
+        {
+            if (context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
+            {
+                continue;
+            }
+
+            if (!IsRenderTreeBuilderMethod(methodSymbol))
+            {
+                continue;
+            }
+
+            if (methodSymbol.Name == "OpenComponent" && methodSymbol.IsGenericMethod && methodSymbol.TypeArguments.Length == 1)
+            {
+                frames.Push(new ComponentFrame(methodSymbol.TypeArguments[0]));
+                continue;
+            }
+
+            if (methodSymbol.Name == "AddAttribute" && frames.Count > 0)
+            {
+                CaptureAttribute(frames.Peek(), invocation, context.SemanticModel, context.CancellationToken);
+                continue;
+            }
+
+            if (methodSymbol.Name == "CloseComponent" && frames.Count > 0)
+            {
+                AnalyzeClosedComponent(context, frames.Pop());
+            }
+        }
+    }
+
+    private static void CaptureAttribute(
+        ComponentFrame frame,
+        InvocationExpressionSyntax invocation,
+        SemanticModel semanticModel,
+        CancellationToken cancellationToken)
+    {
+        if (invocation.ArgumentList.Arguments.Count < 3)
+        {
+            return;
+        }
+
+        var nameExpression = UnwrapExpression(invocation.ArgumentList.Arguments[1].Expression);
+        var nameConstant = semanticModel.GetConstantValue(nameExpression, cancellationToken);
+        if (!nameConstant.HasValue || nameConstant.Value is not string attributeName)
+        {
+            return;
+        }
+
+        var valueExpression = UnwrapExpression(invocation.ArgumentList.Arguments[2].Expression);
+        var valueConstant = semanticModel.GetConstantValue(valueExpression, cancellationToken);
+        frame.Attributes[attributeName] = new CapturedAttribute(
+            attributeName,
+            valueConstant.HasValue ? valueConstant.Value?.ToString() : null,
+            invocation.GetLocation());
+    }
+
+    private static void AnalyzeClosedComponent(SyntaxNodeAnalysisContext context, ComponentFrame frame)
+    {
+        var componentMetadataName = GetComponentMetadataName(frame.ComponentType);
+        if (componentMetadataName is null)
+        {
+            return;
+        }
+
+        if (ControlMetadataNames.Contains(componentMetadataName))
+        {
+            if (frame.Attributes.TryGetValue("hx-include", out var includeAttribute)
+                && string.Equals(includeAttribute.ConstantValue, "closest form", StringComparison.OrdinalIgnoreCase))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    ScopeLiveIncludeRule,
+                    includeAttribute.Location,
+                    frame.ComponentType.Name));
+            }
+
+            if (frame.Attributes.TryGetValue("id", out var idAttribute))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    GeneratedIdOverrideRule,
+                    idAttribute.Location,
+                    frame.ComponentType.Name));
+            }
+        }
+
+        if (!string.Equals(componentMetadataName, HrzInputMetadataName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (!frame.Attributes.TryGetValue("Type", out var typeAttribute)
+            && !frame.Attributes.TryGetValue("type", out typeAttribute))
+        {
+            return;
+        }
+
+        if (!string.Equals(typeAttribute.ConstantValue, "password", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        foreach (var liveAttributeName in LiveValidationAttributeNames)
+        {
+            if (!frame.Attributes.TryGetValue(liveAttributeName, out var liveAttribute))
+            {
+                continue;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                PasswordLiveValidationRule,
+                liveAttribute.Location,
+                liveAttribute.Name));
+            break;
+        }
+
+        if (frame.Attributes.TryGetValue("value", out var valueAttribute))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                PasswordValueRule,
+                valueAttribute.Location));
+        }
+    }
+
+    private static bool IsRenderTreeBuilderMethod(IMethodSymbol methodSymbol)
+    {
+        return string.Equals(methodSymbol.ContainingType.ToDisplayString(), RenderTreeBuilderMetadataName, StringComparison.Ordinal)
+            && (methodSymbol.Name == "OpenComponent"
+                || methodSymbol.Name == "AddAttribute"
+                || methodSymbol.Name == "CloseComponent");
+    }
+
+    private static string? GetComponentMetadataName(ITypeSymbol componentType)
+    {
+        return componentType is INamedTypeSymbol namedType
+            ? namedType.ConstructedFrom.ToDisplayString()
+            : componentType.ToDisplayString();
+    }
+
+    private static ExpressionSyntax UnwrapExpression(ExpressionSyntax expression)
+    {
+        while (true)
+        {
+            expression = expression switch
+            {
+                ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression,
+                CastExpressionSyntax cast => cast.Expression,
+                _ => expression
+            };
+
+            if (expression is not ParenthesizedExpressionSyntax
+                && expression is not CastExpressionSyntax)
+            {
+                return expression;
+            }
+        }
+    }
+
+    private sealed class ComponentFrame
+    {
+        public ComponentFrame(ITypeSymbol componentType)
+        {
+            ComponentType = componentType;
+        }
+
+        public ITypeSymbol ComponentType { get; }
+
+        public Dictionary<string, CapturedAttribute> Attributes { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private sealed class CapturedAttribute
+    {
+        public CapturedAttribute(string name, string? constantValue, Location location)
+        {
+            Name = name;
+            ConstantValue = constantValue;
+            Location = location;
+        }
+
+        public string Name { get; }
+
+        public string? ConstantValue { get; }
+
+        public Location Location { get; }
+    }
+}

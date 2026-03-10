@@ -274,6 +274,12 @@ That expression should drive:
 
 This is the single biggest DX gain.
 
+Incremental bridge:
+
+- a lightweight expression-based field-binding helper may ship before the full `HrzField` component stack
+- its job is to centralize field path resolution, id generation, attempted-value replay, and live-validation payload metadata
+- this keeps Proposal D moving without forcing the entire final public component surface to land at once
+
 ### 7.3 Message components
 
 Add first-class message primitives:

@@ -52,7 +52,8 @@ internal sealed class HrzValidationFormContext
             && existing.LivePolicyId == fieldContext.LivePolicyId
             && existing.LiveValidationPath == fieldContext.LiveValidationPath
             && existing.LiveTrigger == fieldContext.LiveTrigger
-            && existing.LiveInclude == fieldContext.LiveInclude)
+            && existing.LiveInclude == fieldContext.LiveInclude
+            && existing.LiveSync == fieldContext.LiveSync)
         {
             _registeredLiveFields[key] = fieldContext;
             return;

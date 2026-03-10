@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Collections;
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -23,7 +25,17 @@ internal sealed class HrzValidationFieldContext
 
     public required string LivePolicyId { get; init; }
 
+    public required Type ValueType { get; init; }
+
+    public required object? CurrentValue { get; init; }
+
+    public required HrzAttemptedValue? AttemptedValue { get; init; }
+
     public required string? Value { get; init; }
+
+    public required IReadOnlyList<string> Values { get; init; }
+
+    public required bool IsChecked { get; init; }
 
     public required IReadOnlyList<string> Errors { get; init; }
 
@@ -53,9 +65,9 @@ internal sealed class HrzValidationFieldContext
 
     public string? LiveValidationValuesJson { get; init; }
 
-    public static HrzValidationFieldContext Create(
+    public static HrzValidationFieldContext Create<TValue>(
         HrzValidationFormContext formContext,
-        Expression<Func<string?>> accessor,
+        Expression<Func<TValue>> accessor,
         string? explicitLabel,
         bool? enableClientValidationOverride,
         bool? liveOverride,
@@ -84,6 +96,13 @@ internal sealed class HrzValidationFieldContext
         var liveSync = participatesInLiveValidation
             ? liveSyncOverride ?? formContext.LiveSync
             : null;
+        var currentValue = accessor.Compile().Invoke();
+        var attemptedValue = HrzFormRendering.AttemptedValueFor(formContext.ValidationState, fieldPath);
+        var values = attemptedValue?.Values
+            .Where(static value => value is not null)
+            .Select(static value => value!)
+            .ToArray()
+            ?? GetValues(currentValue);
 
         var metadata = effectiveClientValidation
             ? ResolveLocalValidationMetadata(property)
@@ -98,7 +117,12 @@ internal sealed class HrzValidationFieldContext
             ClientSlotId = clientSlotId,
             ServerSlotId = serverSlotId,
             LivePolicyId = $"{idStem}-live",
-            Value = HrzFormRendering.ValueOrAttempted(formContext.ValidationState, fieldPath, accessor.Compile().Invoke()),
+            ValueType = property.PropertyType,
+            CurrentValue = currentValue,
+            AttemptedValue = attemptedValue,
+            Value = values.FirstOrDefault(),
+            Values = values,
+            IsChecked = ResolveCheckedState(attemptedValue, currentValue),
             Errors = HrzFormRendering.ErrorsFor(formContext.ValidationState, fieldPath),
             HasErrors = HrzFormRendering.HasErrors(formContext.ValidationState, fieldPath),
             LabelText = explicitLabel ?? ResolveLabelText(property),
@@ -119,6 +143,101 @@ internal sealed class HrzValidationFieldContext
                     ["__hrz_fields"] = fieldPath.Value
                 })
                 : null
+        };
+    }
+
+    private static IReadOnlyList<string> GetValues(object? value)
+    {
+        if (value is null)
+        {
+            return Array.Empty<string>();
+        }
+
+        if (value is string text)
+        {
+            return new[] { text };
+        }
+
+        if (value is IEnumerable enumerable)
+        {
+            var values = new List<string>();
+            foreach (var item in enumerable)
+            {
+                var formatted = FormatValue(item);
+                if (formatted is not null)
+                {
+                    values.Add(formatted);
+                }
+            }
+
+            return values;
+        }
+
+        var scalar = FormatValue(value);
+        return scalar is null ? Array.Empty<string>() : new[] { scalar };
+    }
+
+    private static bool ResolveCheckedState(HrzAttemptedValue? attemptedValue, object? currentValue)
+    {
+        if (attemptedValue is not null)
+        {
+            foreach (var value in attemptedValue.Values)
+            {
+                if (TryParseBoolean(value, out var parsed) && parsed)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return currentValue switch
+        {
+            bool flag => flag,
+            _ when TryParseBoolean(FormatValue(currentValue), out var parsed) => parsed,
+            _ => false
+        };
+    }
+
+    private static bool TryParseBoolean(string? value, out bool parsed)
+    {
+        if (bool.TryParse(value, out parsed))
+        {
+            return true;
+        }
+
+        switch (value?.Trim().ToLowerInvariant())
+        {
+            case "1":
+            case "on":
+            case "yes":
+                parsed = true;
+                return true;
+            case "0":
+            case "off":
+            case "no":
+                parsed = false;
+                return true;
+            default:
+                parsed = false;
+                return false;
+        }
+    }
+
+    private static string? FormatValue(object? value)
+    {
+        return value switch
+        {
+            null => null,
+            string text => text,
+            bool flag => flag ? "true" : "false",
+            DateOnly dateOnly => dateOnly.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
+            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+            Enum enumValue => enumValue.ToString(),
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString()
         };
     }
 

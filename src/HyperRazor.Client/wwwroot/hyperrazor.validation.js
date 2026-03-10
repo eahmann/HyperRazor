@@ -1,6 +1,12 @@
 (function () {
     var carrierEnabledStates = Object.create(null);
 
+    function isFieldElement(target) {
+        return target instanceof HTMLInputElement
+            || target instanceof HTMLTextAreaElement
+            || target instanceof HTMLSelectElement;
+    }
+
     function getById(id) {
         return id ? document.getElementById(id) : null;
     }
@@ -174,7 +180,7 @@
         }
 
         var input = getInputForCarrierId(carrier.id);
-        if (!(input instanceof HTMLInputElement)) {
+        if (!isFieldElement(input)) {
             return;
         }
 
@@ -222,7 +228,16 @@
 
     document.addEventListener('input', function (event) {
         var target = event.target;
-        if (!(target instanceof HTMLInputElement)) {
+        if (!isFieldElement(target)) {
+            return;
+        }
+
+        handleInput(target);
+    });
+
+    document.addEventListener('change', function (event) {
+        var target = event.target;
+        if (!isFieldElement(target)) {
             return;
         }
 
@@ -231,7 +246,7 @@
 
     document.body.addEventListener('htmx:configRequest', function (event) {
         var target = event.detail.elt;
-        if (!(target instanceof HTMLInputElement)) {
+        if (!isFieldElement(target)) {
             return;
         }
 

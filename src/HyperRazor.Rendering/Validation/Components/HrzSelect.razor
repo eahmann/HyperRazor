@@ -1,14 +1,10 @@
 @namespace HyperRazor.Components
 
-<input
+<select
     id="@ResolvedFieldContext.InputId"
     name="@ResolvedFieldContext.Name"
-    type="@Type"
     class="@Class"
-    value="@ResolvedFieldContext.Value"
-    placeholder="@Placeholder"
-    autocomplete="@Autocomplete"
-    inputmode="@InputMode"
+    multiple="@Multiple"
     aria-invalid="@ResolvedFieldContext.HasErrors"
     aria-describedby="@ResolvedFieldContext.AriaDescribedBy"
     data-hrz-field-path="@ResolvedFieldContext.FieldPath.Value"
@@ -27,23 +23,33 @@
     hx-include="@ResolvedFieldContext.LiveInclude"
     hx-sync="@ResolvedFieldContext.LiveSync"
     hx-vals="@ResolvedFieldContext.LiveValidationValuesJson"
-    @attributes="AdditionalAttributes" />
+    @attributes="AdditionalAttributes">
+    @if (!string.IsNullOrWhiteSpace(Placeholder))
+    {
+        <option value="" selected="@(!Multiple && ResolvedFieldContext.Values.Count == 0)">@Placeholder</option>
+    }
+
+    @foreach (var option in Options)
+    {
+        <option
+            value="@option.Value"
+            selected="@IsSelected(option.Value)"
+            disabled="@option.Disabled">@option.Label</option>
+    }
+</select>
 
 @code {
     [Parameter]
-    public string Type { get; set; } = "text";
-
-    [Parameter]
-    public string? Class { get; set; }
+    public IReadOnlyList<HrzSelectOption> Options { get; set; } = Array.Empty<HrzSelectOption>();
 
     [Parameter]
     public string? Placeholder { get; set; }
 
     [Parameter]
-    public string? Autocomplete { get; set; }
+    public bool Multiple { get; set; }
 
     [Parameter]
-    public string? InputMode { get; set; }
+    public string? Class { get; set; }
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
@@ -52,7 +58,12 @@
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
-        ?? throw new InvalidOperationException($"{nameof(HrzInputText)} requires a cascading {nameof(HrzField<object>)}.");
+        ?? throw new InvalidOperationException($"{nameof(HrzSelect)} requires a cascading {nameof(HrzField<object>)}.");
+
+    private bool IsSelected(string value)
+    {
+        return ResolvedFieldContext.Values.Contains(value, StringComparer.Ordinal);
+    }
 
     protected override void OnParametersSet()
     {

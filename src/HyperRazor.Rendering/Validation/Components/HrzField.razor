@@ -1,4 +1,5 @@
 @namespace HyperRazor.Components
+@typeparam TValue
 @using System.Linq.Expressions
 @using HyperRazor.Rendering
 
@@ -12,7 +13,7 @@
 
 @code {
     [Parameter, EditorRequired]
-    public Expression<Func<string?>> For { get; set; } = default!;
+    public Expression<Func<TValue>> For { get; set; } = default!;
 
     [Parameter]
     public string? Label { get; set; }
@@ -60,7 +61,7 @@
     {
         if (FormContext is null)
         {
-            throw new InvalidOperationException($"{nameof(HrzField)} requires a cascading {nameof(HrzForm<object>)}.");
+            throw new InvalidOperationException($"{nameof(HrzField<object>)} requires a cascading {nameof(HrzForm<object>)}.");
         }
 
         _fieldContext = HrzValidationFieldContext.Create(

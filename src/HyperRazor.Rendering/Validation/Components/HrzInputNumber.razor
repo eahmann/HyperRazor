@@ -3,11 +3,13 @@
 <input
     id="@ResolvedFieldContext.InputId"
     name="@ResolvedFieldContext.Name"
-    type="@Type"
+    type="number"
     class="@Class"
     value="@ResolvedFieldContext.Value"
+    min="@Min"
+    max="@Max"
+    step="@Step"
     placeholder="@Placeholder"
-    autocomplete="@Autocomplete"
     inputmode="@InputMode"
     aria-invalid="@ResolvedFieldContext.HasErrors"
     aria-describedby="@ResolvedFieldContext.AriaDescribedBy"
@@ -31,19 +33,22 @@
 
 @code {
     [Parameter]
-    public string Type { get; set; } = "text";
+    public string? Min { get; set; }
 
     [Parameter]
-    public string? Class { get; set; }
+    public string? Max { get; set; }
+
+    [Parameter]
+    public string? Step { get; set; }
 
     [Parameter]
     public string? Placeholder { get; set; }
 
     [Parameter]
-    public string? Autocomplete { get; set; }
+    public string? InputMode { get; set; }
 
     [Parameter]
-    public string? InputMode { get; set; }
+    public string? Class { get; set; }
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
@@ -52,7 +57,7 @@
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
-        ?? throw new InvalidOperationException($"{nameof(HrzInputText)} requires a cascading {nameof(HrzField<object>)}.");
+        ?? throw new InvalidOperationException($"{nameof(HrzInputNumber)} requires a cascading {nameof(HrzField<object>)}.");
 
     protected override void OnParametersSet()
     {

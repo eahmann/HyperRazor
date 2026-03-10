@@ -1,14 +1,17 @@
 @namespace HyperRazor.Components
 
+@if (IncludeHiddenInput)
+{
+    <input type="hidden" name="@ResolvedFieldContext.Name" value="false" />
+}
+
 <input
     id="@ResolvedFieldContext.InputId"
     name="@ResolvedFieldContext.Name"
-    type="@Type"
+    type="checkbox"
     class="@Class"
-    value="@ResolvedFieldContext.Value"
-    placeholder="@Placeholder"
-    autocomplete="@Autocomplete"
-    inputmode="@InputMode"
+    value="true"
+    checked="@ResolvedFieldContext.IsChecked"
     aria-invalid="@ResolvedFieldContext.HasErrors"
     aria-describedby="@ResolvedFieldContext.AriaDescribedBy"
     data-hrz-field-path="@ResolvedFieldContext.FieldPath.Value"
@@ -31,19 +34,10 @@
 
 @code {
     [Parameter]
-    public string Type { get; set; } = "text";
+    public bool IncludeHiddenInput { get; set; } = true;
 
     [Parameter]
     public string? Class { get; set; }
-
-    [Parameter]
-    public string? Placeholder { get; set; }
-
-    [Parameter]
-    public string? Autocomplete { get; set; }
-
-    [Parameter]
-    public string? InputMode { get; set; }
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
@@ -52,7 +46,7 @@
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
-        ?? throw new InvalidOperationException($"{nameof(HrzInputText)} requires a cascading {nameof(HrzField<object>)}.");
+        ?? throw new InvalidOperationException($"{nameof(HrzInputCheckbox)} requires a cascading {nameof(HrzField<object>)}.");
 
     protected override void OnParametersSet()
     {

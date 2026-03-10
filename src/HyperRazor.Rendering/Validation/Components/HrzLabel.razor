@@ -18,7 +18,7 @@
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
-        ?? throw new InvalidOperationException($"{nameof(HrzLabel)} requires a cascading {nameof(HrzField)}.");
+        ?? throw new InvalidOperationException($"{nameof(HrzLabel)} requires a cascading {nameof(HrzField<object>)}.");
 
     protected override void OnParametersSet()
     {

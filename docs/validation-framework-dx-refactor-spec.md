@@ -191,7 +191,7 @@ Important interpretation:
 Proposal D v1 should define these primary components:
 
 - `HrzForm`
-- `HrzField`
+- `HrzField<TValue>`
 - `HrzLabel`
 - `HrzInputText`
 - `HrzValidationMessage`
@@ -202,8 +202,15 @@ These are enough to prove the authoring model before expanding into:
 - `HrzInputNumber`
 - `HrzTextArea`
 - `HrzSelect`
-- `HrzCheckbox`
+- `HrzInputCheckbox`
 - richer custom-validator metadata
+
+Current implementation has already started that expansion with:
+
+- `HrzTextArea`
+- `HrzSelect`
+- `HrzInputCheckbox`
+- `HrzInputNumber`
 
 ## 6. Component Contracts
 
@@ -242,13 +249,13 @@ Important v1 rule:
 - implicit root generation is a later convenience, not a v1 requirement
 - form-level validation settings are defaults, not hard global rules
 
-### 6.2 `HrzField`
+### 6.2 `HrzField<TValue>`
 
-`HrzField` is the field-scoped authoring container.
+`HrzField<TValue>` is the field-scoped authoring container.
 
 Responsibilities:
 
-- accept a `For` expression
+- accept a typed `For` expression
 - resolve the canonical field path
 - derive field-specific ids and slot ids
 - determine current attempted value and server error state
@@ -271,7 +278,7 @@ Suggested public parameters:
 
 Important v1 rule:
 
-- `HrzField` owns field semantics, not page layout
+- `HrzField<TValue>` owns field semantics, not page layout
 - it may render a default wrapper, but it must not become a grid/layout system
 - `HrzField` should be able to opt out of live validation or override form-level defaults when needed
 
@@ -585,7 +592,7 @@ Goal:
 Build:
 
 - `HrzForm`
-- `HrzField`
+- `HrzField<TValue>`
 - `HrzLabel`
 - `HrzInputText`
 - `HrzValidationMessage`
@@ -609,7 +616,10 @@ Prove:
 
 Add:
 
-- more input components
+- `HrzTextArea`
+- `HrzSelect`
+- `HrzInputCheckbox`
+- `HrzInputNumber`
 - more validation metadata adapters
 - optional standalone `For` support for message components
 

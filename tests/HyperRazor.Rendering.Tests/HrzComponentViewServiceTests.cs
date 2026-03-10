@@ -284,6 +284,45 @@ public class HrzComponentViewServiceTests
         Assert.DoesNotContain("data-hrz-local-min-length", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_RendersExpandedTypedInputs()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.HttpContext.SetSubmitValidationState(new HrzSubmitValidationState(
+            new HrzValidationRootId("expanded"),
+            Array.Empty<string>(),
+            new Dictionary<HrzFieldPath, IReadOnlyList<string>>(),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>
+            {
+                [HrzFieldPaths.FromFieldName("Notes")] = new(new StringValues("Need elevated access"), Array.Empty<HrzAttemptedFile>()),
+                [HrzFieldPaths.FromFieldName("Role")] = new(new StringValues("manager"), Array.Empty<HrzAttemptedFile>()),
+                [HrzFieldPaths.FromFieldName("IsAdmin")] = new(new StringValues(new[] { "false", "true" }), Array.Empty<HrzAttemptedFile>()),
+                [HrzFieldPaths.FromFieldName("Age")] = new(new StringValues("42"), Array.Empty<HrzAttemptedFile>())
+            }));
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationExpandedInputSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"expanded-notes\"", html, StringComparison.Ordinal);
+        Assert.Contains("rows=\"5\"", html, StringComparison.Ordinal);
+        Assert.Contains(">Need elevated access</textarea>", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-role\"", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-is-admin\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"hidden\" name=\"isAdmin\" value=\"false\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"checkbox\"", html, StringComparison.Ordinal);
+        Assert.Contains("checked", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-age\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"number\"", html, StringComparison.Ordinal);
+        Assert.Contains("value=\"42\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-notes-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-role-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-is-admin-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-age-live\"", html, StringComparison.Ordinal);
+    }
+
     private static async Task<TestFixture> CreateFixtureAsync(
         Action<IHeaderDictionary>? configureHeaders = null,
         Action<HrzOptions>? configureOptions = null)
@@ -524,9 +563,9 @@ public class HrzComponentViewServiceTests
                 formBuilder.AddAttribute(1, nameof(HrzValidationSummary.Class), "summary-custom");
                 formBuilder.CloseComponent();
 
-                formBuilder.OpenComponent<HrzField>(2);
-                formBuilder.AddAttribute(3, nameof(HrzField.For), (Expression<Func<string?>>)(() => _model.Email));
-                formBuilder.AddAttribute(4, nameof(HrzField.ChildContent), (RenderFragment)(fieldBuilder =>
+                formBuilder.OpenComponent<HrzField<string>>(2);
+                formBuilder.AddAttribute(3, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                formBuilder.AddAttribute(4, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
                 {
                     fieldBuilder.OpenComponent<HrzLabel>(0);
                     fieldBuilder.AddAttribute(1, nameof(HrzLabel.Class), "label-custom");
@@ -564,11 +603,11 @@ public class HrzComponentViewServiceTests
             builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.EnableClientValidation), true);
             builder.AddAttribute(6, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
             {
-                formBuilder.OpenComponent<HrzField>(0);
-                formBuilder.AddAttribute(1, nameof(HrzField.For), (Expression<Func<string?>>)(() => _model.DisplayName));
-                formBuilder.AddAttribute(2, nameof(HrzField.Live), false);
-                formBuilder.AddAttribute(3, nameof(HrzField.EnableClientValidation), false);
-                formBuilder.AddAttribute(4, nameof(HrzField.ChildContent), (RenderFragment)(fieldBuilder =>
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.DisplayName));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.Live), false);
+                formBuilder.AddAttribute(3, nameof(HrzField<string>.EnableClientValidation), false);
+                formBuilder.AddAttribute(4, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
                 {
                     fieldBuilder.OpenComponent<HrzLabel>(0);
                     fieldBuilder.CloseComponent();
@@ -579,11 +618,11 @@ public class HrzComponentViewServiceTests
                 }));
                 formBuilder.CloseComponent();
 
-                formBuilder.OpenComponent<HrzField>(5);
-                formBuilder.AddAttribute(6, nameof(HrzField.For), (Expression<Func<string?>>)(() => _model.Email));
-                formBuilder.AddAttribute(7, nameof(HrzField.LiveValidationPath), "/validation/email-live");
-                formBuilder.AddAttribute(8, nameof(HrzField.LiveSync), "closest form:queue last");
-                formBuilder.AddAttribute(9, nameof(HrzField.ChildContent), (RenderFragment)(fieldBuilder =>
+                formBuilder.OpenComponent<HrzField<string>>(5);
+                formBuilder.AddAttribute(6, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                formBuilder.AddAttribute(7, nameof(HrzField<string>.LiveValidationPath), "/validation/email-live");
+                formBuilder.AddAttribute(8, nameof(HrzField<string>.LiveSync), "closest form:queue last");
+                formBuilder.AddAttribute(9, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
                 {
                     fieldBuilder.OpenComponent<HrzLabel>(0);
                     fieldBuilder.CloseComponent();
@@ -599,6 +638,92 @@ public class HrzComponentViewServiceTests
         }
     }
 
+    private sealed class ValidationExpandedInputSurfaceComponent : ComponentBase
+    {
+        private static readonly IReadOnlyList<HrzSelectOption> RoleOptions =
+        [
+            new("analyst", "Analyst"),
+            new("manager", "Manager"),
+            new("admin", "Administrator")
+        ];
+
+        private readonly ValidationExpandedModel _model = new()
+        {
+            Notes = "Initial notes",
+            Role = "analyst",
+            IsAdmin = false,
+            Age = 21
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationExpandedModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationExpandedModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationExpandedModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationExpandedModel>.FormName), "expanded");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationExpandedModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(5, nameof(HrzForm<ValidationExpandedModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Notes));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzTextArea>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzTextArea.Rows), 5);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<string>>(4);
+                formBuilder.AddAttribute(5, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Role));
+                formBuilder.AddAttribute(6, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzSelect.Options), RoleOptions);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<bool>>(8);
+                formBuilder.AddAttribute(9, nameof(HrzField<bool>.For), (Expression<Func<bool>>)(() => _model.IsAdmin));
+                formBuilder.AddAttribute(10, nameof(HrzField<bool>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzInputCheckbox>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzLabel>(1);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<int>>(12);
+                formBuilder.AddAttribute(13, nameof(HrzField<int>.For), (Expression<Func<int>>)(() => _model.Age));
+                formBuilder.AddAttribute(14, nameof(HrzField<int>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputNumber>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputNumber.Min), "0");
+                    fieldBuilder.AddAttribute(3, nameof(HrzInputNumber.Step), "1");
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(4);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
     private sealed class ValidationAuthoringModel
     {
         [MinLength(3)]
@@ -606,6 +731,18 @@ public class HrzComponentViewServiceTests
 
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class ValidationExpandedModel
+    {
+        [MinLength(3)]
+        public string Notes { get; set; } = string.Empty;
+
+        public string Role { get; set; } = string.Empty;
+
+        public bool IsAdmin { get; set; }
+
+        public int Age { get; set; }
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

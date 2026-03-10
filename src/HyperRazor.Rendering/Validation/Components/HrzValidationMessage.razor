@@ -22,7 +22,7 @@ else
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
-        ?? throw new InvalidOperationException($"{nameof(HrzValidationMessage)} requires a cascading {nameof(HrzField)}.");
+        ?? throw new InvalidOperationException($"{nameof(HrzValidationMessage)} requires a cascading {nameof(HrzField<object>)}.");
 
     private bool HasContainer => !string.IsNullOrWhiteSpace(Class) || (AdditionalAttributes?.Count ?? 0) > 0;
 

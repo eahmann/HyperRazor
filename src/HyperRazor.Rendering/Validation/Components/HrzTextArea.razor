@@ -1,14 +1,12 @@
 @namespace HyperRazor.Components
 
-<input
+<textarea
     id="@ResolvedFieldContext.InputId"
     name="@ResolvedFieldContext.Name"
-    type="@Type"
     class="@Class"
-    value="@ResolvedFieldContext.Value"
+    rows="@(Rows?.ToString())"
     placeholder="@Placeholder"
     autocomplete="@Autocomplete"
-    inputmode="@InputMode"
     aria-invalid="@ResolvedFieldContext.HasErrors"
     aria-describedby="@ResolvedFieldContext.AriaDescribedBy"
     data-hrz-field-path="@ResolvedFieldContext.FieldPath.Value"
@@ -27,14 +25,11 @@
     hx-include="@ResolvedFieldContext.LiveInclude"
     hx-sync="@ResolvedFieldContext.LiveSync"
     hx-vals="@ResolvedFieldContext.LiveValidationValuesJson"
-    @attributes="AdditionalAttributes" />
+    @attributes="AdditionalAttributes">@ResolvedFieldContext.Value</textarea>
 
 @code {
     [Parameter]
-    public string Type { get; set; } = "text";
-
-    [Parameter]
-    public string? Class { get; set; }
+    public int? Rows { get; set; }
 
     [Parameter]
     public string? Placeholder { get; set; }
@@ -43,7 +38,7 @@
     public string? Autocomplete { get; set; }
 
     [Parameter]
-    public string? InputMode { get; set; }
+    public string? Class { get; set; }
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
@@ -52,7 +47,7 @@
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
-        ?? throw new InvalidOperationException($"{nameof(HrzInputText)} requires a cascading {nameof(HrzField<object>)}.");
+        ?? throw new InvalidOperationException($"{nameof(HrzTextArea)} requires a cascading {nameof(HrzField<object>)}.");
 
     protected override void OnParametersSet()
     {

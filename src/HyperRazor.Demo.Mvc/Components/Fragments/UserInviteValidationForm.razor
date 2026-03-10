@@ -1,7 +1,6 @@
 @using HyperRazor.Demo.Mvc.Models
 @using HyperRazor.Rendering
 @using Microsoft.AspNetCore.Http
-@inject IHrzLiveValidationPolicyResolver LiveValidationPolicyResolver
 
 <section
     id="@FormShellId"
@@ -46,20 +45,6 @@
 
         <button type="submit">@Form.ButtonText</button>
     </HrzForm>
-
-    @if (HasLiveValidation && DisplayNameLivePolicy is not null && EmailLivePolicy is not null)
-    {
-        <div id="@LivePolicyRegionId" hidden data-hrz-live-policy-region>
-            <HrzValidationLivePolicyCarrier
-                Id="@DisplayNameLivePolicyId"
-                Policy="@DisplayNameLivePolicy"
-                SummarySlotId="@SummaryId" />
-            <HrzValidationLivePolicyCarrier
-                Id="@EmailLivePolicyId"
-                Policy="@EmailLivePolicy"
-                SummarySlotId="@SummaryId" />
-        </div>
-    }
 </section>
 
 @code {
@@ -70,51 +55,10 @@
     [Parameter]
     public InviteValidationFormViewModel Form { get; set; } = UserInviteValidationDefinitions.MvcLocal();
 
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
-
-    private static readonly IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> EmptyAttemptedValues =
-        new Dictionary<HrzFieldPath, HrzAttemptedValue>();
-
-    private HrzLiveValidationPolicy? DisplayNameLivePolicy { get; set; }
-    private HrzLiveValidationPolicy? EmailLivePolicy { get; set; }
-
-    private HrzSubmitValidationState? ValidationState =>
-        HttpContext?.GetSubmitValidationState(Form.RootId);
-
     private InviteUserInput Input => Form.Input;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(Form.HxPost) ? Form.Action : Form.HxPost;
-    private bool HasLiveValidation => !string.IsNullOrWhiteSpace(Form.LiveValidationPath);
     private string FormShellId => GetFormShellId(Form.IdPrefix);
-    private string LivePolicyRegionId => GetLivePolicyRegionId(Form.IdPrefix);
-    private string SummaryId => GetSummaryId(Form.IdPrefix);
-    private string DisplayNameLivePolicyId => GetDisplayNameLivePolicyId(Form.IdPrefix);
-    private string EmailLivePolicyId => GetEmailLivePolicyId(Form.IdPrefix);
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (!HasLiveValidation)
-        {
-            DisplayNameLivePolicy = null;
-            EmailLivePolicy = null;
-            return;
-        }
-
-        var attemptedValues = ValidationState?.AttemptedValues ?? EmptyAttemptedValues;
-
-        DisplayNameLivePolicy = await LiveValidationPolicyResolver.ResolveAsync(
-            Form.Input,
-            Form.RootId,
-            DisplayNamePath,
-            attemptedValues);
-
-        EmailLivePolicy = await LiveValidationPolicyResolver.ResolveAsync(
-            Form.Input,
-            Form.RootId,
-            EmailPath,
-            attemptedValues);
-    }
 
     public static string GetFormShellId(string idPrefix) => $"{idPrefix}-form-shell";
 

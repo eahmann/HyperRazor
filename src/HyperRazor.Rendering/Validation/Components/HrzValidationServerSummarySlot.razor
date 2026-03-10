@@ -4,7 +4,8 @@
     id="@Id"
     class="@SummaryClass"
     data-hrz-server-validation-summary
-    hx-swap-oob="@(SwapOob ? "outerHTML" : null)">
+    hx-swap-oob="@(SwapOob ? "outerHTML" : null)"
+    @attributes="AdditionalAttributes">
     @if (Errors.Count > 0)
     {
         <ul class="validation-errors">
@@ -26,7 +27,19 @@
     [Parameter]
     public bool SwapOob { get; set; }
 
-    private string SummaryClass => Errors.Count == 0
-        ? "validation-summary validation-summary--empty"
-        : "validation-summary";
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
+
+    private string SummaryClass => string.Join(
+        " ",
+        new[]
+        {
+            Errors.Count == 0
+                ? "validation-summary validation-summary--empty"
+                : "validation-summary",
+            Class
+        }.Where(static value => !string.IsNullOrWhiteSpace(value)));
 }

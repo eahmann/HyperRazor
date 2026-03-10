@@ -19,6 +19,8 @@
         <HrzAntiforgeryInput />
         @ChildContent
     </form>
+
+    <HrzValidationLivePolicyRegion />
 </CascadingValue>
 
 @code {
@@ -65,6 +67,9 @@
     public string LiveInclude { get; set; } = "closest form";
 
     [Parameter]
+    public string LiveSync { get; set; } = "closest form:abort";
+
+    [Parameter]
     public string? Class { get; set; }
 
     [Parameter]
@@ -76,9 +81,15 @@
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 
-    private HrzValidationFormContext _formContext = default!;
+    private readonly HrzValidationFormContext _formContext = new();
+    private bool _registrationRefreshPending;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
+
+    protected override void OnInitialized()
+    {
+        _formContext.RegistrationChanged = RequestRegistrationRefresh;
+    }
 
     protected override void OnParametersSet()
     {
@@ -90,22 +101,35 @@
             ? resolvedRootId.Value
             : IdPrefix;
 
-        _formContext = new HrzValidationFormContext
-        {
-            Model = Model!,
-            RootId = resolvedRootId,
-            IdPrefix = idPrefix,
-            ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId),
-            EnableClientValidation = EnableClientValidation,
-            LiveValidationPath = LiveValidationPath,
-            LiveTrigger = LiveTrigger,
-            LiveInclude = LiveInclude
-        };
+        _formContext.Model = Model!;
+        _formContext.RootId = resolvedRootId;
+        _formContext.IdPrefix = idPrefix;
+        _formContext.ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId);
+        _formContext.EnableClientValidation = EnableClientValidation;
+        _formContext.LiveValidationPath = LiveValidationPath;
+        _formContext.LiveTrigger = LiveTrigger;
+        _formContext.LiveInclude = LiveInclude;
+        _formContext.LiveSync = LiveSync;
     }
 
     private static HrzValidationRootId ResolveRootId(string? formName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(formName);
         return new HrzValidationRootId(formName);
+    }
+
+    private void RequestRegistrationRefresh()
+    {
+        if (_registrationRefreshPending)
+        {
+            return;
+        }
+
+        _registrationRefreshPending = true;
+        _ = InvokeAsync(() =>
+        {
+            _registrationRefreshPending = false;
+            StateHasChanged();
+        });
     }
 }

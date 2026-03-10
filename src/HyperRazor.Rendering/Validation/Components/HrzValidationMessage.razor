@@ -1,21 +1,42 @@
 @namespace HyperRazor.Components
 
-<div
-    id="@ResolvedFieldContext.ClientSlotId"
-    class="validation-slot validation-slot--client"
-    data-hrz-client-validation-for="@ResolvedFieldContext.FieldPath.Value"></div>
-
-<HrzValidationServerFieldSlot
-    Id="@ResolvedFieldContext.ServerSlotId"
-    FieldPath="@ResolvedFieldContext.FieldPath.Value"
-    Errors="@ResolvedFieldContext.Errors" />
+@if (HasContainer)
+{
+    <div class="@Class" @attributes="AdditionalAttributes">
+        @Slots
+    </div>
+}
+else
+{
+    @Slots
+}
 
 @code {
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
+
     [CascadingParameter]
     private HrzValidationFieldContext? FieldContext { get; set; }
 
     private HrzValidationFieldContext ResolvedFieldContext => FieldContext
         ?? throw new InvalidOperationException($"{nameof(HrzValidationMessage)} requires a cascading {nameof(HrzField)}.");
+
+    private bool HasContainer => !string.IsNullOrWhiteSpace(Class) || (AdditionalAttributes?.Count ?? 0) > 0;
+
+    private RenderFragment Slots => @<text>
+        <div
+            id="@ResolvedFieldContext.ClientSlotId"
+            class="validation-slot validation-slot--client"
+            data-hrz-client-validation-for="@ResolvedFieldContext.FieldPath.Value"></div>
+
+        <HrzValidationServerFieldSlot
+            Id="@ResolvedFieldContext.ServerSlotId"
+            FieldPath="@ResolvedFieldContext.FieldPath.Value"
+            Errors="@ResolvedFieldContext.Errors" />
+    </text>;
 
     protected override void OnParametersSet()
     {

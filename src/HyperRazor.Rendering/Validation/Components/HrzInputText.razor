@@ -6,6 +6,9 @@
     type="@Type"
     class="@Class"
     value="@ResolvedFieldContext.Value"
+    placeholder="@Placeholder"
+    autocomplete="@Autocomplete"
+    inputmode="@InputMode"
     aria-invalid="@ResolvedFieldContext.HasErrors"
     aria-describedby="@ResolvedFieldContext.AriaDescribedBy"
     data-hrz-field-path="@ResolvedFieldContext.FieldPath.Value"
@@ -22,6 +25,7 @@
     hx-target="@(ResolvedFieldContext.HasLiveValidation ? $"#{ResolvedFieldContext.ServerSlotId}" : null)"
     hx-swap="@(ResolvedFieldContext.HasLiveValidation ? "outerHTML" : null)"
     hx-include="@ResolvedFieldContext.LiveInclude"
+    hx-sync="@ResolvedFieldContext.LiveSync"
     hx-vals="@ResolvedFieldContext.LiveValidationValuesJson"
     @attributes="AdditionalAttributes" />
 
@@ -31,6 +35,15 @@
 
     [Parameter]
     public string? Class { get; set; }
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public string? Autocomplete { get; set; }
+
+    [Parameter]
+    public string? InputMode { get; set; }
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }

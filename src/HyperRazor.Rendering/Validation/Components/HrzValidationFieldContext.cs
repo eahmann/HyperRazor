@@ -49,6 +49,8 @@ internal sealed class HrzValidationFieldContext
 
     public string? LiveInclude { get; init; }
 
+    public string? LiveSync { get; init; }
+
     public string? LiveValidationValuesJson { get; init; }
 
     public static HrzValidationFieldContext Create(
@@ -59,7 +61,8 @@ internal sealed class HrzValidationFieldContext
         bool? liveOverride,
         string? liveValidationPathOverride,
         string? liveTriggerOverride,
-        string? liveIncludeOverride)
+        string? liveIncludeOverride,
+        string? liveSyncOverride)
     {
         ArgumentNullException.ThrowIfNull(formContext);
         ArgumentNullException.ThrowIfNull(accessor);
@@ -77,6 +80,9 @@ internal sealed class HrzValidationFieldContext
             : null;
         var liveInclude = participatesInLiveValidation
             ? liveIncludeOverride ?? formContext.LiveInclude
+            : null;
+        var liveSync = participatesInLiveValidation
+            ? liveSyncOverride ?? formContext.LiveSync
             : null;
 
         var metadata = effectiveClientValidation
@@ -102,9 +108,10 @@ internal sealed class HrzValidationFieldContext
             LocalMinLengthMessage = metadata?.MinLengthMessage,
             AriaDescribedBy = $"{clientSlotId} {serverSlotId}",
             HasLiveValidation = participatesInLiveValidation,
-            LiveValidationPath = resolvedLivePath,
+            LiveValidationPath = participatesInLiveValidation ? resolvedLivePath : null,
             LiveTrigger = liveTrigger,
             LiveInclude = liveInclude,
+            LiveSync = liveSync,
             LiveValidationValuesJson = participatesInLiveValidation
                 ? JsonSerializer.Serialize(new Dictionary<string, string>
                 {

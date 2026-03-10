@@ -1,4 +1,5 @@
 using System.IO;
+using System.ComponentModel.DataAnnotations;
 using HyperRazor.Components;
 using HyperRazor.Components.Layouts;
 using HyperRazor.Components.Services;
@@ -224,6 +225,65 @@ public class HrzComponentViewServiceTests
         Assert.Contains("Email must be unique.", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_EmitsLiveRuntimeContract()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationAuthoringSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"users-invite-form\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"form-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-validation-root=\"users-invite\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"validation-summary validation-summary--empty summary-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("label-custom", html, StringComparison.Ordinal);
+        Assert.Contains("for=\"users-invite-email\"", html, StringComparison.Ordinal);
+        Assert.Contains(">Email</label>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"input-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"name@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("autocomplete=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("inputmode=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-trigger=\"input changed delay:400ms, blur\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-include=\"closest form\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-sync=\"closest form:abort\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-local-validation=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-client-slot-id=\"users-invite-email-client\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"message-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-summary-slot-id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_HonorsFieldOverrides()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationAuthoringOverridesComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"override-form\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"override-email\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-sync=\"closest form:queue last\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"override-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"override-email-live\"", html, StringComparison.Ordinal);
+
+        Assert.Contains("id=\"override-display-name\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"override-display-name-live\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-hrz-local-min-length", html, StringComparison.Ordinal);
+    }
+
     private static async Task<TestFixture> CreateFixtureAsync(
         Action<IHeaderDictionary>? configureHeaders = null,
         Action<HrzOptions>? configureOptions = null)
@@ -252,6 +312,7 @@ public class HrzComponentViewServiceTests
         services.AddOptions<HrzSwapOptions>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
+        services.AddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
@@ -439,6 +500,111 @@ public class HrzComponentViewServiceTests
 
     private sealed class EditFormBridgeModel
     {
+        public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class ValidationAuthoringSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new()
+        {
+            Email = "riley@example.com"
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationAuthoringModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationAuthoringModel>.FormName), "users-invite");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.Class), "form-custom");
+            builder.AddAttribute(6, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzValidationSummary>(0);
+                formBuilder.AddAttribute(1, nameof(HrzValidationSummary.Class), "summary-custom");
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField>(2);
+                formBuilder.AddAttribute(3, nameof(HrzField.For), (Expression<Func<string?>>)(() => _model.Email));
+                formBuilder.AddAttribute(4, nameof(HrzField.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.AddAttribute(1, nameof(HrzLabel.Class), "label-custom");
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzInputText>(2);
+                    fieldBuilder.AddAttribute(3, nameof(HrzInputText.Type), "email");
+                    fieldBuilder.AddAttribute(4, nameof(HrzInputText.Class), "input-custom");
+                    fieldBuilder.AddAttribute(5, nameof(HrzInputText.Placeholder), "name@example.com");
+                    fieldBuilder.AddAttribute(6, nameof(HrzInputText.Autocomplete), "email");
+                    fieldBuilder.AddAttribute(7, nameof(HrzInputText.InputMode), "email");
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(8);
+                    fieldBuilder.AddAttribute(9, nameof(HrzValidationMessage.Class), "message-custom");
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationAuthoringOverridesComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new();
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationAuthoringModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationAuthoringModel>.FormName), "override");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.EnableClientValidation), true);
+            builder.AddAttribute(6, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField.For), (Expression<Func<string?>>)(() => _model.DisplayName));
+                formBuilder.AddAttribute(2, nameof(HrzField.Live), false);
+                formBuilder.AddAttribute(3, nameof(HrzField.EnableClientValidation), false);
+                formBuilder.AddAttribute(4, nameof(HrzField.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputText>(1);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField>(5);
+                formBuilder.AddAttribute(6, nameof(HrzField.For), (Expression<Func<string?>>)(() => _model.Email));
+                formBuilder.AddAttribute(7, nameof(HrzField.LiveValidationPath), "/validation/email-live");
+                formBuilder.AddAttribute(8, nameof(HrzField.LiveSync), "closest form:queue last");
+                formBuilder.AddAttribute(9, nameof(HrzField.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputText>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputText.Type), "email");
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationAuthoringModel
+    {
+        [MinLength(3)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
     }
 

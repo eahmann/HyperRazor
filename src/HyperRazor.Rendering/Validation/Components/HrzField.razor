@@ -1,11 +1,14 @@
 @namespace HyperRazor.Components
 @using System.Linq.Expressions
+@using HyperRazor.Rendering
 
 <div class="@FieldClass">
     <CascadingValue Value="_fieldContext" IsFixed="true">
         @ChildContent
     </CascadingValue>
 </div>
+
+@implements IDisposable
 
 @code {
     [Parameter, EditorRequired]
@@ -30,6 +33,9 @@
     public string? LiveInclude { get; set; }
 
     [Parameter]
+    public string? LiveSync { get; set; }
+
+    [Parameter]
     public string? Class { get; set; }
 
     [Parameter]
@@ -39,6 +45,7 @@
     private HrzValidationFormContext? FormContext { get; set; }
 
     private HrzValidationFieldContext _fieldContext = default!;
+    private HrzFieldPath? _registeredFieldPath;
 
     private string FieldClass => string.Join(
         " ",
@@ -64,6 +71,32 @@
             Live,
             LiveValidationPath,
             LiveTrigger,
-            LiveInclude);
+            LiveInclude,
+            LiveSync);
+
+        if (_registeredFieldPath is not null && !_registeredFieldPath.Equals(_fieldContext.FieldPath))
+        {
+            FormContext.UnregisterField(_registeredFieldPath);
+        }
+
+        if (_fieldContext.HasLiveValidation)
+        {
+            FormContext.RegisterField(_fieldContext);
+            _registeredFieldPath = _fieldContext.FieldPath;
+        }
+        else if (_registeredFieldPath is not null)
+        {
+            FormContext.UnregisterField(_registeredFieldPath);
+            _registeredFieldPath = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (FormContext is not null && _registeredFieldPath is not null)
+        {
+            FormContext.UnregisterField(_registeredFieldPath);
+            _registeredFieldPath = null;
+        }
     }
 }

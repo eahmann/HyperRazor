@@ -233,6 +233,7 @@ Suggested public parameters:
 - `LiveValidationPath` default for fields
 - `LiveTrigger` default for fields, defaulting to the current runtime trigger
 - `LiveInclude` default for fields, defaulting to `closest form`
+- `LiveSync` default for fields, defaulting to `closest form:abort`
 - `AdditionalAttributes`
 
 Important v1 rule:
@@ -264,6 +265,7 @@ Suggested public parameters:
 - `LiveValidationPath` optional override
 - `LiveTrigger` optional override
 - `LiveInclude` optional override
+- `LiveSync` optional override
 - `Label` optional explicit text override
 - `AdditionalAttributes`
 
@@ -497,6 +499,7 @@ Proposal D must emit the current live-validation transport contract:
 - `hx-target`
 - `hx-swap`
 - `hx-include="closest form"` by default
+- `hx-sync="closest form:abort"` by default
 - `hx-vals` carrying `__hrz_root` and `__hrz_fields`
 - `hx-disinherit="hx-disabled-elt"` where needed to avoid submit-only inheritance bugs
 

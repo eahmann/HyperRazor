@@ -207,6 +207,78 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public async Task ServerSentEvents_UsesGlobalSseDefaultsWhenNoPerResultOverridesProvided()
+    {
+        var services = new ServiceCollection();
+        services.AddOptions<HrzSseOptions>()
+            .Configure(options =>
+            {
+                options.HeartbeatInterval = TimeSpan.FromMilliseconds(10);
+                options.HeartbeatComment = "global-heartbeat";
+                options.DisableProxyBuffering = false;
+            });
+
+        var context = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider()
+        };
+        context.Response.Body = new MemoryStream();
+
+        var result = HrzResults.ServerSentEvents(GetDelayedEvents());
+
+        await result.ExecuteAsync(context);
+
+        Assert.DoesNotContain(
+            context.Response.Headers.Keys,
+            key => string.Equals(key, "X-Accel-Buffering", StringComparison.OrdinalIgnoreCase));
+
+        context.Response.Body.Position = 0;
+        using var reader = new StreamReader(context.Response.Body);
+        var body = await reader.ReadToEndAsync();
+
+        Assert.Contains(": global-heartbeat", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ServerSentEvents_PerResultOverridesTakePrecedenceOverGlobalDefaults()
+    {
+        var services = new ServiceCollection();
+        services.AddOptions<HrzSseOptions>()
+            .Configure(options =>
+            {
+                options.HeartbeatInterval = TimeSpan.FromMilliseconds(10);
+                options.HeartbeatComment = "global-heartbeat";
+                options.DisableProxyBuffering = false;
+            });
+
+        var context = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider()
+        };
+        context.Response.Body = new MemoryStream();
+
+        var result = HrzResults.ServerSentEvents(
+            GetDelayedEvents(),
+            options: new HrzSseResultOptions
+            {
+                HeartbeatInterval = TimeSpan.FromMilliseconds(10),
+                HeartbeatComment = "per-result-heartbeat",
+                DisableProxyBuffering = true
+            });
+
+        await result.ExecuteAsync(context);
+
+        Assert.Equal("no", context.Response.Headers["X-Accel-Buffering"].ToString());
+
+        context.Response.Body.Position = 0;
+        using var reader = new StreamReader(context.Response.Body);
+        var body = await reader.ReadToEndAsync();
+
+        Assert.Contains(": per-result-heartbeat", body, StringComparison.Ordinal);
+        Assert.DoesNotContain(": global-heartbeat", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ServerSentEvents_AllowsResponseCustomization()
     {
         var context = new DefaultHttpContext

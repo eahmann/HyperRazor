@@ -128,6 +128,8 @@ app.MapGet("/validation", (HttpContext context, CancellationToken cancellationTo
     HrzResults.Page<ValidationPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/demos/sse", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<SsePage>(context, cancellationToken: cancellationToken));
+app.MapGet("/demos/sse/control-events", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<SseControlEventsPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/demos/notifications", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<NotificationsPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancellationToken) =>
@@ -138,6 +140,31 @@ app.MapGet("/demos/sse/stream", (
     IHrzSwapService swapService,
     CancellationToken cancellationToken) =>
     HrzResults.ServerSentEvents(StreamSseDemoAsync(context, sseRenderer, swapService, cancellationToken)));
+app.MapGet("/demos/sse/control-events/stream", (CancellationToken cancellationToken) =>
+    HrzResults.ServerSentEvents(StreamSseControlEventsDemoAsync(cancellationToken)));
+app.MapGet("/demos/sse/control-events/panels/{eventName}", async Task<IResult> (
+    HttpContext context,
+    string eventName,
+    CancellationToken cancellationToken) =>
+{
+    var panel = ResolveSseControlEventPanel(eventName);
+    if (panel is null)
+    {
+        return TypedResults.NotFound();
+    }
+
+    return await HrzResults.Partial<SseControlEventPanel>(
+        context,
+        new
+        {
+            panel.Id,
+            panel.EventName,
+            panel.Title,
+            panel.Detail,
+            panel.Tone
+        },
+        cancellationToken: cancellationToken);
+});
 app.MapGet("/demos/notifications/stream", (
     HttpContext context,
     IHrzSseRenderer sseRenderer,
@@ -503,6 +530,35 @@ static async IAsyncEnumerable<SseItem<string>> StreamNotificationsDemoAsync(
     yield return HrzSse.Done();
 }
 
+static async IAsyncEnumerable<SseItem<string>> StreamSseControlEventsDemoAsync(
+    [EnumeratorCancellation] CancellationToken cancellationToken)
+{
+    var frameDelay = TimeSpan.FromMilliseconds(650);
+
+    yield return HrzSse.Stale(
+        "Replay window expired. Fetch a fresh snapshot before resuming.",
+        id: "sse-control-stale");
+    await Task.Delay(frameDelay, cancellationToken);
+
+    yield return HrzSse.RateLimited(
+        "The server asked the client to back off before reconnecting.",
+        id: "sse-control-rate-limited",
+        retryAfter: TimeSpan.FromSeconds(6));
+    await Task.Delay(frameDelay, cancellationToken);
+
+    yield return HrzSse.Reset(
+        "Server state changed. Rebuild the affected UI from a clean snapshot.",
+        id: "sse-control-reset");
+    await Task.Delay(frameDelay, cancellationToken);
+
+    yield return HrzSse.Unauthorized(
+        "Session credentials expired. Reauthenticate before reconnecting.",
+        id: "sse-control-unauthorized");
+    await Task.Delay(frameDelay, cancellationToken);
+
+    yield return HrzSse.Done();
+}
+
 static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
 {
     var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
@@ -609,6 +665,38 @@ static RenderFragment BuildSummarySlotFragment(
     };
 }
 
+static SseControlEventPanelState? ResolveSseControlEventPanel(string eventName)
+{
+    return eventName switch
+    {
+        HrzSseEventNames.Stale => new SseControlEventPanelState(
+            Id: "sse-control-stale",
+            EventName: HrzSseEventNames.Stale,
+            Title: "Stale signal received",
+            Detail: "HTMX dispatched sse:stale and re-rendered this card through a normal fragment request.",
+            Tone: "warning"),
+        HrzSseEventNames.RateLimited => new SseControlEventPanelState(
+            Id: "sse-control-rate-limited",
+            EventName: HrzSseEventNames.RateLimited,
+            Title: "Rate-limited signal received",
+            Detail: "The server requested a slower reconnect cadence before this stream should be retried.",
+            Tone: "resume"),
+        HrzSseEventNames.Reset => new SseControlEventPanelState(
+            Id: "sse-control-reset",
+            EventName: HrzSseEventNames.Reset,
+            Title: "Reset signal received",
+            Detail: "This is where an app would rebuild the affected live region from a fresh server snapshot.",
+            Tone: "progress"),
+        HrzSseEventNames.Unauthorized => new SseControlEventPanelState(
+            Id: "sse-control-unauthorized",
+            EventName: HrzSseEventNames.Unauthorized,
+            Title: "Unauthorized signal received",
+            Detail: "This is where an app would route into reauthentication or a session-expired prompt.",
+            Tone: "warning"),
+        _ => null
+    };
+}
+
 app.Run();
 
 public partial class Program;
@@ -628,3 +716,10 @@ internal sealed record SseDemoStep(
     string Badge,
     string StatusTitle,
     string StatusDetail);
+
+internal sealed record SseControlEventPanelState(
+    string Id,
+    string EventName,
+    string Title,
+    string Detail,
+    string Tone);

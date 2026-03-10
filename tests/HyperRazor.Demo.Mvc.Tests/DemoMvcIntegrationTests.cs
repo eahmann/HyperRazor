@@ -110,6 +110,26 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task SseControlEventsRoute_ReturnsNamedEventHarnessMarkup()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/sse/control-events");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>SSE Control Events</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("hx-ext=\"sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-connect=\"/demos/sse/control-events/stream\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-close=\"done\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-trigger=\"sse:stale\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-trigger=\"sse:rate-limited\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-trigger=\"sse:reset\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-trigger=\"sse:unauthorized\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse/control-events/panels/stale\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task SseStream_ReturnsIncrementalHtmlWithOobAndDoneEvent()
     {
         using var client = CreateClient();
@@ -145,6 +165,66 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var doneEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);
         Assert.Contains("data: ", doneEvent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SseControlEventsStream_ReturnsNamedEventsInExpectedOrder()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/sse/control-events/stream");
+
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        var staleEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: sse-control-stale", staleEvent, StringComparison.Ordinal);
+        Assert.Contains("event: stale", staleEvent, StringComparison.Ordinal);
+        Assert.Contains("data: Replay window expired. Fetch a fresh snapshot before resuming.", staleEvent, StringComparison.Ordinal);
+
+        var rateLimitedEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: sse-control-rate-limited", rateLimitedEvent, StringComparison.Ordinal);
+        Assert.Contains("event: rate-limited", rateLimitedEvent, StringComparison.Ordinal);
+        Assert.Contains("retry: 6000", rateLimitedEvent, StringComparison.Ordinal);
+
+        var resetEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: sse-control-reset", resetEvent, StringComparison.Ordinal);
+        Assert.Contains("event: reset", resetEvent, StringComparison.Ordinal);
+
+        var unauthorizedEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: sse-control-unauthorized", unauthorizedEvent, StringComparison.Ordinal);
+        Assert.Contains("event: unauthorized", unauthorizedEvent, StringComparison.Ordinal);
+        Assert.Contains("data: Session credentials expired. Reauthenticate before reconnecting.", unauthorizedEvent, StringComparison.Ordinal);
+
+        var doneEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);
+        Assert.Contains("data: ", doneEvent, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("stale", "sse-control-stale", "Stale signal received")]
+    [InlineData("rate-limited", "sse-control-rate-limited", "Rate-limited signal received")]
+    [InlineData("reset", "sse-control-reset", "Reset signal received")]
+    [InlineData("unauthorized", "sse-control-unauthorized", "Unauthorized signal received")]
+    public async Task SseControlEventPanelRoute_ReturnsEventSpecificFragment(
+        string eventName,
+        string elementId,
+        string expectedTitle)
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync($"/demos/sse/control-events/panels/{eventName}");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains($"id=\"{elementId}\"", body, StringComparison.Ordinal);
+        Assert.Contains($"data-control-event=\"{eventName}\"", body, StringComparison.Ordinal);
+        Assert.Contains(expectedTitle, body, StringComparison.Ordinal);
+        Assert.Contains($"hx-trigger=\"sse:{eventName}\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -197,14 +277,19 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         await using var stream = await response.Content.ReadAsStreamAsync();
         using var reader = new StreamReader(stream);
 
-        var events = new List<string>();
-        for (var index = 0; index < 10; index++)
+        var firstEvent = await ReadEventBlockAsync(reader);
+        Assert.True(DateTimeOffset.UtcNow - startedAt < TimeSpan.FromSeconds(1));
+
+        var events = new List<string>
+        {
+            firstEvent
+        };
+
+        for (var index = 1; index < 10; index++)
         {
             events.Add(await ReadEventBlockAsync(reader));
         }
 
-        var firstEvent = events[0];
-        Assert.True(DateTimeOffset.UtcNow - startedAt < TimeSpan.FromSeconds(1));
         Assert.Contains("id: notif-01", firstEvent, StringComparison.Ordinal);
         Assert.Contains("New comment on deployment review", firstEvent, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);

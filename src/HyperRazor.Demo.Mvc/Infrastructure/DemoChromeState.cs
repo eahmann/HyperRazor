@@ -32,7 +32,9 @@ public sealed record DemoChromeState(
             || value == "/users"
             || value == "/validation"
             || value == "/demos/sse"
+            || value.StartsWith("/demos/sse/", StringComparison.OrdinalIgnoreCase)
             || value == "/demos/notifications"
+            || value.StartsWith("/demos/notifications/", StringComparison.OrdinalIgnoreCase)
             || value == "/access-requests"
             || value.StartsWith("/access-requests/", StringComparison.OrdinalIgnoreCase)
             || value == "/incidents"

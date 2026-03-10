@@ -1,0 +1,31 @@
+<section
+    id="@Id"
+    class="sse-status-card sse-status-card--@Tone sse-control-event-panel"
+    data-control-event="@EventName"
+    hx-get="@PanelPath"
+    hx-trigger="@($"sse:{EventName}")"
+    hx-target="this"
+    hx-swap="outerHTML">
+    <p class="app-kicker">@EventName</p>
+    <h4>@Title</h4>
+    <p class="mb-0">@Detail</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string EventName { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Detail { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Tone { get; set; } = "neutral";
+
+    private string PanelPath => $"/demos/sse/control-events/panels/{EventName}";
+}

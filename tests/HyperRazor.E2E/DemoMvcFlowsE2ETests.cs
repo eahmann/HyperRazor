@@ -300,6 +300,50 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task SseControlEventsPage_DispatchesNamedEventsIntoFollowUpFragmentRequests()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        var staleResponseTask = page.WaitForResponseAsync(response =>
+            response.Url.Contains("/demos/sse/control-events/panels/stale", StringComparison.Ordinal));
+        var rateLimitedResponseTask = page.WaitForResponseAsync(response =>
+            response.Url.Contains("/demos/sse/control-events/panels/rate-limited", StringComparison.Ordinal));
+        var resetResponseTask = page.WaitForResponseAsync(response =>
+            response.Url.Contains("/demos/sse/control-events/panels/reset", StringComparison.Ordinal));
+        var unauthorizedResponseTask = page.WaitForResponseAsync(response =>
+            response.Url.Contains("/demos/sse/control-events/panels/unauthorized", StringComparison.Ordinal));
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/demos/sse/control-events");
+        await WaitForHtmxAsync(page);
+
+        var staleResponse = await staleResponseTask;
+        Assert.Equal(200, staleResponse.Status);
+        await Assertions.Expect(page.Locator("#sse-control-stale")).ToContainTextAsync("Stale signal received");
+        await Assertions.Expect(page.Locator("#sse-control-stale")).ToContainTextAsync("HTMX dispatched sse:stale");
+
+        var rateLimitedResponse = await rateLimitedResponseTask;
+        Assert.Equal(200, rateLimitedResponse.Status);
+        await Assertions.Expect(page.Locator("#sse-control-rate-limited")).ToContainTextAsync("Rate-limited signal received");
+        await Assertions.Expect(page.Locator("#sse-control-rate-limited")).ToContainTextAsync("slower reconnect cadence");
+
+        var resetResponse = await resetResponseTask;
+        Assert.Equal(200, resetResponse.Status);
+        await Assertions.Expect(page.Locator("#sse-control-reset")).ToContainTextAsync("Reset signal received");
+        await Assertions.Expect(page.Locator("#sse-control-reset")).ToContainTextAsync("fresh server snapshot");
+
+        var unauthorizedResponse = await unauthorizedResponseTask;
+        Assert.Equal(200, unauthorizedResponse.Status);
+        await Assertions.Expect(page.Locator("#sse-control-unauthorized")).ToContainTextAsync("Unauthorized signal received");
+        await Assertions.Expect(page.Locator("#sse-control-unauthorized")).ToContainTextAsync("reauthentication");
+
+        await Assertions.Expect(page.Locator("#sse-control-grid .sse-control-event-panel")).ToHaveCountAsync(4);
+        await page.WaitForTimeoutAsync(900);
+    }
+
+    [SkippableFact]
     public async Task NotificationsDemoPage_StreamsTenNotesAndStopsAfterDone()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

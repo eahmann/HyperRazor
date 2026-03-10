@@ -3,6 +3,7 @@ using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System.Net.ServerSentEvents;
 
 namespace HyperRazor.Mvc;
@@ -209,7 +210,7 @@ public static class HrzResults
     private sealed class HrzServerSentEventsResult<T> : IResult
     {
         private readonly IAsyncEnumerable<SseItem<T>> _source;
-        private readonly HrzSseResultOptions _options;
+        private readonly HrzSseResultOptions? _options;
         private readonly Action<HttpResponse>? _configureResponse;
 
         public HrzServerSentEventsResult(
@@ -218,16 +219,18 @@ public static class HrzResults
             Action<HttpResponse>? configureResponse)
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
-            _options = options ?? new HrzSseResultOptions();
+            _options = options;
             _configureResponse = configureResponse;
         }
 
         public async Task ExecuteAsync(HttpContext httpContext)
         {
-            ApplyDefaultSseHeaders(httpContext.Response, _options);
+            var resolvedOptions = ResolveSseOptions(httpContext.RequestServices, _options);
+
+            ApplyDefaultSseHeaders(httpContext.Response, resolvedOptions);
             _configureResponse?.Invoke(httpContext.Response);
 
-            if (_options.HeartbeatInterval is null)
+            if (resolvedOptions.HeartbeatInterval is null)
             {
                 await TypedResults.ServerSentEvents(_source).ExecuteAsync(httpContext);
                 return;
@@ -238,14 +241,14 @@ public static class HrzResults
                 throw new InvalidOperationException("Heartbeat comments are only supported for string SSE streams.");
             }
 
-            await ExecuteWithHeartbeatsAsync(httpContext);
+            await ExecuteWithHeartbeatsAsync(httpContext, resolvedOptions);
         }
 
-        private async Task ExecuteWithHeartbeatsAsync(HttpContext httpContext)
+        private async Task ExecuteWithHeartbeatsAsync(HttpContext httpContext, HrzSseOptions options)
         {
             var cancellationToken = httpContext.RequestAborted;
             var response = httpContext.Response;
-            var heartbeatInterval = _options.HeartbeatInterval ?? throw new InvalidOperationException("A heartbeat interval is required.");
+            var heartbeatInterval = options.HeartbeatInterval ?? throw new InvalidOperationException("A heartbeat interval is required.");
 
             response.StatusCode = StatusCodes.Status200OK;
             response.ContentType ??= "text/event-stream";
@@ -261,7 +264,7 @@ public static class HrzResults
 
                 if (completed == heartbeatDelay)
                 {
-                    await HrzSse.WriteCommentAsync(response.Body, _options.HeartbeatComment, cancellationToken);
+                    await HrzSse.WriteCommentAsync(response.Body, options.HeartbeatComment, cancellationToken);
                     await response.Body.FlushAsync(cancellationToken);
                     continue;
                 }
@@ -284,7 +287,19 @@ public static class HrzResults
         }
     }
 
-    private static void ApplyDefaultSseHeaders(HttpResponse response, HrzSseResultOptions options)
+    private static HrzSseOptions ResolveSseOptions(IServiceProvider services, HrzSseResultOptions? overrides)
+    {
+        var defaults = services.GetService<IOptions<HrzSseOptions>>()?.Value ?? new HrzSseOptions();
+
+        return new HrzSseOptions
+        {
+            HeartbeatInterval = overrides?.HeartbeatInterval ?? defaults.HeartbeatInterval,
+            HeartbeatComment = overrides?.HeartbeatComment ?? defaults.HeartbeatComment,
+            DisableProxyBuffering = overrides?.DisableProxyBuffering ?? defaults.DisableProxyBuffering
+        };
+    }
+
+    private static void ApplyDefaultSseHeaders(HttpResponse response, HrzSseOptions options)
     {
         if (options.DisableProxyBuffering)
         {

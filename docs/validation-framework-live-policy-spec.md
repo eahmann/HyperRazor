@@ -138,7 +138,7 @@ Current implemented behavior:
 
 - live inputs use `hx-include="closest form"` in `UserInviteValidationForm.razor`
 - the server binds the full model during `/validation/live`
-- `validation-live.js` blocks requests during local invalid states
+- `hyperrazor.validation.js` blocks requests during local invalid states
 - the response patches server-owned field slots and summary slots
 
 Current gap:

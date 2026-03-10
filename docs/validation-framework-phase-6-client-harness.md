@@ -310,7 +310,7 @@ This allows:
 
 Replace the current demo-local hard-coded logic in:
 
-- [validation-live.js](/home/eric/repos/HyperRazor/src/HyperRazor.Demo.Mvc/wwwroot/validation-live.js)
+- [hyperrazor.validation.js](/mnt/c/Users/ahmanne/.codex/worktrees/00ad/HyperRazor/src/HyperRazor.Client/wwwroot/hyperrazor.validation.js)
 
 with a generic rule registry and generic `data-*` selectors.
 

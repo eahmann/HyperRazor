@@ -70,6 +70,7 @@ builder.Services.AddHtmx(htmx =>
     ];
 });
 builder.Services.AddSingleton<IInviteValidationBackend, DemoInviteValidationBackend>();
+builder.Services.AddSingleton<IHrzLiveValidationPolicyResolver, DemoInviteLiveValidationPolicyResolver>();
 
 var app = builder.Build();
 
@@ -267,6 +268,7 @@ app.MapPost("/validation/minimal/proxy", async (
 app.MapPost("/validation/live", async (
     HttpContext context,
     IAntiforgery antiforgery,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
     CancellationToken cancellationToken) =>
 {
     await antiforgery.ValidateRequestAsync(context);
@@ -289,25 +291,72 @@ app.MapPost("/validation/live", async (
         return Results.NoContent();
     }
 
-    var livePatch = BuildInviteLiveValidationPatch(scope, formPostState.Model);
-    if (livePatch is null)
+    var primaryPolicy = await livePolicyResolver.ResolveAsync(
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+    var resolvedPolicies = await ResolveLivePoliciesAsync(
+        livePolicyResolver,
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        primaryPolicy,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+
+    if (!primaryPolicy.Enabled)
     {
-        return Results.NoContent();
+        var disabledFragments = new List<RenderFragment>
+        {
+            BuildFieldSlotFragment(form, primaryField, Array.Empty<string>(), swapOob: false)
+        };
+
+        foreach (var resolvedPolicy in resolvedPolicies)
+        {
+            disabledFragments.Add(BuildLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+        }
+
+        foreach (var clearField in primaryPolicy.ClearFields
+                     .Distinct()
+                     .Where(field => !field.Equals(primaryField)))
+        {
+            disabledFragments.Add(BuildFieldSlotFragment(form, clearField, Array.Empty<string>(), swapOob: true));
+        }
+
+        if (primaryPolicy.ReplaceSummaryWhenDisabled)
+        {
+            disabledFragments.Add(BuildSummarySlotFragment(form, Array.Empty<string>(), swapOob: true));
+        }
+
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-live-policy-disabled",
+            details: $"Live policy blocked {primaryField.Value} and cleared {string.Join(", ", primaryPolicy.ClearFields.Select(static field => field.Value))}.");
+
+        return await HrzResults.Partial(context, cancellationToken, disabledFragments.ToArray());
     }
 
+    var livePatch = BuildInviteLiveValidationPatch(scope, primaryField, formPostState.Model, resolvedPolicies);
     var fragments = new List<RenderFragment>
     {
-        BuildFieldSlotFragment(form, primaryField, livePatch, swapOob: false)
+        BuildFieldSlotFragment(form, primaryField, GetFieldErrors(livePatch, primaryField), swapOob: false)
     };
+
+    foreach (var resolvedPolicy in resolvedPolicies)
+    {
+        fragments.Add(BuildLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+    }
 
     foreach (var affectedField in livePatch.AffectedFields.Where(field => !field.Equals(primaryField)))
     {
-        fragments.Add(BuildFieldSlotFragment(form, affectedField, livePatch, swapOob: true));
+        fragments.Add(BuildFieldSlotFragment(form, affectedField, GetFieldErrors(livePatch, affectedField), swapOob: true));
     }
 
     if (livePatch.ReplaceSummary)
     {
-        fragments.Add(BuildSummarySlotFragment(form, livePatch, swapOob: true));
+        fragments.Add(BuildSummarySlotFragment(form, livePatch.SummaryErrors, swapOob: true));
     }
 
     DemoInspectorUpdates.Queue(
@@ -335,85 +384,114 @@ static HrzFieldPath? ResolvePrimaryField(HrzValidationScope scope)
             || field.Equals(UserInviteValidationForm.DisplayNamePath));
 }
 
-static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
+static async Task<IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy>> ResolveLivePoliciesAsync(
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    InviteUserInput input,
+    HrzValidationRootId rootId,
+    HrzFieldPath primaryField,
+    HrzLiveValidationPolicy primaryPolicy,
+    IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,
+    CancellationToken cancellationToken)
 {
-    var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
-    var validatesDisplayName = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.DisplayNamePath);
-    if (!validatesEmail && !validatesDisplayName)
+    var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>
     {
-        return null;
+        [primaryField] = primaryPolicy
+    };
+
+    foreach (var affectedField in primaryPolicy.AffectedFields.Where(field => !field.Equals(primaryField)).Distinct())
+    {
+        policies[affectedField] = await livePolicyResolver.ResolveAsync(
+            input,
+            rootId,
+            affectedField,
+            attemptedValues,
+            cancellationToken);
     }
 
+    return policies;
+}
+
+static HrzLiveValidationPatch BuildInviteLiveValidationPatch(
+    HrzValidationScope scope,
+    HrzFieldPath primaryField,
+    InviteUserInput input,
+    IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> resolvedPolicies)
+{
+    var primaryPolicy = resolvedPolicies[primaryField];
+    var affectedFields = primaryPolicy.AffectedFields
+        .Append(primaryField)
+        .Distinct()
+        .ToArray();
+    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
+    var summaryErrors = new List<string>();
     var email = input.Email?.Trim();
     var displayName = input.DisplayName?.Trim();
     var requiresTeamDisplayName = string.Equals(email, "shared-mailbox@example.com", StringComparison.OrdinalIgnoreCase);
-    if ((validatesEmail && string.IsNullOrWhiteSpace(email))
-        || (requiresTeamDisplayName && string.IsNullOrWhiteSpace(displayName)))
+
+    foreach (var field in affectedFields)
     {
-        return null;
-    }
-
-    var affectedFields = new List<HrzFieldPath>();
-    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
-    var summaryErrors = new List<string>();
-
-    if (validatesEmail)
-    {
-        affectedFields.Add(UserInviteValidationForm.EmailPath);
-        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
-
-        var emailErrors = string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
-            ? new[] { "Email already exists in the upstream directory." }
-            : Array.Empty<string>();
-        fieldErrors[UserInviteValidationForm.EmailPath] = emailErrors;
-
-        if (emailErrors.Length > 0)
+        if (field.Equals(UserInviteValidationForm.EmailPath))
         {
-            summaryErrors.Add("Backend would reject this invite on submit.");
+            var emailErrors = resolvedPolicies[field].Enabled
+                && !string.IsNullOrWhiteSpace(email)
+                && string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
+                ? new[] { "Email already exists in the upstream directory." }
+                : Array.Empty<string>();
+            fieldErrors[field] = emailErrors;
+
+            if (emailErrors.Length > 0)
+            {
+                summaryErrors.Add("Backend would reject this invite on submit.");
+            }
         }
-    }
 
-    if (validatesDisplayName || validatesEmail)
-    {
-        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
-
-        var displayNameErrors = requiresTeamDisplayName
-            && !displayName!.Contains("team", StringComparison.OrdinalIgnoreCase)
-            ? new[] { "Shared mailbox invites must use a team display name." }
-            : Array.Empty<string>();
-        fieldErrors[UserInviteValidationForm.DisplayNamePath] = displayNameErrors;
-
-        if (displayNameErrors.Length > 0)
+        if (field.Equals(UserInviteValidationForm.DisplayNamePath))
         {
-            summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
-        }
-    }
+            var displayNameErrors = resolvedPolicies[field].Enabled
+                && requiresTeamDisplayName
+                && IsEligibleForDisplayNameServerValidation(displayName)
+                && !displayName!.Contains("team", StringComparison.OrdinalIgnoreCase)
+                ? new[] { "Shared mailbox invites must use a team display name." }
+                : Array.Empty<string>();
+            fieldErrors[field] = displayNameErrors;
 
-    if (!fieldErrors.ContainsKey(UserInviteValidationForm.EmailPath) && validatesDisplayName)
-    {
-        fieldErrors[UserInviteValidationForm.EmailPath] = Array.Empty<string>();
+            if (displayNameErrors.Length > 0)
+            {
+                summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
+            }
+        }
     }
 
     return new HrzLiveValidationPatch(
         scope.RootId,
-        affectedFields.Distinct().ToArray(),
+        affectedFields,
         fieldErrors,
         ReplaceSummary: true,
         SummaryErrors: summaryErrors);
 }
 
+static bool IsEligibleForDisplayNameServerValidation(string? displayName)
+{
+    return !string.IsNullOrWhiteSpace(displayName)
+        && displayName.Trim().Length >= 3;
+}
+
+static IReadOnlyList<string> GetFieldErrors(HrzLiveValidationPatch patch, HrzFieldPath fieldPath)
+{
+    return patch.FieldErrors.TryGetValue(fieldPath, out var messages)
+        ? messages
+        : Array.Empty<string>();
+}
+
 static RenderFragment BuildFieldSlotFragment(
     InviteValidationFormViewModel form,
     HrzFieldPath fieldPath,
-    HrzLiveValidationPatch patch,
+    IReadOnlyList<string> errors,
     bool swapOob)
 {
     var slotId = fieldPath.Equals(UserInviteValidationForm.DisplayNamePath)
-        ? $"{form.IdPrefix}-display-name-server"
-        : $"{form.IdPrefix}-email-server";
-    var errors = patch.FieldErrors.TryGetValue(fieldPath, out var messages)
-        ? messages
-        : Array.Empty<string>();
+        ? UserInviteValidationForm.GetDisplayNameServerId(form.IdPrefix)
+        : UserInviteValidationForm.GetEmailServerId(form.IdPrefix);
 
     return builder =>
     {
@@ -428,15 +506,36 @@ static RenderFragment BuildFieldSlotFragment(
 
 static RenderFragment BuildSummarySlotFragment(
     InviteValidationFormViewModel form,
-    HrzLiveValidationPatch patch,
+    IReadOnlyList<string> errors,
     bool swapOob)
 {
     return builder =>
     {
         builder.OpenComponent<ValidationServerSummarySlot>(0);
-        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), $"{form.IdPrefix}-server-summary");
-        builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), patch.SummaryErrors);
+        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), errors);
         builder.AddAttribute(3, nameof(ValidationServerSummarySlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildLivePolicyCarrierFragment(
+    InviteValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    HrzLiveValidationPolicy policy,
+    bool swapOob)
+{
+    var carrierId = fieldPath.Equals(UserInviteValidationForm.DisplayNamePath)
+        ? UserInviteValidationForm.GetDisplayNameLivePolicyId(form.IdPrefix)
+        : UserInviteValidationForm.GetEmailLivePolicyId(form.IdPrefix);
+
+    return builder =>
+    {
+        builder.OpenComponent<ValidationLivePolicyCarrier>(0);
+        builder.AddAttribute(1, nameof(ValidationLivePolicyCarrier.Id), carrierId);
+        builder.AddAttribute(2, nameof(ValidationLivePolicyCarrier.Policy), policy);
+        builder.AddAttribute(3, nameof(ValidationLivePolicyCarrier.SummarySlotId), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(4, nameof(ValidationLivePolicyCarrier.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }

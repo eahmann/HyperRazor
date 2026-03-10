@@ -479,7 +479,7 @@ In practical terms, replace:
 
 - manual field-path authoring
 - manual slot wiring
-- demo-specific `validation-live.js`
+- the current low-level `hyperrazor.validation.js` harness
 - per-controller validation-state glue
 
 Retain or evolve:

@@ -74,6 +74,12 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("data-hrz-validation-root=\"validation-mvc-proxy\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-local\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-proxy\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-live-policies\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-email-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-policy-id=\"validation-minimal-proxy-email-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-immediate-recheck-when-enabled=\"true\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -697,6 +703,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("validation-live", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -704,7 +711,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task LiveValidation_WithMissingEmail_ReturnsNoContent()
+    public async Task LiveValidation_WithMissingEmail_ReturnsClearFragments()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
@@ -720,8 +727,13 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         });
 
         var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -746,6 +758,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-immediate-recheck-when-enabled=\"true\"", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites need a team display name before the backend will accept them.", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -753,7 +767,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task LiveValidation_WithMissingDisplayNameDependency_ReturnsNoContent()
+    public async Task LiveValidation_WithMissingDisplayNameDependency_ReturnsCarrierUpdateAndClearFragments()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
@@ -769,8 +783,41 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         });
 
         var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"true\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LiveValidation_DisplayNameScope_WhenPolicyIsDisabled_ReturnsClearsAndCarrierOob()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Team Inbox",
+            ["email"] = "riley@example.com",
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.DisplayNamePath.Value
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-live-policy-disabled", body, StringComparison.Ordinal);
     }
 
     [Fact]

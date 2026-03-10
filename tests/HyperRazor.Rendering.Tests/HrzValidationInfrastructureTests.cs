@@ -108,6 +108,27 @@ public class HrzValidationInfrastructureTests
             field => Assert.Equal("Email", field.Value));
     }
 
+    [Fact]
+    public async Task DefaultLiveValidationPolicyResolver_PreservesAlwaysArmedBehavior()
+    {
+        var services = CreateServices();
+        using var scope = services.CreateScope();
+        var resolver = scope.ServiceProvider.GetRequiredService<IHrzLiveValidationPolicyResolver>();
+
+        var policy = await resolver.ResolveAsync(
+            new InviteLikeFormModel(),
+            new HrzValidationRootId("invite-live"),
+            HrzFieldPaths.FromFieldName(nameof(InviteLikeFormModel.Email)),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>());
+
+        Assert.True(policy.Enabled);
+        Assert.Empty(policy.DependsOn);
+        Assert.Empty(policy.AffectedFields);
+        Assert.Empty(policy.ClearFields);
+        Assert.False(policy.ReplaceSummaryWhenDisabled);
+        Assert.False(policy.ImmediateRecheckWhenEnabled);
+    }
+
     private static ServiceProvider CreateServices()
     {
         var services = new ServiceCollection();

@@ -22,7 +22,7 @@ HyperRazor already has a credible validation runtime:
 The `/validation` harness in `HyperRazor.Demo.Mvc` proves that stack end-to-end. In particular:
 
 - `UserInviteValidationForm.razor` shows the current authoring model for local validation, server live validation, and submit rerendering
-- `validation-live.js` gates live HTMX requests when local rules fail
+- `hyperrazor.validation.js` gates live HTMX requests when local rules fail
 - `/validation/live` in `Program.cs` computes a server patch or returns a no-op
 
 That means the runtime is not the weak point anymore. DX is.
@@ -170,7 +170,7 @@ The server still owns the policy decision. The client only enforces the already-
 ### Required refactor
 
 - add a policy abstraction beside `HrzValidationScope` and `HrzLiveValidationPatch`
-- replace `validation-live.js` special-casing with a generic registry-based harness
+- replace `hyperrazor.validation.js` special-casing with a generic registry-based harness
 - add helper APIs or small wrapper controls so app code does not assemble live metadata manually
 
 ### Proposed DOM contract

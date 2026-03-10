@@ -6,7 +6,6 @@ namespace HyperRazor.Rendering;
 
 public static class HrzSse
 {
-    private const string DefaultCloseEventType = "done";
     private const string DefaultHeartbeatComment = "keep-alive";
 
     /// <summary>
@@ -38,6 +37,18 @@ public static class HrzSse
     }
 
     /// <summary>
+    /// Creates a named SSE control event using HyperRazor's canonical event names.
+    /// </summary>
+    public static SseItem<string> Named(
+        HrzSseControlEvent controlEvent,
+        string data,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return Named(controlEvent.ToEventName(), data, id, retryAfter);
+    }
+
+    /// <summary>
     /// Creates a blank-data named signal event.
     /// </summary>
     public static SseItem<string> Signal(
@@ -54,20 +65,63 @@ public static class HrzSse
     }
 
     /// <summary>
+    /// Creates a blank-data named control event using HyperRazor's canonical event names.
+    /// </summary>
+    public static SseItem<string> Signal(
+        HrzSseControlEvent controlEvent,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return Signal(controlEvent.ToEventName(), id, retryAfter);
+    }
+
+    /// <summary>
     /// Creates HyperRazor's canonical SSE close signal.
     /// </summary>
     public static SseItem<string> Done(
         string? id = null,
         TimeSpan? retryAfter = null)
     {
-        return Close(DefaultCloseEventType, id, retryAfter);
+        return Signal(HrzSseControlEvent.Done, id, retryAfter);
+    }
+
+    public static SseItem<string> Unauthorized(
+        string? detail = null,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return CreateControlEvent(HrzSseControlEvent.Unauthorized, detail, id, retryAfter);
+    }
+
+    public static SseItem<string> Stale(
+        string? detail = null,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return CreateControlEvent(HrzSseControlEvent.Stale, detail, id, retryAfter);
+    }
+
+    public static SseItem<string> RateLimited(
+        string? detail = null,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return CreateControlEvent(HrzSseControlEvent.RateLimited, detail, id, retryAfter);
+    }
+
+    public static SseItem<string> Reset(
+        string? detail = null,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return CreateControlEvent(HrzSseControlEvent.Reset, detail, id, retryAfter);
     }
 
     /// <summary>
     /// Creates a blank-data close event that still dispatches in compliant SSE clients.
     /// </summary>
     public static SseItem<string> Close(
-        string eventType = DefaultCloseEventType,
+        string eventType = HrzSseEventNames.Done,
         string? id = null,
         TimeSpan? retryAfter = null)
     {
@@ -138,6 +192,17 @@ public static class HrzSse
         };
 
         return item;
+    }
+
+    private static SseItem<string> CreateControlEvent(
+        HrzSseControlEvent controlEvent,
+        string? detail,
+        string? id,
+        TimeSpan? retryAfter)
+    {
+        return string.IsNullOrEmpty(detail)
+            ? Signal(controlEvent, id, retryAfter)
+            : Named(controlEvent, detail, id, retryAfter);
     }
 
     private static bool ContainsLineBreak(string? value)

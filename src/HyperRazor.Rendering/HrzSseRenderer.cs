@@ -44,6 +44,22 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
     }
 
     public Task<SseItem<string>> RenderComponent<TComponent>(
+        object? data,
+        HrzSseControlEvent controlEvent,
+        string? id = null,
+        TimeSpan? retryAfter = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        return RenderComponent<TComponent>(
+            HrzParameterDictionaryFactory.Create(data),
+            controlEvent,
+            id,
+            retryAfter,
+            cancellationToken);
+    }
+
+    public Task<SseItem<string>> RenderComponent<TComponent>(
         IReadOnlyDictionary<string, object?> data,
         string? eventType = null,
         string? id = null,
@@ -60,6 +76,24 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
             id: id,
             retryAfter: retryAfter,
             cancellationToken: cancellationToken);
+    }
+
+    public Task<SseItem<string>> RenderComponent<TComponent>(
+        IReadOnlyDictionary<string, object?> data,
+        HrzSseControlEvent controlEvent,
+        string? id = null,
+        TimeSpan? retryAfter = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        return RenderComponent<TComponent>(
+            data,
+            controlEvent.ToEventName(),
+            id,
+            retryAfter,
+            cancellationToken);
     }
 
     public Task<SseItem<string>> RenderFragments(
@@ -81,6 +115,21 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
             id: id,
             retryAfter: retryAfter,
             cancellationToken: cancellationToken);
+    }
+
+    public Task<SseItem<string>> RenderFragments(
+        HrzSseControlEvent controlEvent,
+        string? id = null,
+        TimeSpan? retryAfter = null,
+        CancellationToken cancellationToken = default,
+        params RenderFragment[] fragments)
+    {
+        return RenderFragments(
+            controlEvent.ToEventName(),
+            id,
+            retryAfter,
+            cancellationToken,
+            fragments);
     }
 
     private async Task<SseItem<string>> RenderHostMessageAsync(

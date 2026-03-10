@@ -23,6 +23,16 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public void ControlEventNames_AreCanonical()
+    {
+        Assert.Equal(HrzSseEventNames.Done, HrzSseControlEvent.Done.ToEventName());
+        Assert.Equal(HrzSseEventNames.Unauthorized, HrzSseControlEvent.Unauthorized.ToEventName());
+        Assert.Equal(HrzSseEventNames.Stale, HrzSseControlEvent.Stale.ToEventName());
+        Assert.Equal(HrzSseEventNames.RateLimited, HrzSseControlEvent.RateLimited.ToEventName());
+        Assert.Equal(HrzSseEventNames.Reset, HrzSseControlEvent.Reset.ToEventName());
+    }
+
+    [Fact]
     public void Named_CreatesNamedEventWithMetadata()
     {
         var item = HrzSse.Named(
@@ -38,6 +48,19 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public void Named_WithControlEvent_UsesCanonicalEventName()
+    {
+        var item = HrzSse.Named(
+            HrzSseControlEvent.Stale,
+            "{}",
+            id: "evt-stale");
+
+        Assert.Equal(HrzSseEventNames.Stale, item.EventType);
+        Assert.Equal("evt-stale", item.EventId);
+        Assert.Equal("{}", item.Data);
+    }
+
+    [Fact]
     public void Signal_CreatesBlankDataNamedEvent()
     {
         var item = HrzSse.Signal("stale", id: "evt-3");
@@ -48,13 +71,47 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public void Signal_WithControlEvent_UsesCanonicalEventName()
+    {
+        var item = HrzSse.Signal(HrzSseControlEvent.Reset, id: "evt-reset");
+
+        Assert.Equal(HrzSseEventNames.Reset, item.EventType);
+        Assert.Equal("evt-reset", item.EventId);
+        Assert.Equal(string.Empty, item.Data);
+    }
+
+    [Fact]
     public void Done_CreatesCanonicalCloseEvent()
     {
         var item = HrzSse.Done(id: "evt-done");
 
-        Assert.Equal("done", item.EventType);
+        Assert.Equal(HrzSseEventNames.Done, item.EventType);
         Assert.Equal("evt-done", item.EventId);
         Assert.Equal(string.Empty, item.Data);
+    }
+
+    [Fact]
+    public void Unauthorized_WithoutDetail_UsesBlankSignal()
+    {
+        var item = HrzSse.Unauthorized(id: "evt-auth");
+
+        Assert.Equal(HrzSseEventNames.Unauthorized, item.EventType);
+        Assert.Equal("evt-auth", item.EventId);
+        Assert.Equal(string.Empty, item.Data);
+    }
+
+    [Fact]
+    public void RateLimited_WithDetail_PreservesDataAndRetryAfter()
+    {
+        var item = HrzSse.RateLimited(
+            "back off",
+            id: "evt-rate",
+            retryAfter: TimeSpan.FromSeconds(12));
+
+        Assert.Equal(HrzSseEventNames.RateLimited, item.EventType);
+        Assert.Equal("evt-rate", item.EventId);
+        Assert.Equal(TimeSpan.FromSeconds(12), item.ReconnectionInterval);
+        Assert.Equal("back off", item.Data);
     }
 
     [Fact]

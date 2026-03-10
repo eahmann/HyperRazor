@@ -54,6 +54,24 @@ public sealed class HrzSseRendererTests
     }
 
     [Fact]
+    public async Task RenderComponent_WithControlEvent_UsesCanonicalNamedEvent()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var item = await fixture.SseRenderer.RenderComponent<GreetingComponent>(
+            new { Name = "Ava" },
+            HrzSseControlEvent.Stale,
+            id: "evt-stale",
+            retryAfter: TimeSpan.FromSeconds(4));
+
+        Assert.Equal(HrzSseEventNames.Stale, item.EventType);
+        Assert.Equal("evt-stale", item.EventId);
+        Assert.Equal(TimeSpan.FromSeconds(4), item.ReconnectionInterval);
+        Assert.Contains("Hello Ava", item.Data, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RenderComponent_WhenCalledRepeatedly_IncludesOobContentEachTime()
     {
         await using var fixture = await CreateFixtureAsync();
@@ -66,6 +84,30 @@ public sealed class HrzSseRendererTests
         Assert.Contains("id=\"queued-status\"", first.Data, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=", second.Data, StringComparison.Ordinal);
         Assert.Contains("id=\"queued-status\"", second.Data, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RenderFragments_WithControlEvent_UsesCanonicalNamedEvent()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var item = await fixture.SseRenderer.RenderFragments(
+            HrzSseControlEvent.Reset,
+            id: "evt-reset",
+            fragments:
+            [
+                builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.AddContent(1, "Fragment body");
+                    builder.CloseElement();
+                }
+            ]);
+
+        Assert.Equal(HrzSseEventNames.Reset, item.EventType);
+        Assert.Equal("evt-reset", item.EventId);
+        Assert.Contains("Fragment body", item.Data, StringComparison.Ordinal);
     }
 
     [Fact]

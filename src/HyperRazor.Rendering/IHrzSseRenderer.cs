@@ -14,6 +14,14 @@ public interface IHrzSseRenderer
         where TComponent : IComponent;
 
     Task<SseItem<string>> RenderComponent<TComponent>(
+        object? data,
+        HrzSseControlEvent controlEvent,
+        string? id = null,
+        TimeSpan? retryAfter = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent;
+
+    Task<SseItem<string>> RenderComponent<TComponent>(
         IReadOnlyDictionary<string, object?> data,
         string? eventType = null,
         string? id = null,
@@ -21,8 +29,23 @@ public interface IHrzSseRenderer
         CancellationToken cancellationToken = default)
         where TComponent : IComponent;
 
+    Task<SseItem<string>> RenderComponent<TComponent>(
+        IReadOnlyDictionary<string, object?> data,
+        HrzSseControlEvent controlEvent,
+        string? id = null,
+        TimeSpan? retryAfter = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent;
+
     Task<SseItem<string>> RenderFragments(
         string? eventType = null,
+        string? id = null,
+        TimeSpan? retryAfter = null,
+        CancellationToken cancellationToken = default,
+        params RenderFragment[] fragments);
+
+    Task<SseItem<string>> RenderFragments(
+        HrzSseControlEvent controlEvent,
         string? id = null,
         TimeSpan? retryAfter = null,
         CancellationToken cancellationToken = default,

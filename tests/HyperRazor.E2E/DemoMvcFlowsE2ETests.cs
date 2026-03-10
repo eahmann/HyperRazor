@@ -271,6 +271,35 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task SseDemoPage_StreamsHtmlAndStopsAfterDone()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/demos/sse");
+        await WaitForHtmxAsync(page);
+
+        var cards = page.Locator("#sse-live-feed .sse-event-card");
+
+        await Assertions.Expect(cards).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("#sse-stream-status")).ToContainTextAsync("Stream connected");
+        await Assertions.Expect(page.Locator("#sse-last-event-id")).ToContainTextAsync("Fresh Stream");
+
+        await Assertions.Expect(cards).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#sse-stream-status")).ToContainTextAsync("Secondary target updated");
+
+        await Assertions.Expect(cards).ToHaveCountAsync(3);
+        await Assertions.Expect(page.Locator("#sse-stream-status")).ToContainTextAsync("Closed cleanly");
+
+        await page.WaitForTimeoutAsync(1200);
+
+        Assert.Equal(3, await cards.CountAsync());
+        await Assertions.Expect(page.Locator("#sse-live-feed")).ToContainTextAsync("Graceful shutdown prepared");
+    }
+
+    [SkippableFact]
     public async Task AppNav_BoostedLinks_SwapAcrossAdminAndWorkbenchLayouts()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

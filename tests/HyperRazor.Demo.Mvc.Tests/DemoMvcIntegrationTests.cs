@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Demo.Mvc.Models;
@@ -31,6 +32,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("href=\"/\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/users\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/validation\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/sse\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/access-requests\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/incidents\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/settings/branding\"", body, StringComparison.Ordinal);
@@ -88,6 +90,75 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("<h2>Branding Settings</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"head-demo-form\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-post=\"/fragments/settings/branding\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SseRoute_ReturnsExplicitSseMarkup()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/sse");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>SSE Live Feed</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("hx-ext=\"sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-connect=\"/demos/sse/stream\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-close=\"done\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-swap=\"message\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SseStream_ReturnsIncrementalHtmlWithOobAndDoneEvent()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/sse/stream");
+
+        var startedAt = DateTimeOffset.UtcNow;
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        var firstEvent = await ReadEventBlockAsync(reader);
+        Assert.True(DateTimeOffset.UtcNow - startedAt < TimeSpan.FromSeconds(1));
+        Assert.Contains("id: sse-demo-1", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("Connection established", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("No Last-Event-ID header was supplied on this connection.", firstEvent, StringComparison.Ordinal);
+
+        var secondEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: sse-demo-2", secondEvent, StringComparison.Ordinal);
+        Assert.Contains("Out-of-band update applied", secondEvent, StringComparison.Ordinal);
+
+        var thirdEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: sse-demo-3", thirdEvent, StringComparison.Ordinal);
+        Assert.Contains("Closed cleanly", thirdEvent, StringComparison.Ordinal);
+
+        var doneEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);
+        Assert.Contains("data: ", doneEvent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SseStream_WithLastEventId_RendersResumeDetails()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/sse/stream");
+        request.Headers.Add("Last-Event-ID", "sse-demo-2");
+
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+        var firstEvent = await ReadEventBlockAsync(reader);
+
+        Assert.Contains("Reconnect requested from event sse-demo-2.", firstEvent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1028,6 +1099,24 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.True(end > start, $"Expected meta tag '{metaName}' content value.");
 
         return html[start..end];
+    }
+
+    private static async Task<string> ReadEventBlockAsync(StreamReader reader)
+    {
+        var builder = new StringBuilder();
+
+        while (true)
+        {
+            var line = await reader.ReadLineAsync();
+            Assert.NotNull(line);
+
+            if (line.Length == 0)
+            {
+                return builder.ToString();
+            }
+
+            builder.AppendLine(line);
+        }
     }
 
     private sealed class SpyInviteValidationBackend : IInviteValidationBackend

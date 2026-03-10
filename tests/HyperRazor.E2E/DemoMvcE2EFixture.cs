@@ -9,6 +9,7 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
     private const string Host = "127.0.0.1";
     private const int Port = 5076;
     private const string DefaultBrowserCachePath = "/tmp/ms-playwright";
+    private const string WindowsDotnetPath = "/mnt/c/Program Files/dotnet/dotnet.exe";
 
     private readonly StringBuilder _serverOutput = new();
     private Process? _serverProcess;
@@ -92,7 +93,7 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = "dotnet",
+            FileName = ResolveDotnetCommand(),
             Arguments = $"run --project \"{projectPath}\" --urls {BaseUrl}",
             WorkingDirectory = repositoryRoot,
             RedirectStandardOutput = true,
@@ -169,6 +170,17 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
     {
         var configured = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH");
         return string.IsNullOrWhiteSpace(configured) ? DefaultBrowserCachePath : configured;
+    }
+
+    private static string ResolveDotnetCommand()
+    {
+        var configured = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        return File.Exists(WindowsDotnetPath) ? WindowsDotnetPath : "dotnet";
     }
 
     private static bool IsCi()

@@ -31,6 +31,7 @@ public sealed record DemoChromeState(
         return value == "/"
             || value == "/users"
             || value == "/validation"
+            || value == "/demos/sse"
             || value == "/access-requests"
             || value.StartsWith("/access-requests/", StringComparison.OrdinalIgnoreCase)
             || value == "/incidents"
@@ -131,6 +132,11 @@ public sealed record DemoChromeState(
         if (value == "/validation" || value.StartsWith("/validation/", StringComparison.OrdinalIgnoreCase))
         {
             return "/validation";
+        }
+
+        if (value == "/demos/sse" || value.StartsWith("/demos/sse/", StringComparison.OrdinalIgnoreCase))
+        {
+            return "/demos/sse";
         }
 
         return value == "/users" ? "/users" : "/";

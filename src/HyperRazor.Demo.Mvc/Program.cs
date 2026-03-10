@@ -14,6 +14,8 @@ using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.ServerSentEvents;
+using System.Runtime.CompilerServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,8 +126,21 @@ app.MapGet("/users", (HttpContext context, CancellationToken cancellationToken) 
     HrzResults.Page<UsersPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/validation", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<ValidationPage>(context, cancellationToken: cancellationToken));
+app.MapGet("/demos/sse", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<SsePage>(context, cancellationToken: cancellationToken));
 app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<BrandingSettingsPage>(context, cancellationToken: cancellationToken));
+app.MapGet("/demos/sse/stream", (
+    HttpContext context,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    CancellationToken cancellationToken) =>
+{
+    context.Response.Headers["Cache-Control"] = "no-cache";
+    context.Response.Headers.Append("X-Accel-Buffering", "no");
+
+    return TypedResults.ServerSentEvents(StreamSseDemoAsync(context, sseRenderer, swapService, cancellationToken));
+});
 app.MapPost("/validation/minimal/local", async (
     HttpContext context,
     IAntiforgery antiforgery,
@@ -335,6 +350,82 @@ static HrzFieldPath? ResolvePrimaryField(HrzValidationScope scope)
             || field.Equals(UserInviteValidationForm.DisplayNamePath));
 }
 
+static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
+    HttpContext context,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    [EnumeratorCancellation] CancellationToken cancellationToken)
+{
+    var resumeHeader = context.Request.Headers["Last-Event-ID"].ToString();
+    var resumeTitle = string.IsNullOrWhiteSpace(resumeHeader) ? "Fresh Stream" : "Reconnect Requested";
+    var resumeDetail = string.IsNullOrWhiteSpace(resumeHeader)
+        ? "No Last-Event-ID header was supplied on this connection."
+        : $"Reconnect requested from event {resumeHeader}.";
+
+    var steps = new[]
+    {
+        new SseDemoStep(
+            EventId: "sse-demo-1",
+            Title: "Connection established",
+            Body: "The first HTML fragment arrived over SSE without a follow-up polling request.",
+            Badge: "message",
+            StatusTitle: "Stream connected",
+            StatusDetail: "The server opened the stream and rendered the first fragment immediately."),
+        new SseDemoStep(
+            EventId: "sse-demo-2",
+            Title: "Out-of-band update applied",
+            Body: "This message appends a second card while also replacing the sidecar through HyperRazor's OOB queue.",
+            Badge: "message",
+            StatusTitle: "Secondary target updated",
+            StatusDetail: "The sidecar changed from the same SSE message instead of a separate request."),
+        new SseDemoStep(
+            EventId: "sse-demo-3",
+            Title: "Graceful shutdown prepared",
+            Body: "One final HTML frame renders before the connection closes with a blank-data done event.",
+            Badge: "message",
+            StatusTitle: "Closed cleanly",
+            StatusDetail: "The next SSE frame is event: done with a blank data line, so HTMX should stop reconnecting.")
+    };
+
+    foreach (var step in steps)
+    {
+        swapService.QueueComponent<SseDemoStatusCard>(
+            targetId: "sse-stream-status",
+            parameters: new
+            {
+                Label = "connection",
+                Title = step.StatusTitle,
+                Detail = step.StatusDetail,
+                Tone = step.EventId == "sse-demo-3" ? "success" : "progress"
+            });
+
+        swapService.QueueComponent<SseDemoStatusCard>(
+            targetId: "sse-last-event-id",
+            parameters: new
+            {
+                Label = "last-event-id",
+                Title = resumeTitle,
+                Detail = resumeDetail,
+                Tone = "resume"
+            });
+
+        yield return await sseRenderer.RenderComponent<SseDemoFeedItem>(
+            new
+            {
+                step.EventId,
+                step.Title,
+                step.Body,
+                step.Badge
+            },
+            id: step.EventId,
+            cancellationToken: cancellationToken);
+
+        await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken);
+    }
+
+    yield return HrzSse.Close();
+}
+
 static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
 {
     var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
@@ -444,3 +535,11 @@ static RenderFragment BuildSummarySlotFragment(
 app.Run();
 
 public partial class Program;
+
+internal sealed record SseDemoStep(
+    string EventId,
+    string Title,
+    string Body,
+    string Badge,
+    string StatusTitle,
+    string StatusDetail);

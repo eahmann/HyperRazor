@@ -271,6 +271,7 @@ code {
 }
 
 .metric-grid,
+.sse-demo-grid,
 .queue-list,
 .queue-summary-grid,
 .user-admin-grid {
@@ -525,11 +526,73 @@ button:disabled {
     gap: 0.75rem;
 }
 
+.sse-live-shell {
+    display: grid;
+    gap: 1rem;
+}
+
+.sse-live-feed {
+    min-height: 14rem;
+    align-content: start;
+}
+
+.sse-sidecar-panel {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+}
+
+.sse-status-card {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 0.9rem;
+    background: rgba(var(--bs-body-color-rgb), 0.04);
+}
+
+.sse-status-card--neutral {
+    border-color: rgba(var(--bs-primary-rgb), 0.16);
+    background: rgba(var(--bs-primary-rgb), 0.06);
+}
+
+.sse-status-card--progress {
+    border-color: rgba(var(--bs-info-rgb), 0.2);
+    background: rgba(var(--bs-info-rgb), 0.08);
+}
+
+.sse-status-card--success {
+    border-color: rgba(var(--bs-success-rgb), 0.22);
+    background: rgba(var(--bs-success-rgb), 0.09);
+}
+
+.sse-status-card--resume {
+    border-color: rgba(var(--bs-warning-rgb), 0.22);
+    background: rgba(var(--bs-warning-rgb), 0.1);
+}
+
 .activity-item {
     padding: 0.8rem 0.9rem;
     border-left: 4px solid var(--bs-primary);
     border-radius: 0.8rem;
     background: rgba(var(--bs-primary-rgb), 0.06);
+}
+
+.sse-event-card {
+    gap: 0.65rem;
+}
+
+.sse-event-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.sse-event-card__id {
+    font-family: var(--bs-font-monospace);
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color);
 }
 
 .rendered-markup-preview {

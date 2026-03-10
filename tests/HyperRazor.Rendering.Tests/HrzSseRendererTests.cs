@@ -134,7 +134,7 @@ public sealed class HrzSseRendererTests
 
     private static async IAsyncEnumerable<SseItem<string>> GetDoneEvents()
     {
-        yield return new SseItem<string>(string.Empty, eventType: "done");
+        yield return HrzSse.Close();
         await Task.CompletedTask;
     }
 

@@ -65,11 +65,17 @@
     [Parameter]
     public HrzShellContext? ShellContext { get; set; }
 
+    [Parameter]
+    public bool? RenderHeadContent { get; set; }
+
+    [Parameter]
+    public bool? RenderSwapContent { get; set; }
+
     private Type _resolvedRootComponentType = typeof(HrzApp<HrzAppLayout>);
     private Dictionary<string, object?> _rootParameters = new();
     private RenderFragment _componentContent = _ => { };
-    private bool ShouldRenderHeadContent => IsHtmxRequest && !IsHistoryRestoreRequest;
-    private bool ShouldRenderSwapContent => IsHtmxRequest && !IsHistoryRestoreRequest;
+    private bool ShouldRenderHeadContent => RenderHeadContent ?? (IsHtmxRequest && !IsHistoryRestoreRequest);
+    private bool ShouldRenderSwapContent => RenderSwapContent ?? (IsHtmxRequest && !IsHistoryRestoreRequest);
 
     protected override void OnParametersSet()
     {

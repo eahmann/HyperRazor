@@ -39,6 +39,7 @@ public static class HyperRazorServiceCollectionExtensions
         services.TryAddSingleton<IHrzModelValidator, HrzDataAnnotationsModelValidator>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();

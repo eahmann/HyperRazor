@@ -75,16 +75,39 @@
         input.removeAttribute(attributeName);
     }
 
+    function replaceWithStaticClone(input) {
+        var clone = input.cloneNode(true);
+        if (typeof input.value === "string") {
+            clone.value = input.value;
+        }
+
+        var shouldRestoreFocus = document.activeElement === input;
+        var selectionStart = shouldRestoreFocus && typeof input.selectionStart === "number" ? input.selectionStart : null;
+        var selectionEnd = shouldRestoreFocus && typeof input.selectionEnd === "number" ? input.selectionEnd : null;
+
+        input.replaceWith(clone);
+
+        if (shouldRestoreFocus && typeof clone.focus === "function") {
+            clone.focus();
+            if (selectionStart !== null && selectionEnd !== null && typeof clone.setSelectionRange === "function") {
+                clone.setSelectionRange(selectionStart, selectionEnd);
+            }
+        }
+
+        return clone;
+    }
+
     function syncManagedLiveState(input) {
         if (!isValidatable(input)) {
-            return;
+            return input;
         }
 
         var endpoint = input.getAttribute("data-hrz-live-endpoint");
         if (!endpoint) {
-            return;
+            return input;
         }
 
+        var previouslyActive = input.getAttribute("data-hrz-live-active") === "true";
         var stateId = input.getAttribute("data-hrz-live-state-id");
         var stateElement = stateId ? getById(stateId) : null;
         var active = stateElement
@@ -100,7 +123,14 @@
             setLiveAttribute(input, "data-hrz-live-swap", "hx-swap");
             setLiveAttribute(input, "data-hrz-live-include", "hx-include");
             setLiveAttribute(input, "data-hrz-live-vals", "hx-vals");
-            return;
+
+            if (!previouslyActive
+                && window.htmx
+                && typeof window.htmx.process === "function") {
+                window.htmx.process(input);
+            }
+
+            return input;
         }
 
         input.removeAttribute("hx-post");
@@ -109,12 +139,18 @@
         input.removeAttribute("hx-swap");
         input.removeAttribute("hx-include");
         input.removeAttribute("hx-vals");
+
+        if (previouslyActive) {
+            return replaceWithStaticClone(input);
+        }
+
+        return input;
     }
 
     function syncManagedFields(root) {
         if (isManagedField(root)) {
-            syncManagedLiveState(root);
-            syncManagedFieldState(root);
+            var syncedRoot = syncManagedLiveState(root);
+            syncManagedFieldState(syncedRoot);
             return;
         }
 
@@ -139,8 +175,8 @@
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
                 if (isManagedField(field)) {
-                    syncManagedLiveState(field);
-                    syncManagedFieldState(field);
+                    var syncedField = syncManagedLiveState(field);
+                    syncManagedFieldState(syncedField);
                 }
             }
         });

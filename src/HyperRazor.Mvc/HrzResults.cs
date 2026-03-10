@@ -3,11 +3,15 @@ using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.ServerSentEvents;
 
 namespace HyperRazor.Mvc;
 
 public static class HrzResults
 {
+    private const string ProxyBufferingHeader = "X-Accel-Buffering";
+    private const string ProxyBufferingDisabledValue = "no";
+
     /// <summary>
     /// Renders a routable page component, automatically returning full HTML or an HTMX fragment
     /// based on the current request.
@@ -53,6 +57,28 @@ public static class HrzResults
         ArgumentNullException.ThrowIfNull(fragments);
 
         return ResolveViewService(context).PartialView(cancellationToken, fragments);
+    }
+
+    /// <summary>
+    /// Returns a platform-backed SSE response with HyperRazor's default streaming headers.
+    /// </summary>
+    public static IResult ServerSentEvents(
+        IAsyncEnumerable<SseItem<string>> source,
+        Action<HttpResponse>? configureResponse = null)
+    {
+        return ServerSentEvents<string>(source, configureResponse);
+    }
+
+    /// <summary>
+    /// Returns a platform-backed SSE response with HyperRazor's default streaming headers.
+    /// </summary>
+    public static IResult ServerSentEvents<T>(
+        IAsyncEnumerable<SseItem<T>> source,
+        Action<HttpResponse>? configureResponse = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        return new HrzServerSentEventsResult<T>(source, configureResponse);
     }
 
     /// <summary>
@@ -181,5 +207,31 @@ public static class HrzResults
             httpContext.Response.StatusCode = _statusCode;
             await _inner.ExecuteAsync(httpContext);
         }
+    }
+
+    private sealed class HrzServerSentEventsResult<T> : IResult
+    {
+        private readonly IAsyncEnumerable<SseItem<T>> _source;
+        private readonly Action<HttpResponse>? _configureResponse;
+
+        public HrzServerSentEventsResult(
+            IAsyncEnumerable<SseItem<T>> source,
+            Action<HttpResponse>? configureResponse)
+        {
+            _source = source ?? throw new ArgumentNullException(nameof(source));
+            _configureResponse = configureResponse;
+        }
+
+        public async Task ExecuteAsync(HttpContext httpContext)
+        {
+            ApplyDefaultSseHeaders(httpContext.Response);
+            _configureResponse?.Invoke(httpContext.Response);
+            await TypedResults.ServerSentEvents(_source).ExecuteAsync(httpContext);
+        }
+    }
+
+    private static void ApplyDefaultSseHeaders(HttpResponse response)
+    {
+        response.Headers[ProxyBufferingHeader] = ProxyBufferingDisabledValue;
     }
 }

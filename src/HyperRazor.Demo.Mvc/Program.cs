@@ -128,6 +128,8 @@ app.MapGet("/validation", (HttpContext context, CancellationToken cancellationTo
     HrzResults.Page<ValidationPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/demos/sse", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<SsePage>(context, cancellationToken: cancellationToken));
+app.MapGet("/demos/notifications", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<NotificationsPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<BrandingSettingsPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/demos/sse/stream", (
@@ -135,12 +137,13 @@ app.MapGet("/demos/sse/stream", (
     IHrzSseRenderer sseRenderer,
     IHrzSwapService swapService,
     CancellationToken cancellationToken) =>
-{
-    context.Response.Headers["Cache-Control"] = "no-cache";
-    context.Response.Headers.Append("X-Accel-Buffering", "no");
-
-    return TypedResults.ServerSentEvents(StreamSseDemoAsync(context, sseRenderer, swapService, cancellationToken));
-});
+    HrzResults.ServerSentEvents(StreamSseDemoAsync(context, sseRenderer, swapService, cancellationToken)));
+app.MapGet("/demos/notifications/stream", (
+    HttpContext context,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    CancellationToken cancellationToken) =>
+    HrzResults.ServerSentEvents(StreamNotificationsDemoAsync(context, sseRenderer, swapService, cancellationToken)));
 app.MapPost("/validation/minimal/local", async (
     HttpContext context,
     IAntiforgery antiforgery,
@@ -360,7 +363,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
     var resumeHeader = context.Request.Headers["Last-Event-ID"].ToString();
     var resumeTitle = string.IsNullOrWhiteSpace(resumeHeader) ? "Fresh Stream" : "Reconnect Requested";
     var resumeDetail = string.IsNullOrWhiteSpace(resumeHeader)
-        ? "No Last-Event-ID header was supplied on this connection."
+        ? "No resume header was supplied on this connection."
         : $"Reconnect requested from event {resumeHeader}.";
 
     var steps = new[]
@@ -421,7 +424,80 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
             id: step.EventId,
             cancellationToken: cancellationToken);
 
-        await Task.Delay(frameDelay, cancellationToken);
+        if (step != steps[^1])
+        {
+            await Task.Delay(frameDelay, cancellationToken);
+        }
+    }
+
+    yield return HrzSse.Close();
+}
+
+static async IAsyncEnumerable<SseItem<string>> StreamNotificationsDemoAsync(
+    HttpContext context,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    [EnumeratorCancellation] CancellationToken cancellationToken)
+{
+    var frameDelay = TimeSpan.FromMilliseconds(700);
+    var resumeHeader = context.Request.Headers["Last-Event-ID"].ToString();
+    var resumeDetail = string.IsNullOrWhiteSpace(resumeHeader)
+        ? "Connected from the beginning of the demo stream."
+        : $"Client requested resume after {resumeHeader}.";
+
+    var notifications = new[]
+    {
+        new NotificationDemoEntry("notif-01", "deployments", "New comment on deployment review", "Platform requested one more smoke check before the noon rollout window.", "note 01", "notice"),
+        new NotificationDemoEntry("notif-02", "access", "Access request escalated", "Finance export access was escalated to an on-call approver after the SLA threshold.", "note 02", "warning"),
+        new NotificationDemoEntry("notif-03", "invites", "New contractor invite accepted", "A vendor identity accepted the invite and is waiting for follow-up provisioning.", "note 03", "notice"),
+        new NotificationDemoEntry("notif-04", "billing", "Billing sync completed", "The overnight reconciliation job finished and posted the final delta set.", "note 04", "notice"),
+        new NotificationDemoEntry("notif-05", "support", "Support queue nearing SLA", "The west region support queue is within 12 minutes of its first response target.", "note 05", "warning"),
+        new NotificationDemoEntry("notif-06", "audit", "Audit export ready", "Compliance generated the weekly audit package and staged it for review.", "note 06", "notice"),
+        new NotificationDemoEntry("notif-07", "security", "SSO certificate expires soon", "The shared SAML certificate now has seven days remaining before renewal is required.", "note 07", "warning"),
+        new NotificationDemoEntry("notif-08", "sync", "Nightly directory sync failed", "The background directory sync stopped after the upstream API returned repeated 503 responses.", "note 08", "warning"),
+        new NotificationDemoEntry("notif-09", "incidents", "P1 incident declared for EU auth", "Authentication failures crossed the paging threshold and an incident bridge is now active.", "note 09", "urgent"),
+        new NotificationDemoEntry("notif-10", "incidents", "EU auth incident resolved", "The rollback completed, error rates normalized, and the bridge moved into recovery review.", "note 10", "recovery")
+    };
+
+    for (var index = 0; index < notifications.Length; index++)
+    {
+        var notification = notifications[index];
+        var count = index + 1;
+
+        swapService.QueueComponent<NotificationsUnreadIndicator>(
+            targetId: "notifications-unread-indicator",
+            parameters: new
+            {
+                Count = count
+            });
+
+        swapService.QueueComponent<NotificationsStreamStateCard>(
+            targetId: "notifications-stream-state",
+            parameters: new
+            {
+                EventId = notification.EventId,
+                Position = $"{count} / {notifications.Length}",
+                Detail = resumeDetail,
+                Tone = count == notifications.Length ? "success" : "progress"
+            });
+
+        yield return await sseRenderer.RenderComponent<NotificationsDemoItem>(
+            new
+            {
+                notification.EventId,
+                notification.Category,
+                notification.Title,
+                notification.Body,
+                notification.Stamp,
+                notification.Tone
+            },
+            id: notification.EventId,
+            cancellationToken: cancellationToken);
+
+        if (count < notifications.Length)
+        {
+            await Task.Delay(frameDelay, cancellationToken);
+        }
     }
 
     yield return HrzSse.Close();
@@ -536,6 +612,14 @@ static RenderFragment BuildSummarySlotFragment(
 app.Run();
 
 public partial class Program;
+
+internal sealed record NotificationDemoEntry(
+    string EventId,
+    string Category,
+    string Title,
+    string Body,
+    string Stamp,
+    string Tone);
 
 internal sealed record SseDemoStep(
     string EventId,

@@ -1,0 +1,9 @@
+<section class="notifications-counter-card">
+    <p class="app-kicker">unread</p>
+    <span id="notifications-unread-badge" class="count-badge notifications-unread-badge">@Count</span>
+</section>
+
+@code {
+    [Parameter]
+    public int Count { get; set; }
+}

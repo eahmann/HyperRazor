@@ -33,6 +33,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("href=\"/users\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/validation\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/notifications\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/access-requests\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/incidents\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/settings/branding\"", body, StringComparison.Ordinal);
@@ -128,7 +129,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id: sse-demo-1", firstEvent, StringComparison.Ordinal);
         Assert.Contains("Connection established", firstEvent, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
-        Assert.Contains("No Last-Event-ID header was supplied on this connection.", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("No resume header was supplied on this connection.", firstEvent, StringComparison.Ordinal);
 
         var secondEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: sse-demo-2", secondEvent, StringComparison.Ordinal);
@@ -162,6 +163,88 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var firstEvent = await ReadEventBlockAsync(reader);
 
         Assert.Contains("Reconnect requested from event sse-demo-2.", firstEvent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NotificationsRoute_ReturnsExplicitSseMarkup()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/notifications");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>Notifications Center</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("hx-ext=\"sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-connect=\"/demos/notifications/stream\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-close=\"done\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-swap=\"message\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"notifications-unread-badge\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NotificationsStream_ReturnsTenIncrementalHtmlWithOobAndDoneEvent()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/notifications/stream");
+
+        var startedAt = DateTimeOffset.UtcNow;
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        var events = new List<string>();
+        for (var index = 0; index < 10; index++)
+        {
+            events.Add(await ReadEventBlockAsync(reader));
+        }
+
+        var firstEvent = events[0];
+        Assert.True(DateTimeOffset.UtcNow - startedAt < TimeSpan.FromSeconds(1));
+        Assert.Contains("id: notif-01", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("New comment on deployment review", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("id=\"notifications-unread-indicator\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("notifications-unread-badge\">1</span>", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("Connected from the beginning of the demo stream.", firstEvent, StringComparison.Ordinal);
+
+        Assert.All(events, static item => Assert.Contains("hx-swap-oob=\"outerHTML\"", item, StringComparison.Ordinal));
+        Assert.Contains("id: notif-09", events[8], StringComparison.Ordinal);
+        Assert.Contains("P1 incident declared for EU auth", events[8], StringComparison.Ordinal);
+        Assert.Contains("notification-card--urgent", events[8], StringComparison.Ordinal);
+
+        var lastEvent = events[9];
+        Assert.Contains("id: notif-10", lastEvent, StringComparison.Ordinal);
+        Assert.Contains("EU auth incident resolved", lastEvent, StringComparison.Ordinal);
+        Assert.Contains("notifications-unread-badge\">10</span>", lastEvent, StringComparison.Ordinal);
+        Assert.Contains("10 / 10", lastEvent, StringComparison.Ordinal);
+        Assert.Contains("notifications-state-card--success", lastEvent, StringComparison.Ordinal);
+
+        var doneEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);
+        Assert.Contains("data: ", doneEvent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NotificationsStream_WithLastEventId_RendersResumeDetails()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/notifications/stream");
+        request.Headers.Add("Last-Event-ID", "notif-04");
+
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+        var firstEvent = await ReadEventBlockAsync(reader);
+
+        Assert.Contains("Client requested resume after notif-04.", firstEvent, StringComparison.Ordinal);
     }
 
     [Fact]

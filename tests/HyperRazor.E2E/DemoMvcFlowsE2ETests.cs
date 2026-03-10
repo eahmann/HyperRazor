@@ -300,6 +300,40 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task NotificationsDemoPage_StreamsTenNotesAndStopsAfterDone()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/demos/notifications");
+        await WaitForHtmxAsync(page);
+
+        var cards = page.Locator("#notifications-list .notification-card");
+
+        await page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('#notifications-list .notification-card').length >= 1");
+        await Assertions.Expect(page.Locator("#notifications-unread-badge")).ToHaveTextAsync("1");
+
+        await page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('#notifications-list .notification-card').length === 10",
+            new PageWaitForFunctionOptions
+            {
+                Timeout = 15000
+            });
+
+        await Assertions.Expect(page.Locator("#notifications-unread-badge")).ToHaveTextAsync("10");
+        await Assertions.Expect(page.Locator("#notifications-stream-state")).ToContainTextAsync("notif-10");
+        await Assertions.Expect(page.Locator("#notifications-stream-state")).ToContainTextAsync("10 / 10");
+        await Assertions.Expect(cards.First).ToContainTextAsync("EU auth incident resolved");
+
+        await page.WaitForTimeoutAsync(1200);
+
+        Assert.Equal(10, await cards.CountAsync());
+    }
+
+    [SkippableFact]
     public async Task AppNav_BoostedLinks_SwapAcrossAdminAndWorkbenchLayouts()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

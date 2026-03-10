@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace HyperRazor.Components;
 
-public abstract class HrzValidationInputComponentBase : ComponentBase
+public abstract class HrzInputComponentBase : ComponentBase
 {
     [Parameter]
     public string? Class { get; set; }

@@ -71,6 +71,14 @@ public static class HrzResults
     }
 
     /// <summary>
+    /// Returns an explicit 204 response to tell SSE clients not to reconnect.
+    /// </summary>
+    public static IResult NoReconnect()
+    {
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
     /// Renders a fragment component and applies the supplied status code.
     /// </summary>
     public static async Task<IResult> Validation<TComponent>(

@@ -495,11 +495,11 @@ static RenderFragment BuildFieldSlotFragment(
 
     return builder =>
     {
-        builder.OpenComponent<ValidationServerFieldSlot>(0);
-        builder.AddAttribute(1, nameof(ValidationServerFieldSlot.Id), slotId);
-        builder.AddAttribute(2, nameof(ValidationServerFieldSlot.FieldPath), fieldPath.Value);
-        builder.AddAttribute(3, nameof(ValidationServerFieldSlot.Errors), errors);
-        builder.AddAttribute(4, nameof(ValidationServerFieldSlot.SwapOob), swapOob);
+        builder.OpenComponent<HrzValidationServerFieldSlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerFieldSlot.Id), slotId);
+        builder.AddAttribute(2, nameof(HrzValidationServerFieldSlot.FieldPath), fieldPath.Value);
+        builder.AddAttribute(3, nameof(HrzValidationServerFieldSlot.Errors), errors);
+        builder.AddAttribute(4, nameof(HrzValidationServerFieldSlot.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }
@@ -511,10 +511,10 @@ static RenderFragment BuildSummarySlotFragment(
 {
     return builder =>
     {
-        builder.OpenComponent<ValidationServerSummarySlot>(0);
-        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
-        builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), errors);
-        builder.AddAttribute(3, nameof(ValidationServerSummarySlot.SwapOob), swapOob);
+        builder.OpenComponent<HrzValidationServerSummarySlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerSummarySlot.Id), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(2, nameof(HrzValidationServerSummarySlot.Errors), errors);
+        builder.AddAttribute(3, nameof(HrzValidationServerSummarySlot.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }
@@ -531,11 +531,11 @@ static RenderFragment BuildLivePolicyCarrierFragment(
 
     return builder =>
     {
-        builder.OpenComponent<ValidationLivePolicyCarrier>(0);
-        builder.AddAttribute(1, nameof(ValidationLivePolicyCarrier.Id), carrierId);
-        builder.AddAttribute(2, nameof(ValidationLivePolicyCarrier.Policy), policy);
-        builder.AddAttribute(3, nameof(ValidationLivePolicyCarrier.SummarySlotId), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
-        builder.AddAttribute(4, nameof(ValidationLivePolicyCarrier.SwapOob), swapOob);
+        builder.OpenComponent<HrzValidationLivePolicyCarrier>(0);
+        builder.AddAttribute(1, nameof(HrzValidationLivePolicyCarrier.Id), carrierId);
+        builder.AddAttribute(2, nameof(HrzValidationLivePolicyCarrier.Policy), policy);
+        builder.AddAttribute(3, nameof(HrzValidationLivePolicyCarrier.SummarySlotId), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(4, nameof(HrzValidationLivePolicyCarrier.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }

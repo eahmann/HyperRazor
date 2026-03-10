@@ -1,0 +1,48 @@
+@namespace HyperRazor.Components
+
+<input
+    id="@ResolvedFieldContext.InputId"
+    name="@ResolvedFieldContext.Name"
+    type="@Type"
+    class="@Class"
+    value="@ResolvedFieldContext.Value"
+    aria-invalid="@ResolvedFieldContext.HasErrors"
+    aria-describedby="@ResolvedFieldContext.AriaDescribedBy"
+    data-hrz-field-path="@ResolvedFieldContext.FieldPath.Value"
+    data-hrz-live-policy-id="@(ResolvedFieldContext.HasLiveValidation ? ResolvedFieldContext.LivePolicyId : null)"
+    data-hrz-local-validation="@ResolvedFieldContext.LocalValidationRule"
+    data-hrz-local-min-length="@(ResolvedFieldContext.LocalMinLength?.ToString())"
+    data-hrz-local-min-length-message="@ResolvedFieldContext.LocalMinLengthMessage"
+    data-hrz-client-slot-id="@(ResolvedFieldContext.EnableClientValidation ? ResolvedFieldContext.ClientSlotId : null)"
+    data-hrz-server-slot-id="@(ResolvedFieldContext.HasLiveValidation ? ResolvedFieldContext.ServerSlotId : null)"
+    data-hrz-summary-slot-id="@(ResolvedFieldContext.HasLiveValidation ? ResolvedFieldContext.Form.SummaryId : null)"
+    hx-disinherit="@(ResolvedFieldContext.HasLiveValidation ? "hx-disabled-elt" : null)"
+    hx-post="@ResolvedFieldContext.LiveValidationPath"
+    hx-trigger="@ResolvedFieldContext.LiveTrigger"
+    hx-target="@(ResolvedFieldContext.HasLiveValidation ? $"#{ResolvedFieldContext.ServerSlotId}" : null)"
+    hx-swap="@(ResolvedFieldContext.HasLiveValidation ? "outerHTML" : null)"
+    hx-include="@ResolvedFieldContext.LiveInclude"
+    hx-vals="@ResolvedFieldContext.LiveValidationValuesJson"
+    @attributes="AdditionalAttributes" />
+
+@code {
+    [Parameter]
+    public string Type { get; set; } = "text";
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
+
+    [CascadingParameter]
+    private HrzValidationFieldContext? FieldContext { get; set; }
+
+    private HrzValidationFieldContext ResolvedFieldContext => FieldContext
+        ?? throw new InvalidOperationException($"{nameof(HrzInputText)} requires a cascading {nameof(HrzField)}.");
+
+    protected override void OnParametersSet()
+    {
+        _ = ResolvedFieldContext;
+    }
+}

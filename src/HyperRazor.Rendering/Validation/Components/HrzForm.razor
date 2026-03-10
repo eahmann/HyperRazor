@@ -1,0 +1,111 @@
+@namespace HyperRazor.Components
+@typeparam TModel
+@using HyperRazor.Rendering
+@using Microsoft.AspNetCore.Http
+
+<CascadingValue Value="_formContext" IsFixed="true">
+    <form
+        id="@_formContext.FormId"
+        class="@Class"
+        action="@Action"
+        data-hrz-validation-root="@_formContext.RootId.Value"
+        data-hrz-validation-region
+        hx-post="@(Enhance ? ResolvedHxPost : null)"
+        hx-target="@(Enhance ? SubmitTarget : null)"
+        hx-swap="@(Enhance ? SubmitSwap : null)"
+        hx-disabled-elt="@(Enhance ? DisabledElementSelector : null)"
+        novalidate
+        @attributes="AdditionalAttributes">
+        <HrzAntiforgeryInput />
+        @ChildContent
+    </form>
+</CascadingValue>
+
+@code {
+    [Parameter, EditorRequired]
+    public TModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? FormName { get; set; }
+
+    [Parameter]
+    public HrzValidationRootId? RootId { get; set; }
+
+    [Parameter]
+    public string? IdPrefix { get; set; }
+
+    [Parameter]
+    public string HxPost { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? SubmitTarget { get; set; }
+
+    [Parameter]
+    public string SubmitSwap { get; set; } = "outerHTML focus-scroll:true";
+
+    [Parameter]
+    public string DisabledElementSelector { get; set; } = "find button";
+
+    [Parameter]
+    public bool Enhance { get; set; } = true;
+
+    [Parameter]
+    public bool EnableClientValidation { get; set; } = true;
+
+    [Parameter]
+    public string? LiveValidationPath { get; set; }
+
+    [Parameter]
+    public string LiveTrigger { get; set; } = "input changed delay:400ms, blur";
+
+    [Parameter]
+    public string LiveInclude { get; set; } = "closest form";
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private HrzValidationFormContext _formContext = default!;
+
+    private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
+
+    protected override void OnParametersSet()
+    {
+        ArgumentNullException.ThrowIfNull(Model);
+        ArgumentException.ThrowIfNullOrWhiteSpace(Action);
+
+        var resolvedRootId = RootId ?? ResolveRootId(FormName);
+        var idPrefix = string.IsNullOrWhiteSpace(IdPrefix)
+            ? resolvedRootId.Value
+            : IdPrefix;
+
+        _formContext = new HrzValidationFormContext
+        {
+            Model = Model!,
+            RootId = resolvedRootId,
+            IdPrefix = idPrefix,
+            ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId),
+            EnableClientValidation = EnableClientValidation,
+            LiveValidationPath = LiveValidationPath,
+            LiveTrigger = LiveTrigger,
+            LiveInclude = LiveInclude
+        };
+    }
+
+    private static HrzValidationRootId ResolveRootId(string? formName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(formName);
+        return new HrzValidationRootId(formName);
+    }
+}

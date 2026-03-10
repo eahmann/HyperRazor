@@ -1,0 +1,69 @@
+@namespace HyperRazor.Components
+@using System.Linq.Expressions
+
+<div class="@FieldClass">
+    <CascadingValue Value="_fieldContext" IsFixed="true">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Expression<Func<string?>> For { get; set; } = default!;
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public bool? EnableClientValidation { get; set; }
+
+    [Parameter]
+    public bool? Live { get; set; }
+
+    [Parameter]
+    public string? LiveValidationPath { get; set; }
+
+    [Parameter]
+    public string? LiveTrigger { get; set; }
+
+    [Parameter]
+    public string? LiveInclude { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private HrzValidationFormContext? FormContext { get; set; }
+
+    private HrzValidationFieldContext _fieldContext = default!;
+
+    private string FieldClass => string.Join(
+        " ",
+        new[]
+        {
+            "validation-field",
+            _fieldContext.HasErrors ? "validation-field--invalid" : null,
+            Class
+        }.Where(static value => !string.IsNullOrWhiteSpace(value)));
+
+    protected override void OnParametersSet()
+    {
+        if (FormContext is null)
+        {
+            throw new InvalidOperationException($"{nameof(HrzField)} requires a cascading {nameof(HrzForm<object>)}.");
+        }
+
+        _fieldContext = HrzValidationFieldContext.Create(
+            FormContext,
+            For,
+            Label,
+            EnableClientValidation,
+            Live,
+            LiveValidationPath,
+            LiveTrigger,
+            LiveInclude);
+    }
+}

@@ -1,0 +1,24 @@
+@namespace HyperRazor.Components
+
+<div
+    id="@ResolvedFieldContext.ClientSlotId"
+    class="validation-slot validation-slot--client"
+    data-hrz-client-validation-for="@ResolvedFieldContext.FieldPath.Value"></div>
+
+<HrzValidationServerFieldSlot
+    Id="@ResolvedFieldContext.ServerSlotId"
+    FieldPath="@ResolvedFieldContext.FieldPath.Value"
+    Errors="@ResolvedFieldContext.Errors" />
+
+@code {
+    [CascadingParameter]
+    private HrzValidationFieldContext? FieldContext { get; set; }
+
+    private HrzValidationFieldContext ResolvedFieldContext => FieldContext
+        ?? throw new InvalidOperationException($"{nameof(HrzValidationMessage)} requires a cascading {nameof(HrzField)}.");
+
+    protected override void OnParametersSet()
+    {
+        _ = ResolvedFieldContext;
+    }
+}

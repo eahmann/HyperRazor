@@ -1,0 +1,18 @@
+@namespace HyperRazor.Components
+
+<HrzValidationServerSummarySlot
+    Id="@ResolvedFormContext.SummaryId"
+    Errors="@(ResolvedFormContext.ValidationState?.SummaryErrors ?? Array.Empty<string>())" />
+
+@code {
+    [CascadingParameter]
+    private HrzValidationFormContext? FormContext { get; set; }
+
+    private HrzValidationFormContext ResolvedFormContext => FormContext
+        ?? throw new InvalidOperationException($"{nameof(HrzValidationSummary)} requires a cascading {nameof(HrzForm<object>)}.");
+
+    protected override void OnParametersSet()
+    {
+        _ = ResolvedFormContext;
+    }
+}

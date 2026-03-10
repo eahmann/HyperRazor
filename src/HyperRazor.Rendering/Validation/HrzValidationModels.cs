@@ -15,6 +15,7 @@ public sealed record HrzLiveValidationPatch(
     HrzValidationRootId RootId,
     IReadOnlyList<HrzFieldPath> AffectedFields,
     IReadOnlyDictionary<HrzFieldPath, IReadOnlyList<string>> FieldErrors,
+    IReadOnlyDictionary<HrzFieldPath, bool> LiveActivationStates,
     bool ReplaceSummary,
     IReadOnlyList<string> SummaryErrors);
 

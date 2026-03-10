@@ -88,7 +88,9 @@ public sealed class DemoMvcFlowsE2ETests
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-email"))
             .ToHaveAttributeAsync("hx-include", "#validation-minimal-proxy-displayname");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
-            .ToHaveAttributeAsync("hx-include", "#validation-minimal-proxy-email");
+            .Not.ToHaveAttributeAsync("hx-post", "/validation/live");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("data-hrz-live-active", "false");
 
         await page.FillAsync("#validation-minimal-proxy-displayname", "A");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--client"))
@@ -218,10 +220,15 @@ public sealed class DemoMvcFlowsE2ETests
         var emailHtml = await emailResponse.TextAsync();
         Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", emailHtml, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", emailHtml, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--live-state\"", emailHtml, StringComparison.Ordinal);
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname-message--server"))
             .ToContainTextAsync("Shared mailbox invites must use a team display name.");
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToContainTextAsync("Shared mailbox invites need a team display name before the backend will accept them.");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("hx-post", "/validation/live");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("hx-include", "#validation-minimal-proxy-email");
 
         var displayNameResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.FillAsync("#validation-minimal-proxy-displayname", "Team Inbox"),
@@ -233,6 +240,17 @@ public sealed class DemoMvcFlowsE2ETests
             .ToBeEmptyAsync();
         await Assertions.Expect(page.Locator("#validation-minimal-proxy-summary"))
             .ToBeEmptyAsync();
+
+        var deactivateResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-minimal-proxy-email", "alex@example.com"),
+            response => response.Url.Contains("/validation/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var deactivateHtml = await deactivateResponse.TextAsync();
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--live-state\"", deactivateHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .Not.ToHaveAttributeAsync("hx-post", "/validation/live");
+        await Assertions.Expect(page.Locator("#validation-minimal-proxy-displayname"))
+            .ToHaveAttributeAsync("data-hrz-live-active", "false");
     }
 
     [SkippableFact]

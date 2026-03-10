@@ -31,7 +31,7 @@
             <HrzField For="() => Form.Input.DisplayName">
                 <HrzLabel Text="Display Name" />
                 <HrzInput AdditionalAttributes="@DisplayNameInputAttributes" />
-                <HrzValidationMessage />
+                <HrzValidationMessage LiveValidationActive="@IsDisplayNameLiveValidationActive" />
             </HrzField>
         </div>
 
@@ -39,7 +39,7 @@
             <HrzField For="() => Form.Input.Email">
                 <HrzLabel Text="Email" />
                 <HrzInput Type="email" AdditionalAttributes="@EmailInputAttributes" />
-                <HrzValidationMessage />
+                <HrzValidationMessage LiveValidationActive="true" />
             </HrzField>
         </div>
 
@@ -73,10 +73,17 @@
     private string FormShellId => $"{Form.IdPrefix}-form-shell";
     private string FormId => $"{Form.IdPrefix}-form";
     private string SummaryId => HtmlIdGenerator.GetSummaryId(Form.RootId.Value);
+    private string DisplayNameInputId => HtmlIdGenerator.GetFieldId(Form.RootId.Value, DisplayNamePath);
     private string DisplayNameMessageId => HtmlIdGenerator.GetFieldMessageId(Form.RootId.Value, DisplayNamePath);
     private string DisplayNameServerSlotId => $"{DisplayNameMessageId}--server";
+    private string DisplayNameLiveStateId => $"{DisplayNameMessageId}--live-state";
+    private string EmailInputId => HtmlIdGenerator.GetFieldId(Form.RootId.Value, EmailPath);
     private string EmailMessageId => HtmlIdGenerator.GetFieldMessageId(Form.RootId.Value, EmailPath);
     private string EmailServerSlotId => $"{EmailMessageId}--server";
+    private string EmailLiveStateId => $"{EmailMessageId}--live-state";
+    private bool IsDisplayNameLiveValidationActive =>
+        HasLiveValidation
+        && string.Equals(Form.Input.Email?.Trim(), "shared-mailbox@example.com", StringComparison.OrdinalIgnoreCase);
 
     private IReadOnlyDictionary<string, object?> FormAttributes => new Dictionary<string, object?>
     {
@@ -94,19 +101,34 @@
     {
         ["data-val-event"] = Form.EnableClientValidation ? "input change blur" : null,
         ["data-hrz-summary-slot-id"] = HasLiveValidation ? SummaryId : null,
-        ["hx-post"] = DisplayNameLiveValidationPath,
-        ["hx-trigger"] = LiveValidationTrigger,
-        ["hx-target"] = DisplayNameLiveValidationTarget,
-        ["hx-swap"] = LiveValidationSwap,
-        ["hx-include"] = DisplayNameLiveValidationInclude,
-        ["hx-vals"] = DisplayNameLiveValidationValuesJson
+        ["data-hrz-live-state-id"] = HasLiveValidation ? DisplayNameLiveStateId : null,
+        ["data-hrz-live-active"] = HasLiveValidation ? (IsDisplayNameLiveValidationActive ? "true" : "false") : null,
+        ["data-hrz-live-endpoint"] = DisplayNameLiveValidationPath,
+        ["data-hrz-live-trigger"] = LiveValidationTrigger,
+        ["data-hrz-live-target"] = DisplayNameLiveValidationTarget,
+        ["data-hrz-live-swap"] = LiveValidationSwap,
+        ["data-hrz-live-include"] = DisplayNameLiveValidationInclude,
+        ["data-hrz-live-vals"] = DisplayNameLiveValidationValuesJson,
+        ["hx-post"] = IsDisplayNameLiveValidationActive ? DisplayNameLiveValidationPath : null,
+        ["hx-trigger"] = IsDisplayNameLiveValidationActive ? LiveValidationTrigger : null,
+        ["hx-target"] = IsDisplayNameLiveValidationActive ? DisplayNameLiveValidationTarget : null,
+        ["hx-swap"] = IsDisplayNameLiveValidationActive ? LiveValidationSwap : null,
+        ["hx-include"] = IsDisplayNameLiveValidationActive ? DisplayNameLiveValidationInclude : null,
+        ["hx-vals"] = IsDisplayNameLiveValidationActive ? DisplayNameLiveValidationValuesJson : null
     };
 
     private IReadOnlyDictionary<string, object?> EmailInputAttributes => new Dictionary<string, object?>
     {
         ["data-val-event"] = Form.EnableClientValidation ? "input change blur" : null,
         ["data-hrz-summary-slot-id"] = HasLiveValidation ? SummaryId : null,
-        ["data-hrz-dependent-server-slot-ids"] = HasLiveValidation ? DisplayNameServerSlotId : null,
+        ["data-hrz-live-state-id"] = HasLiveValidation ? EmailLiveStateId : null,
+        ["data-hrz-live-active"] = HasLiveValidation ? "true" : null,
+        ["data-hrz-live-endpoint"] = EmailLiveValidationPath,
+        ["data-hrz-live-trigger"] = LiveValidationTrigger,
+        ["data-hrz-live-target"] = EmailLiveValidationTarget,
+        ["data-hrz-live-swap"] = LiveValidationSwap,
+        ["data-hrz-live-include"] = EmailLiveValidationInclude,
+        ["data-hrz-live-vals"] = EmailLiveValidationValuesJson,
         ["hx-post"] = EmailLiveValidationPath,
         ["hx-trigger"] = LiveValidationTrigger,
         ["hx-target"] = EmailLiveValidationTarget,

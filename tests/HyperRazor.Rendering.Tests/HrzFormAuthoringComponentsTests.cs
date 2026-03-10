@@ -183,10 +183,35 @@ public class HrzFormAuthoringComponentsTests
         Assert.Contains("hx-post=\"/users/live-validate\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-target=\"#users-invite-email-message--server\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-include=\"#users-invite-displayname\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-endpoint=\"/users/live-validate\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-active=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-state-id=\"users-invite-email-message--live-state\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-client-slot-id=\"users-invite-email-message--client\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-message--server\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-summary-slot-id=\"users-invite-summary\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-invalid=\"false\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HrzValidationMessage_RendersDormantLiveValidationStateForDeferredFields()
+    {
+        var model = new AuthoringModel();
+
+        var html = await RenderComponentAsync<HrzForm<AuthoringModel>>(
+            new Dictionary<string, object?>
+            {
+                [nameof(HrzForm<AuthoringModel>.Model)] = model,
+                [nameof(HrzForm<AuthoringModel>.Action)] = "/users/invite",
+                [nameof(HrzForm<AuthoringModel>.FormName)] = "users-invite",
+                [nameof(HrzForm<AuthoringModel>.ChildContent)] = BuildDisplayNameInputContent(model)
+            },
+            configureServices: services => services.AddSingleton<IHrzValidationDescriptorProvider>(CreateLiveDescriptorProvider()));
+
+        Assert.DoesNotContain("hx-post=\"/users/live-validate\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-endpoint=\"/users/live-validate\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-active=\"false\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-displayname-message--live-state\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-state-for=\"users-invite-displayname\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -423,6 +448,24 @@ public class HrzFormAuthoringComponentsTests
         };
     }
 
+    private static RenderFragment BuildDisplayNameInputContent(AuthoringModel model)
+    {
+        return builder =>
+        {
+            builder.OpenComponent<HrzField<string>>(0);
+            builder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => model.DisplayName));
+            builder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(childBuilder =>
+            {
+                childBuilder.OpenComponent<HrzInput>(0);
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<HrzValidationMessage>(1);
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        };
+    }
+
     private static RenderFragment BuildTextAreaContent(AuthoringModel model)
     {
         return builder =>
@@ -588,6 +631,19 @@ public class HrzFormAuthoringComponentsTests
         var descriptor = baseProvider.GetDescriptor(typeof(AuthoringModel));
         var fields = new Dictionary<HrzFieldPath, HrzFieldDescriptor>(descriptor.Fields)
         {
+            [resolver.FromFieldName("DisplayName")] = new HrzFieldDescriptor
+            {
+                Path = resolver.FromFieldName("DisplayName"),
+                HtmlName = "DisplayName",
+                DisplayName = "Display Name",
+                LocalRules = descriptor.Fields[resolver.FromFieldName("DisplayName")].LocalRules,
+                LiveRule = new HrzLiveRuleDescriptor
+                {
+                    Endpoint = "/users/live-validate",
+                    AdditionalFields = [resolver.FromFieldName("Email")],
+                    StartsActive = false
+                }
+            },
             [resolver.FromFieldName("Email")] = new HrzFieldDescriptor
             {
                 Path = resolver.FromFieldName("Email"),

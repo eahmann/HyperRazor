@@ -75,7 +75,9 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("data-hrz-validation-root=\"validation-mvc-proxy\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-local\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-proxy\"", body, StringComparison.Ordinal);
-        Assert.Contains("hx-include=\"#validation-minimal-proxy-email\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"validation-minimal-proxy-displayname\" hx-post=\"/validation/live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-endpoint=\"/validation/live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-active=\"false\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-include=\"#validation-minimal-proxy-displayname\"", body, StringComparison.Ordinal);
     }
 
@@ -751,6 +753,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"validation-minimal-proxy-email-message--server\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--live-state\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-active=\"true\"", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites need a team display name before the backend will accept them.", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -804,6 +808,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"validation-minimal-proxy-displayname-message--server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-displayname-message--live-state\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-active=\"true\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-summary\"", body, StringComparison.Ordinal);
         Assert.Contains("validation-summary--empty", body, StringComparison.Ordinal);
         Assert.DoesNotContain("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);

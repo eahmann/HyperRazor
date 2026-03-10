@@ -8,6 +8,8 @@ internal static class HrzFieldControlRendering
 
     public static string GetServerSlotId(string messageId) => $"{messageId}--server";
 
+    public static string GetLiveStateSlotId(string messageId) => $"{messageId}--live-state";
+
     public static Dictionary<string, object> BuildAttributes(
         HrzFieldContext fieldContext,
         IReadOnlyDictionary<string, object?> additionalAttributes,
@@ -47,25 +49,42 @@ internal static class HrzFieldControlRendering
 
         if (allowLiveValidation && fieldContext.Descriptor.LiveRule is { } liveRule)
         {
-            attributes.TryAdd("hx-post", liveRule.Endpoint);
-            attributes.TryAdd("hx-trigger", liveRule.Trigger);
-            attributes.TryAdd("hx-target", $"#{GetServerSlotId(fieldContext.MessageId)}");
-            attributes.TryAdd("hx-swap", "outerHTML");
-
             var includeSelector = BuildLiveValidationIncludeSelector(fieldContext, liveRule);
+            var liveValues = JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                [HrzValidationFormFields.Root] = fieldContext.Form.RootId.Value,
+                [HrzValidationFormFields.Fields] = fieldContext.Path.Value
+            });
+
+            attributes["data-hrz-live-state-id"] = GetLiveStateSlotId(fieldContext.MessageId);
+            attributes["data-hrz-live-active"] = liveRule.StartsActive ? "true" : "false";
+            attributes["data-hrz-live-endpoint"] = liveRule.Endpoint;
+            attributes["data-hrz-live-trigger"] = liveRule.Trigger;
+            attributes["data-hrz-live-target"] = $"#{GetServerSlotId(fieldContext.MessageId)}";
+            attributes["data-hrz-live-swap"] = "outerHTML";
+            attributes["data-hrz-live-vals"] = liveValues;
+
             if (!string.IsNullOrWhiteSpace(includeSelector))
             {
-                attributes.TryAdd("hx-include", includeSelector);
+                attributes["data-hrz-live-include"] = includeSelector;
             }
 
-            attributes.TryAdd(
-                "hx-vals",
-                JsonSerializer.Serialize(new Dictionary<string, string>
-                {
-                    [HrzValidationFormFields.Root] = fieldContext.Form.RootId.Value,
-                    [HrzValidationFormFields.Fields] = fieldContext.Path.Value
-                }));
             attributes["data-hrz-summary-slot-id"] = fieldContext.Form.SummaryId;
+
+            if (liveRule.StartsActive)
+            {
+                attributes.TryAdd("hx-post", liveRule.Endpoint);
+                attributes.TryAdd("hx-trigger", liveRule.Trigger);
+                attributes.TryAdd("hx-target", $"#{GetServerSlotId(fieldContext.MessageId)}");
+                attributes.TryAdd("hx-swap", "outerHTML");
+
+                if (!string.IsNullOrWhiteSpace(includeSelector))
+                {
+                    attributes.TryAdd("hx-include", includeSelector);
+                }
+
+                attributes.TryAdd("hx-vals", liveValues);
+            }
         }
 
         return attributes;

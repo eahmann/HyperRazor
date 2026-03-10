@@ -148,7 +148,7 @@ Example:
 Notes:
 
 - dependency-scoped inclusion is a framework concern; app code should not reinvent whole-form transport rules
-- smarter dependency-activated live validation is deferred to `docs/validation-framework-future-dependency-activated-live-validation.md`
+- dependent fields can stay dormant until the server activates them by patching their `--live-state` slot
 
 ## 6. Checkbox Fields
 

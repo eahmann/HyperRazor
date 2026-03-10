@@ -301,6 +301,11 @@ app.MapPost("/validation/live", async (
         fragments.Add(BuildFieldSlotFragment(form, affectedField, livePatch, htmlIdGenerator, swapOob: true));
     }
 
+    foreach (var activationState in livePatch.LiveActivationStates)
+    {
+        fragments.Add(BuildLiveActivationSlotFragment(form, activationState.Key, activationState.Value, htmlIdGenerator, swapOob: true));
+    }
+
     if (livePatch.ReplaceSummary)
     {
         fragments.Add(BuildSummarySlotFragment(form, livePatch, htmlIdGenerator, swapOob: true));
@@ -355,6 +360,11 @@ static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope
         UserInviteValidationForm.DisplayNamePath
     };
     var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
+    var liveActivationStates = new Dictionary<HrzFieldPath, bool>
+    {
+        [UserInviteValidationForm.EmailPath] = true,
+        [UserInviteValidationForm.DisplayNamePath] = requiresTeamDisplayName
+    };
     var summaryErrors = new List<string>();
 
     var emailErrors = string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
@@ -383,6 +393,7 @@ static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope
         scope.RootId,
         affectedFields,
         fieldErrors,
+        liveActivationStates,
         ReplaceSummary: true,
         SummaryErrors: summaryErrors);
 }
@@ -422,6 +433,27 @@ static RenderFragment BuildSummarySlotFragment(
         builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), htmlIdGenerator.GetSummaryId(form.RootId.Value));
         builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), patch.SummaryErrors);
         builder.AddAttribute(3, nameof(ValidationServerSummarySlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildLiveActivationSlotFragment(
+    InviteValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    bool active,
+    IHrzHtmlIdGenerator htmlIdGenerator,
+    bool swapOob)
+{
+    var messageId = htmlIdGenerator.GetFieldMessageId(form.RootId.Value, fieldPath);
+    var inputId = htmlIdGenerator.GetFieldId(form.RootId.Value, fieldPath);
+
+    return builder =>
+    {
+        builder.OpenComponent<ValidationLiveFieldActivationSlot>(0);
+        builder.AddAttribute(1, nameof(ValidationLiveFieldActivationSlot.Id), $"{messageId}--live-state");
+        builder.AddAttribute(2, nameof(ValidationLiveFieldActivationSlot.InputId), inputId);
+        builder.AddAttribute(3, nameof(ValidationLiveFieldActivationSlot.Active), active);
+        builder.AddAttribute(4, nameof(ValidationLiveFieldActivationSlot.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }

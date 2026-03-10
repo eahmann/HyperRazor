@@ -376,20 +376,25 @@ Examples:
 
 When `HrzFieldDescriptor.LiveRule` is present, field controls emit:
 
-- `hx-post="<Endpoint>"`
-- `hx-trigger="<Trigger>"`
-- `hx-target="#<MessageId>--server"`
-- `hx-swap="outerHTML"`
-- `hx-include` for declared dependent fields only, derived from `LiveRule.AdditionalFields`
-- `hx-vals` carrying `__hrz_root` and `__hrz_fields`
+- `data-hrz-live-endpoint="<Endpoint>"`
+- `data-hrz-live-trigger="<Trigger>"`
+- `data-hrz-live-target="#<MessageId>--server"`
+- `data-hrz-live-swap="outerHTML"`
+- `data-hrz-live-include` for declared dependent fields only, derived from `LiveRule.AdditionalFields`
+- `data-hrz-live-vals` carrying `__hrz_root` and `__hrz_fields`
+- `data-hrz-live-state-id="<MessageId>--live-state"`
+- `data-hrz-live-active="true|false"`
 - `data-hrz-summary-slot-id="<SummaryId>"`
 
 Transport rules:
 
+- fields with active live validation mirror that contract into `hx-*`
+- fields with dormant live validation keep only the `data-hrz-live-*` metadata until the server activates them
 - the triggering control posts its own value normally through HTMX
 - `hx-include` adds only the declared dependent field controls needed for the live rule
 - unrelated form fields are not included by default
 - reserved HyperRazor live-validation fields still travel through `hx-vals`
+- `HrzValidationMessage` renders a hidden `--live-state` slot so field-level live activation can be updated OOB without replacing the input
 
 Password fields do not emit live-validation attributes by default.
 

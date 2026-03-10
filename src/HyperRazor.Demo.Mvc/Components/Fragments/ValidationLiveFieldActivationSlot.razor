@@ -1,0 +1,20 @@
+<div
+    id="@Id"
+    hidden
+    data-hrz-live-state-for="@InputId"
+    data-hrz-live-active="@(Active ? "true" : "false")"
+    hx-swap-oob="@(SwapOob ? "outerHTML" : null)"></div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string InputId { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool Active { get; set; }
+
+    [Parameter]
+    public bool SwapOob { get; set; }
+}

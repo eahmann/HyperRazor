@@ -21,15 +21,20 @@ public sealed class HrzValidationMessage : ComponentBase
     [Parameter]
     public LambdaExpression? For { get; set; }
 
+    [Parameter]
+    public bool? LiveValidationActive { get; set; }
+
     private HrzFormContext _resolvedForm = default!;
     private HrzFieldPath _resolvedPath = default!;
     private string _resolvedHtmlName = string.Empty;
+    private string _resolvedHtmlId = string.Empty;
     private string _messageId = string.Empty;
     private IReadOnlyList<string> _errors = Array.Empty<string>();
+    private HrzFieldDescriptor _descriptor = default!;
 
     protected override void OnParametersSet()
     {
-        (_resolvedForm, _resolvedPath, _resolvedHtmlName, _messageId) = ResolveScope();
+        (_resolvedForm, _resolvedPath, _descriptor, _resolvedHtmlName, _resolvedHtmlId, _messageId) = ResolveScope();
         _errors = HrzFormRendering.ErrorsFor(_resolvedForm.SubmitValidationState, _resolvedPath);
     }
 
@@ -49,12 +54,23 @@ public sealed class HrzValidationMessage : ComponentBase
         builder.AddAttribute(7, "data-valmsg-for", _resolvedHtmlName);
         builder.CloseElement();
 
-        builder.OpenElement(7, "div");
-        builder.AddAttribute(8, "id", serverSlotId);
-        builder.AddAttribute(9, "class", "validation-slot validation-slot--server");
-        builder.AddAttribute(10, "data-hrz-server-validation-for", _resolvedPath.Value);
+        var liveValidationActive = ResolveLiveValidationActive();
+        if (liveValidationActive is not null)
+        {
+            builder.OpenElement(8, "div");
+            builder.AddAttribute(9, "id", HrzFieldControlRendering.GetLiveStateSlotId(_messageId));
+            builder.AddAttribute(10, "hidden", "hidden");
+            builder.AddAttribute(11, "data-hrz-live-state-for", _resolvedHtmlId);
+            builder.AddAttribute(12, "data-hrz-live-active", liveValidationActive.Value ? "true" : "false");
+            builder.CloseElement();
+        }
 
-        builder.OpenRegion(11);
+        builder.OpenElement(13, "div");
+        builder.AddAttribute(14, "id", serverSlotId);
+        builder.AddAttribute(15, "class", "validation-slot validation-slot--server");
+        builder.AddAttribute(16, "data-hrz-server-validation-for", _resolvedPath.Value);
+
+        builder.OpenRegion(17);
         foreach (var error in _errors)
         {
             builder.OpenElement(0, "p");
@@ -68,11 +84,17 @@ public sealed class HrzValidationMessage : ComponentBase
         builder.CloseElement();
     }
 
-    private (HrzFormContext Form, HrzFieldPath Path, string HtmlName, string MessageId) ResolveScope()
+    private (HrzFormContext Form, HrzFieldPath Path, HrzFieldDescriptor Descriptor, string HtmlName, string HtmlId, string MessageId) ResolveScope()
     {
         if (FieldContext is not null && For is null)
         {
-            return (FieldContext.Form, FieldContext.Path, FieldContext.HtmlName, FieldContext.MessageId);
+            return (
+                FieldContext.Form,
+                FieldContext.Path,
+                FieldContext.Descriptor,
+                FieldContext.HtmlName,
+                FieldContext.HtmlId,
+                FieldContext.MessageId);
         }
 
         if (FormContext is null)
@@ -87,6 +109,22 @@ public sealed class HrzValidationMessage : ComponentBase
 
         var path = HrzLambdaFieldPathResolver.Resolve(For, FieldPathResolver);
         var field = FormContext.Descriptor.Fields[path];
-        return (FormContext, path, field.HtmlName, HtmlIdGenerator.GetFieldMessageId(FormContext.FormName, path));
+        return (
+            FormContext,
+            path,
+            field,
+            field.HtmlName,
+            HtmlIdGenerator.GetFieldId(FormContext.FormName, path),
+            HtmlIdGenerator.GetFieldMessageId(FormContext.FormName, path));
+    }
+
+    private bool? ResolveLiveValidationActive()
+    {
+        if (LiveValidationActive.HasValue)
+        {
+            return LiveValidationActive.Value;
+        }
+
+        return _descriptor.LiveRule?.StartsActive;
     }
 }

@@ -28,4 +28,6 @@ public sealed class HrzLiveRuleDescriptor
     public IReadOnlyList<HrzFieldPath> AdditionalFields { get; init; } = Array.Empty<HrzFieldPath>();
 
     public string Trigger { get; init; } = "input changed delay:400ms, blur";
+
+    public bool StartsActive { get; init; } = true;
 }

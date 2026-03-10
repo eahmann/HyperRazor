@@ -65,8 +65,55 @@
         syncInputState(input, hasVisibleMessageContent(clientSlot) || hasVisibleMessageContent(serverSlot));
     }
 
+    function setLiveAttribute(input, sourceName, attributeName) {
+        var value = input.getAttribute(sourceName);
+        if (value && value.length > 0) {
+            input.setAttribute(attributeName, value);
+            return;
+        }
+
+        input.removeAttribute(attributeName);
+    }
+
+    function syncManagedLiveState(input) {
+        if (!isValidatable(input)) {
+            return;
+        }
+
+        var endpoint = input.getAttribute("data-hrz-live-endpoint");
+        if (!endpoint) {
+            return;
+        }
+
+        var stateId = input.getAttribute("data-hrz-live-state-id");
+        var stateElement = stateId ? getById(stateId) : null;
+        var active = stateElement
+            ? stateElement.getAttribute("data-hrz-live-active") === "true"
+            : input.getAttribute("data-hrz-live-active") === "true";
+
+        input.setAttribute("data-hrz-live-active", active ? "true" : "false");
+
+        if (active) {
+            setLiveAttribute(input, "data-hrz-live-endpoint", "hx-post");
+            setLiveAttribute(input, "data-hrz-live-trigger", "hx-trigger");
+            setLiveAttribute(input, "data-hrz-live-target", "hx-target");
+            setLiveAttribute(input, "data-hrz-live-swap", "hx-swap");
+            setLiveAttribute(input, "data-hrz-live-include", "hx-include");
+            setLiveAttribute(input, "data-hrz-live-vals", "hx-vals");
+            return;
+        }
+
+        input.removeAttribute("hx-post");
+        input.removeAttribute("hx-trigger");
+        input.removeAttribute("hx-target");
+        input.removeAttribute("hx-swap");
+        input.removeAttribute("hx-include");
+        input.removeAttribute("hx-vals");
+    }
+
     function syncManagedFields(root) {
         if (isManagedField(root)) {
+            syncManagedLiveState(root);
             syncManagedFieldState(root);
             return;
         }
@@ -92,6 +139,7 @@
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
                 if (isManagedField(field)) {
+                    syncManagedLiveState(field);
                     syncManagedFieldState(field);
                 }
             }
@@ -206,6 +254,41 @@
         });
     }
 
+    function createManagedDomObserver(service) {
+        if (!(window.MutationObserver && document.body)) {
+            return;
+        }
+
+        var syncPending = false;
+        var scheduleSync = function () {
+            if (syncPending) {
+                return;
+            }
+
+            syncPending = true;
+            window.requestAnimationFrame(function () {
+                syncPending = false;
+                scanManagedForms(service, document);
+                syncManagedFields(document);
+            });
+        };
+
+        var observer = new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var mutation = mutations[i];
+                if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+                    scheduleSync();
+                    return;
+                }
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
     function bootstrap() {
         var service = new validationApi.ValidationService(console);
         patchValidationService(service);
@@ -218,6 +301,7 @@
 
         scanManagedForms(service, document);
         syncManagedFields(document);
+        createManagedDomObserver(service);
 
         document.body.addEventListener("htmx:configRequest", function (event) {
             var target = event.detail && event.detail.elt;

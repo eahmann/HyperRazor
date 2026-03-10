@@ -30,13 +30,13 @@ public abstract class HrzInputComponentBase : ComponentBase
             ["name"] = ResolvedFieldContext.Name,
             ["aria-invalid"] = ResolvedFieldContext.HasErrors ? "true" : "false",
             ["aria-describedby"] = ResolvedFieldContext.AriaDescribedBy,
-            ["data-hrz-field-path"] = ResolvedFieldContext.FieldPath.Value
+            ["data-hrz-field-path"] = ResolvedFieldContext.FieldPath.Value,
+            ["data-hrz-server-slot-id"] = ResolvedFieldContext.ServerSlotId
         };
 
         if (ResolvedFieldContext.HasLiveValidation)
         {
             attributes["data-hrz-live-policy-id"] = ResolvedFieldContext.LivePolicyId;
-            attributes["data-hrz-server-slot-id"] = ResolvedFieldContext.ServerSlotId;
             attributes["data-hrz-summary-slot-id"] = ResolvedFieldContext.Form.SummaryId;
             attributes["hx-disinherit"] = "hx-disabled-elt";
             attributes["hx-post"] = ResolvedFieldContext.LiveValidationPath!;

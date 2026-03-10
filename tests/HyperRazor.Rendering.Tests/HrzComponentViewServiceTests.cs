@@ -279,6 +279,7 @@ public class HrzComponentViewServiceTests
         Assert.Contains("id=\"override-email-live\"", html, StringComparison.Ordinal);
 
         Assert.Contains("id=\"override-display-name\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"override-display-name-server\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"override-display-name-live\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-hrz-local-min-length", html, StringComparison.Ordinal);

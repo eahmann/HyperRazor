@@ -55,6 +55,33 @@
         }
     }
 
+    function slotHasMessage(slotId) {
+        var slot = getById(slotId);
+        return !!slot && !!slot.textContent && slot.textContent.trim().length > 0;
+    }
+
+    function updateFieldState(input) {
+        var invalid = slotHasMessage(input.dataset.hrzClientSlotId)
+            || slotHasMessage(input.dataset.hrzServerSlotId);
+        var field = input.closest('.validation-field');
+
+        input.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+        if (field) {
+            field.classList.toggle('validation-field--invalid', invalid);
+        }
+    }
+
+    function syncFieldStates(root) {
+        var scope = root || document;
+        var fields = scope.querySelectorAll('[data-hrz-field-path]');
+
+        Array.prototype.forEach.call(fields, function (field) {
+            if (isFieldElement(field)) {
+                updateFieldState(field);
+            }
+        });
+    }
+
     function clearServerSlots(input, policy) {
         var root = getValidationRoot(input);
         var clearFields = policy ? getIds(policy.dataset.hrzLiveClearFields) : [];
@@ -90,6 +117,8 @@
         if (shouldClearSummary) {
             clearSummary(input, policy);
         }
+
+        syncFieldStates(getValidationRoot(input));
     }
 
     function validateMinLength(input) {
@@ -152,6 +181,14 @@
 
     function handleInput(target) {
         validateLocally(target);
+
+        var policy = getPolicyCarrier(target);
+        if (!target.dataset.hrzLivePolicyId || (policy && policy.dataset.hrzLiveEnabled !== 'true')) {
+            clearServerState(target, policy);
+            return;
+        }
+
+        updateFieldState(target);
     }
 
     function isCarrierEnabled(carrier) {
@@ -274,7 +311,9 @@
 
     document.body.addEventListener('htmx:afterSettle', function () {
         syncPolicyCarriers(true);
+        syncFieldStates();
     });
 
     syncPolicyCarriers(false);
+    syncFieldStates();
 })();

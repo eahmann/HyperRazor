@@ -133,10 +133,13 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var secondEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: sse-demo-2", secondEvent, StringComparison.Ordinal);
         Assert.Contains("Out-of-band update applied", secondEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", secondEvent, StringComparison.Ordinal);
+        Assert.Contains("Secondary target updated", secondEvent, StringComparison.Ordinal);
 
         var thirdEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: sse-demo-3", thirdEvent, StringComparison.Ordinal);
         Assert.Contains("Closed cleanly", thirdEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", thirdEvent, StringComparison.Ordinal);
 
         var doneEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);

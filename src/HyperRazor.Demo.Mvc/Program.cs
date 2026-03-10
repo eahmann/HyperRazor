@@ -356,6 +356,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
     IHrzSwapService swapService,
     [EnumeratorCancellation] CancellationToken cancellationToken)
 {
+    var frameDelay = TimeSpan.FromSeconds(1.25);
     var resumeHeader = context.Request.Headers["Last-Event-ID"].ToString();
     var resumeTitle = string.IsNullOrWhiteSpace(resumeHeader) ? "Fresh Stream" : "Reconnect Requested";
     var resumeDetail = string.IsNullOrWhiteSpace(resumeHeader)
@@ -420,7 +421,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
             id: step.EventId,
             cancellationToken: cancellationToken);
 
-        await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken);
+        await Task.Delay(frameDelay, cancellationToken);
     }
 
     yield return HrzSse.Close();

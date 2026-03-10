@@ -54,6 +54,21 @@ public sealed class HrzSseRendererTests
     }
 
     [Fact]
+    public async Task RenderComponent_WhenCalledRepeatedly_IncludesOobContentEachTime()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var first = await fixture.SseRenderer.RenderComponent<QueuedContentComponent>();
+        var second = await fixture.SseRenderer.RenderComponent<QueuedContentComponent>();
+
+        Assert.Contains("hx-swap-oob=", first.Data, StringComparison.Ordinal);
+        Assert.Contains("id=\"queued-status\"", first.Data, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=", second.Data, StringComparison.Ordinal);
+        Assert.Contains("id=\"queued-status\"", second.Data, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RenderComponent_WhenRenderFails_ClearsQueuedHeadAndSwapState()
     {
         await using var fixture = await CreateFixtureAsync();

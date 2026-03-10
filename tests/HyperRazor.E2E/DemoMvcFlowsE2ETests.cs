@@ -293,7 +293,7 @@ public sealed class DemoMvcFlowsE2ETests
         await Assertions.Expect(cards).ToHaveCountAsync(3);
         await Assertions.Expect(page.Locator("#sse-stream-status")).ToContainTextAsync("Closed cleanly");
 
-        await page.WaitForTimeoutAsync(1200);
+        await page.WaitForTimeoutAsync(1800);
 
         Assert.Equal(3, await cards.CountAsync());
         await Assertions.Expect(page.Locator("#sse-live-feed")).ToContainTextAsync("Graceful shutdown prepared");

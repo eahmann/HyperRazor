@@ -6,14 +6,13 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisposable
 {
-    private readonly HtmlRenderer _renderer;
+    private readonly IServiceProvider _services;
+    private readonly ILoggerFactory _loggerFactory;
 
     public HrzHtmlRendererAdapter(IServiceProvider services, ILoggerFactory loggerFactory)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(loggerFactory);
-
-        _renderer = new HtmlRenderer(services, loggerFactory);
+        _services = services ?? throw new ArgumentNullException(nameof(services));
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
     }
 
     public Task<string> RenderAsync(
@@ -24,21 +23,26 @@ public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisp
         ArgumentNullException.ThrowIfNull(componentType);
         ArgumentNullException.ThrowIfNull(parameters);
 
-        return _renderer.Dispatcher.InvokeAsync(async () =>
+        var renderer = new HtmlRenderer(_services, _loggerFactory);
+
+        return renderer.Dispatcher.InvokeAsync(async () =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            await using (renderer)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            var rendered = await _renderer.RenderComponentAsync(
-                componentType,
-                ParameterView.FromDictionary(ToMutableDictionary(parameters)));
+                var rendered = await renderer.RenderComponentAsync(
+                    componentType,
+                    ParameterView.FromDictionary(ToMutableDictionary(parameters)));
 
-            return rendered.ToHtmlString();
+                return rendered.ToHtmlString();
+            }
         });
     }
 
     public ValueTask DisposeAsync()
     {
-        return _renderer.DisposeAsync();
+        return ValueTask.CompletedTask;
     }
 
     private static Dictionary<string, object?> ToMutableDictionary(IReadOnlyDictionary<string, object?> parameters)

@@ -741,6 +741,33 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task MixedValidation_SubmitPreservesLiveRuleErrorsAlongsideSubmitErrors()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/mixed");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["environment"] = "production",
+            ["seatCount"] = "18",
+            ["notes"] = "short"
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-mixed-authoring-form-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("Production rollouts above 10 seats require approval.", body, StringComparison.Ordinal);
+        Assert.Contains("Approval is required before a production rollout can exceed 10 seats.", body, StringComparison.Ordinal);
+        Assert.Contains("Notes must be at least 10 characters.", body, StringComparison.Ordinal);
+        Assert.Contains("validation-mixed-invalid", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Queued a <strong>production</strong> rollout", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task MixedLiveValidation_WithProductionOverage_ReturnsDependentSeatCountOob()
     {
         using var client = CreateClient();

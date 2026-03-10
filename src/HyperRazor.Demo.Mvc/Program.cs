@@ -268,25 +268,32 @@ app.MapPost("/validation/minimal/proxy", async (
 app.MapPost("/validation/mixed", async (
     HttpContext context,
     IAntiforgery antiforgery,
+    IHrzModelValidator modelValidator,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
     CancellationToken cancellationToken) =>
 {
     await antiforgery.ValidateRequestAsync(context);
 
-    var formPostState = await context.BindFormAndValidateAsync<MixedValidationInput>(
+    var formPostState = await context.BindFormAsync<MixedValidationInput>(
         UserInviteValidationRoots.MixedAuthoring,
         cancellationToken);
+    var validationState = await BuildMixedSubmitValidationStateAsync(
+        modelValidator,
+        livePolicyResolver,
+        formPostState,
+        cancellationToken);
 
-    if (!formPostState.ValidationState.IsValid)
+    if (!validationState.IsValid)
     {
-        context.SetSubmitValidationState(formPostState.ValidationState);
+        context.SetSubmitValidationState(validationState);
         context.HtmxResponse().Trigger("form:invalid", new
         {
-            errorCount = CountErrors(formPostState.ValidationState)
+            errorCount = CountErrors(validationState)
         });
         DemoInspectorUpdates.Queue(
             context,
             action: "validation-mixed-invalid",
-            details: $"Mixed authoring validation failed with {CountErrors(formPostState.ValidationState)} error(s).");
+            details: $"Mixed authoring validation failed with {CountErrors(validationState)} error(s).");
 
         return await MixedValidationResponses.RenderValidationAsync(
             context,
@@ -603,6 +610,42 @@ static async Task<IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy>> Re
     return policies;
 }
 
+static async Task<HrzSubmitValidationState> BuildMixedSubmitValidationStateAsync(
+    IHrzModelValidator modelValidator,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    HrzFormPostState<MixedValidationInput> formPostState,
+    CancellationToken cancellationToken)
+{
+    var rootId = UserInviteValidationRoots.MixedAuthoring;
+    var validationState = formPostState.ValidationState.Merge(
+        modelValidator.Validate(
+            formPostState.Model,
+            rootId,
+            formPostState.ValidationState.AttemptedValues));
+    var primaryField = MixedValidationAuthoringForm.SeatCountPath;
+    var primaryPolicy = await livePolicyResolver.ResolveAsync(
+        formPostState.Model,
+        rootId,
+        primaryField,
+        validationState.AttemptedValues,
+        cancellationToken);
+    var resolvedPolicies = await ResolveMixedLivePoliciesAsync(
+        livePolicyResolver,
+        formPostState.Model,
+        rootId,
+        primaryField,
+        primaryPolicy,
+        validationState.AttemptedValues,
+        cancellationToken);
+    var livePatch = BuildMixedLiveValidationPatch(
+        new HrzValidationScope(rootId, ValidateAll: true, Fields: [primaryField]),
+        primaryField,
+        formPostState.Model,
+        resolvedPolicies);
+
+    return validationState.Merge(ToSubmitValidationState(livePatch, validationState.AttemptedValues));
+}
+
 static HrzLiveValidationPatch BuildInviteLiveValidationPatch(
     HrzValidationScope scope,
     HrzFieldPath primaryField,
@@ -722,6 +765,17 @@ static IReadOnlyList<string> GetFieldErrors(HrzLiveValidationPatch patch, HrzFie
     return patch.FieldErrors.TryGetValue(fieldPath, out var messages)
         ? messages
         : Array.Empty<string>();
+}
+
+static HrzSubmitValidationState ToSubmitValidationState(
+    HrzLiveValidationPatch patch,
+    IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues)
+{
+    return new HrzSubmitValidationState(
+        patch.RootId,
+        patch.SummaryErrors,
+        patch.FieldErrors,
+        attemptedValues);
 }
 
 static RenderFragment BuildFieldSlotFragment(

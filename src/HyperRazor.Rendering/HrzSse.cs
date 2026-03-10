@@ -1,5 +1,6 @@
 using System.Net.ServerSentEvents;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace HyperRazor.Rendering;
 
@@ -34,6 +35,32 @@ public static class HrzSse
         }
 
         return Create(data, eventType, id, retryAfter);
+    }
+
+    /// <summary>
+    /// Creates a blank-data named signal event.
+    /// </summary>
+    public static SseItem<string> Signal(
+        string eventType,
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        if (string.IsNullOrWhiteSpace(eventType))
+        {
+            throw new ArgumentException("A named SSE event type is required.", nameof(eventType));
+        }
+
+        return Create(string.Empty, eventType, id, retryAfter);
+    }
+
+    /// <summary>
+    /// Creates HyperRazor's canonical SSE close signal.
+    /// </summary>
+    public static SseItem<string> Done(
+        string? id = null,
+        TimeSpan? retryAfter = null)
+    {
+        return Close(DefaultCloseEventType, id, retryAfter);
     }
 
     /// <summary>
@@ -83,6 +110,17 @@ public static class HrzSse
 
         var bytes = Encoding.UTF8.GetBytes(payload);
         await destination.WriteAsync(bytes, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reads the standard SSE resume header and normalizes blank values to null.
+    /// </summary>
+    public static string? GetLastEventId(HttpRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var value = request.Headers["Last-Event-ID"].ToString().Trim();
+        return string.IsNullOrEmpty(value) ? null : value;
     }
 
     private static SseItem<string> Create(

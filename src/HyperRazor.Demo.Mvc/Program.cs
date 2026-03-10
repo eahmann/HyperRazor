@@ -360,7 +360,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
     [EnumeratorCancellation] CancellationToken cancellationToken)
 {
     var frameDelay = TimeSpan.FromSeconds(1.25);
-    var resumeHeader = context.Request.Headers["Last-Event-ID"].ToString();
+    var resumeHeader = HrzSse.GetLastEventId(context.Request);
     var resumeTitle = string.IsNullOrWhiteSpace(resumeHeader) ? "Fresh Stream" : "Reconnect Requested";
     var resumeDetail = string.IsNullOrWhiteSpace(resumeHeader)
         ? "No resume header was supplied on this connection."
@@ -430,7 +430,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseDemoAsync(
         }
     }
 
-    yield return HrzSse.Close();
+    yield return HrzSse.Done();
 }
 
 static async IAsyncEnumerable<SseItem<string>> StreamNotificationsDemoAsync(
@@ -440,7 +440,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamNotificationsDemoAsync(
     [EnumeratorCancellation] CancellationToken cancellationToken)
 {
     var frameDelay = TimeSpan.FromMilliseconds(700);
-    var resumeHeader = context.Request.Headers["Last-Event-ID"].ToString();
+    var resumeHeader = HrzSse.GetLastEventId(context.Request);
     var resumeDetail = string.IsNullOrWhiteSpace(resumeHeader)
         ? "Connected from the beginning of the demo stream."
         : $"Client requested resume after {resumeHeader}.";
@@ -500,7 +500,7 @@ static async IAsyncEnumerable<SseItem<string>> StreamNotificationsDemoAsync(
         }
     }
 
-    yield return HrzSse.Close();
+    yield return HrzSse.Done();
 }
 
 static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)

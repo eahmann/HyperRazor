@@ -64,21 +64,10 @@ public static class HrzResults
     /// </summary>
     public static IResult ServerSentEvents(
         IAsyncEnumerable<SseItem<string>> source,
-        Action<HttpResponse>? configureResponse = null)
+        Action<HttpResponse>? configureResponse = null,
+        HrzSseResultOptions? options = null)
     {
-        return ServerSentEvents<string>(source, configureResponse);
-    }
-
-    /// <summary>
-    /// Returns a platform-backed SSE response with HyperRazor's default streaming headers.
-    /// </summary>
-    public static IResult ServerSentEvents<T>(
-        IAsyncEnumerable<SseItem<T>> source,
-        Action<HttpResponse>? configureResponse = null)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-
-        return new HrzServerSentEventsResult<T>(source, configureResponse);
+        return new HrzServerSentEventsResult<string>(source, options, configureResponse);
     }
 
     /// <summary>
@@ -212,26 +201,86 @@ public static class HrzResults
     private sealed class HrzServerSentEventsResult<T> : IResult
     {
         private readonly IAsyncEnumerable<SseItem<T>> _source;
+        private readonly HrzSseResultOptions _options;
         private readonly Action<HttpResponse>? _configureResponse;
 
         public HrzServerSentEventsResult(
             IAsyncEnumerable<SseItem<T>> source,
+            HrzSseResultOptions? options,
             Action<HttpResponse>? configureResponse)
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
+            _options = options ?? new HrzSseResultOptions();
             _configureResponse = configureResponse;
         }
 
         public async Task ExecuteAsync(HttpContext httpContext)
         {
-            ApplyDefaultSseHeaders(httpContext.Response);
+            ApplyDefaultSseHeaders(httpContext.Response, _options);
             _configureResponse?.Invoke(httpContext.Response);
-            await TypedResults.ServerSentEvents(_source).ExecuteAsync(httpContext);
+
+            if (_options.HeartbeatInterval is null)
+            {
+                await TypedResults.ServerSentEvents(_source).ExecuteAsync(httpContext);
+                return;
+            }
+
+            if (typeof(T) != typeof(string))
+            {
+                throw new InvalidOperationException("Heartbeat comments are only supported for string SSE streams.");
+            }
+
+            await ExecuteWithHeartbeatsAsync(httpContext);
+        }
+
+        private async Task ExecuteWithHeartbeatsAsync(HttpContext httpContext)
+        {
+            var cancellationToken = httpContext.RequestAborted;
+            var response = httpContext.Response;
+            var heartbeatInterval = _options.HeartbeatInterval ?? throw new InvalidOperationException("A heartbeat interval is required.");
+
+            response.StatusCode = StatusCodes.Status200OK;
+            response.ContentType ??= "text/event-stream";
+            response.Headers["Cache-Control"] = "no-cache,no-store";
+
+            await using var enumerator = _source.GetAsyncEnumerator(cancellationToken);
+            var pendingMoveNext = enumerator.MoveNextAsync().AsTask();
+
+            while (true)
+            {
+                var heartbeatDelay = Task.Delay(heartbeatInterval, cancellationToken);
+                var completed = await Task.WhenAny(pendingMoveNext, heartbeatDelay);
+
+                if (completed == heartbeatDelay)
+                {
+                    await HrzSse.WriteCommentAsync(response.Body, _options.HeartbeatComment, cancellationToken);
+                    await response.Body.FlushAsync(cancellationToken);
+                    continue;
+                }
+
+                if (!await pendingMoveNext)
+                {
+                    break;
+                }
+
+                await SseFormatter.WriteAsync(YieldSingleItem((SseItem<string>)(object)enumerator.Current), response.Body, cancellationToken);
+                await response.Body.FlushAsync(cancellationToken);
+                pendingMoveNext = enumerator.MoveNextAsync().AsTask();
+            }
+        }
+
+        private static async IAsyncEnumerable<SseItem<string>> YieldSingleItem(SseItem<string> item)
+        {
+            yield return item;
+            await Task.CompletedTask;
         }
     }
 
-    private static void ApplyDefaultSseHeaders(HttpResponse response)
+    private static void ApplyDefaultSseHeaders(HttpResponse response, HrzSseResultOptions options)
     {
-        response.Headers[ProxyBufferingHeader] = ProxyBufferingDisabledValue;
+        if (options.DisableProxyBuffering)
+        {
+            response.Headers[ProxyBufferingHeader] = ProxyBufferingDisabledValue;
+        }
     }
 }

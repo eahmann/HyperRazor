@@ -1,12 +1,10 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using HyperRazor;
 using HyperRazor.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Primitives;
 
 namespace HyperRazor.Rendering.Tests;
 
@@ -129,65 +127,6 @@ public class HrzValidationInfrastructureTests
         Assert.Empty(policy.ClearFields);
         Assert.False(policy.ReplaceSummaryWhenDisabled);
         Assert.False(policy.ImmediateRecheckWhenEnabled);
-    }
-
-    [Fact]
-    public void TextFieldBinding_CreatesExpressionDrivenIdsAndLivePayload()
-    {
-        var model = new InviteLikeFormModel
-        {
-            DisplayName = "Riley Stone"
-        };
-
-        var binding = HrzTextFieldBinding.Create(
-            () => model.DisplayName,
-            validationState: null,
-            idPrefix: "validation-minimal-proxy",
-            liveValidationRootId: new HrzValidationRootId("validation-minimal-proxy"));
-
-        Assert.Equal("DisplayName", binding.FieldPath.Value);
-        Assert.Equal("displayName", binding.Name);
-        Assert.Equal("validation-minimal-proxy-display-name", binding.InputId);
-        Assert.Equal("validation-minimal-proxy-display-name-client", binding.ClientSlotId);
-        Assert.Equal("validation-minimal-proxy-display-name-server", binding.ServerSlotId);
-        Assert.Equal("validation-minimal-proxy-display-name-live", binding.LivePolicyId);
-        Assert.Equal("Riley Stone", binding.Value);
-        Assert.False(binding.HasErrors);
-
-        using var payload = JsonDocument.Parse(binding.LiveValidationValuesJson!);
-        Assert.Equal("validation-minimal-proxy", payload.RootElement.GetProperty("__hrz_root").GetString());
-        Assert.Equal("DisplayName", payload.RootElement.GetProperty("__hrz_fields").GetString());
-    }
-
-    [Fact]
-    public void TextFieldBinding_PrefersAttemptedValueAndErrors()
-    {
-        var model = new InviteLikeFormModel
-        {
-            Email = "riley@example.com"
-        };
-        var path = HrzFieldPaths.FromFieldName(nameof(InviteLikeFormModel.Email));
-        var state = new HrzSubmitValidationState(
-            new HrzValidationRootId("validation-minimal-proxy"),
-            SummaryErrors: Array.Empty<string>(),
-            FieldErrors: new Dictionary<HrzFieldPath, IReadOnlyList<string>>
-            {
-                [path] = ["Email already exists."]
-            },
-            AttemptedValues: new Dictionary<HrzFieldPath, HrzAttemptedValue>
-            {
-                [path] = new(new StringValues("backend-taken@example.com"), Array.Empty<HrzAttemptedFile>())
-            });
-
-        var binding = HrzTextFieldBinding.Create(
-            () => model.Email,
-            state,
-            idPrefix: "validation-minimal-proxy");
-
-        Assert.Equal("backend-taken@example.com", binding.Value);
-        Assert.True(binding.HasErrors);
-        Assert.Equal(["Email already exists."], binding.Errors);
-        Assert.Null(binding.LiveValidationValuesJson);
     }
 
     private static ServiceProvider CreateServices()

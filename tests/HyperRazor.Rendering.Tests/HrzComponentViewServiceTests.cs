@@ -640,7 +640,7 @@ public class HrzComponentViewServiceTests
 
     private sealed class ValidationExpandedInputSurfaceComponent : ComponentBase
     {
-        private static readonly IReadOnlyList<HrzSelectOption> RoleOptions =
+        private static readonly IReadOnlyList<HrzInputSelectOption> RoleOptions =
         [
             new("analyst", "Analyst"),
             new("manager", "Manager"),
@@ -670,8 +670,8 @@ public class HrzComponentViewServiceTests
                 {
                     fieldBuilder.OpenComponent<HrzLabel>(0);
                     fieldBuilder.CloseComponent();
-                    fieldBuilder.OpenComponent<HrzTextArea>(1);
-                    fieldBuilder.AddAttribute(2, nameof(HrzTextArea.Rows), 5);
+                    fieldBuilder.OpenComponent<HrzInputTextArea>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputTextArea.Rows), 5);
                     fieldBuilder.CloseComponent();
                     fieldBuilder.OpenComponent<HrzValidationMessage>(3);
                     fieldBuilder.CloseComponent();
@@ -684,8 +684,8 @@ public class HrzComponentViewServiceTests
                 {
                     fieldBuilder.OpenComponent<HrzLabel>(0);
                     fieldBuilder.CloseComponent();
-                    fieldBuilder.OpenComponent<HrzSelect>(1);
-                    fieldBuilder.AddAttribute(2, nameof(HrzSelect.Options), RoleOptions);
+                    fieldBuilder.OpenComponent<HrzInputSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputSelect.Options), RoleOptions);
                     fieldBuilder.CloseComponent();
                     fieldBuilder.OpenComponent<HrzValidationMessage>(3);
                     fieldBuilder.CloseComponent();

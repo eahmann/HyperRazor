@@ -8,4 +8,5 @@ public static class UserInviteValidationRoots
     public static HrzValidationRootId MvcProxy { get; } = new("validation-mvc-proxy");
     public static HrzValidationRootId MinimalLocal { get; } = new("validation-minimal-local");
     public static HrzValidationRootId MinimalProxy { get; } = new("validation-minimal-proxy");
+    public static HrzValidationRootId MixedAuthoring { get; } = new("validation-mixed-authoring");
 }

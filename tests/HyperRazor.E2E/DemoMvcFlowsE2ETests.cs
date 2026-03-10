@@ -143,6 +143,42 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_UsesSelectCheckboxAndNumberForLiveValidation()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.SelectOptionAsync("#validation-mixed-authoring-environment", "production");
+        var seatCountResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-mixed-authoring-seat-count", "20"),
+            response => response.Url.Contains("/validation/mixed/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var seatCountHtml = await seatCountResponse.TextAsync();
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-server\"", seatCountHtml, StringComparison.Ordinal);
+        Assert.Contains("Production rollouts above 10 seats require approval.", seatCountHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToContainTextAsync("Production rollouts above 10 seats require approval.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+
+        var approvalResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.CheckAsync("#validation-mixed-authoring-requires-approval"),
+            response => response.Url.Contains("/validation/mixed/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var approvalHtml = await approvalResponse.TextAsync();
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-server\"", approvalHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToBeEmptyAsync();
+    }
+
+    [SkippableFact]
     public async Task AccessReview_TaskFlow_InvalidThenValid_ReturnsToWorkbenchViaHxLocation()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

@@ -595,6 +595,21 @@ button:disabled {
     width: 100%;
 }
 
+.validation-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.validation-checkbox-row input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.validation-checkbox-row label {
+    margin: 0;
+}
+
 .validation-field--invalid input {
     border-color: rgba(var(--bs-danger-rgb), 0.65);
     box-shadow: 0 0 0 0.2rem rgba(var(--bs-danger-rgb), 0.12);

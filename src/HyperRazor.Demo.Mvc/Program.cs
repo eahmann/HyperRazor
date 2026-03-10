@@ -70,7 +70,7 @@ builder.Services.AddHtmx(htmx =>
     ];
 });
 builder.Services.AddSingleton<IInviteValidationBackend, DemoInviteValidationBackend>();
-builder.Services.AddSingleton<IHrzLiveValidationPolicyResolver, DemoInviteLiveValidationPolicyResolver>();
+builder.Services.AddSingleton<IHrzLiveValidationPolicyResolver, DemoValidationLivePolicyResolver>();
 
 var app = builder.Build();
 
@@ -265,6 +265,161 @@ app.MapPost("/validation/minimal/proxy", async (
 
     return Results.Redirect("/validation");
 });
+app.MapPost("/validation/mixed", async (
+    HttpContext context,
+    IAntiforgery antiforgery,
+    CancellationToken cancellationToken) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+
+    var formPostState = await context.BindFormAndValidateAsync<MixedValidationInput>(
+        UserInviteValidationRoots.MixedAuthoring,
+        cancellationToken);
+
+    if (!formPostState.ValidationState.IsValid)
+    {
+        context.SetSubmitValidationState(formPostState.ValidationState);
+        context.HtmxResponse().Trigger("form:invalid", new
+        {
+            errorCount = CountErrors(formPostState.ValidationState)
+        });
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-mixed-invalid",
+            details: $"Mixed authoring validation failed with {CountErrors(formPostState.ValidationState)} error(s).");
+
+        return await MixedValidationResponses.RenderValidationAsync(
+            context,
+            nameof(ValidationPage.MixedAuthoringForm),
+            MixedValidationDefinitions.Authoring(formPostState.Model),
+            cancellationToken);
+    }
+
+    context.HtmxResponse().Trigger("form:valid", new
+    {
+        environment = formPostState.Model.Environment,
+        seatCount = formPostState.Model.SeatCount,
+        requiresApproval = formPostState.Model.RequiresApproval
+    });
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-mixed-valid",
+        details: $"Mixed authoring validation accepted a {formPostState.Model.Environment} rollout for {formPostState.Model.SeatCount} seats.");
+
+    if (context.HtmxRequest().IsHtmx)
+    {
+        return await HrzResults.Partial<MixedValidationAuthoringForm>(
+            context,
+            new
+            {
+                Form = MixedValidationDefinitions.Authoring(formPostState.Model, success: true)
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    return Results.Redirect("/validation");
+});
+app.MapPost("/validation/mixed/live", async (
+    HttpContext context,
+    IAntiforgery antiforgery,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    CancellationToken cancellationToken) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+
+    var scope = await context.BindLiveValidationScopeAsync(cancellationToken);
+    if (scope is null || scope.Fields.Count == 0)
+    {
+        return Results.NoContent();
+    }
+
+    var formPostState = await context.BindFormAsync<MixedValidationInput>(scope.RootId, cancellationToken);
+    if (!MixedValidationDefinitions.TryResolve(scope.RootId, formPostState.Model, out var form))
+    {
+        return Results.NoContent();
+    }
+
+    var primaryField = ResolveMixedPrimaryField(scope);
+    if (primaryField is null)
+    {
+        return Results.NoContent();
+    }
+
+    var primaryPolicy = await livePolicyResolver.ResolveAsync(
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+    var resolvedPolicies = await ResolveMixedLivePoliciesAsync(
+        livePolicyResolver,
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        primaryPolicy,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+
+    if (!primaryPolicy.Enabled)
+    {
+        var disabledFragments = new List<RenderFragment>
+        {
+            BuildMixedFieldSlotFragment(form, primaryField, Array.Empty<string>(), swapOob: false)
+        };
+
+        foreach (var resolvedPolicy in resolvedPolicies)
+        {
+            disabledFragments.Add(BuildMixedLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+        }
+
+        foreach (var clearField in primaryPolicy.ClearFields
+                     .Distinct()
+                     .Where(field => !field.Equals(primaryField)))
+        {
+            disabledFragments.Add(BuildMixedFieldSlotFragment(form, clearField, Array.Empty<string>(), swapOob: true));
+        }
+
+        if (primaryPolicy.ReplaceSummaryWhenDisabled)
+        {
+            disabledFragments.Add(BuildMixedSummarySlotFragment(form, Array.Empty<string>(), swapOob: true));
+        }
+
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-mixed-live-policy-disabled",
+            details: $"Mixed live policy blocked {primaryField.Value} and cleared {string.Join(", ", primaryPolicy.ClearFields.Select(static field => field.Value))}.");
+
+        return await HrzResults.Partial(context, cancellationToken, disabledFragments.ToArray());
+    }
+
+    var livePatch = BuildMixedLiveValidationPatch(scope, primaryField, formPostState.Model, resolvedPolicies);
+    var fragments = new List<RenderFragment>
+    {
+        BuildMixedFieldSlotFragment(form, primaryField, GetFieldErrors(livePatch, primaryField), swapOob: false)
+    };
+
+    foreach (var resolvedPolicy in resolvedPolicies)
+    {
+        fragments.Add(BuildMixedLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+    }
+
+    foreach (var affectedField in livePatch.AffectedFields.Where(field => !field.Equals(primaryField)))
+    {
+        fragments.Add(BuildMixedFieldSlotFragment(form, affectedField, GetFieldErrors(livePatch, affectedField), swapOob: true));
+    }
+
+    if (livePatch.ReplaceSummary)
+    {
+        fragments.Add(BuildMixedSummarySlotFragment(form, livePatch.SummaryErrors, swapOob: true));
+    }
+
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-mixed-live",
+        details: $"Mixed live validation updated {string.Join(", ", livePatch.AffectedFields.Select(static field => field.Value))}.");
+
+    return await HrzResults.Partial(context, cancellationToken, fragments.ToArray());
+});
 app.MapPost("/validation/live", async (
     HttpContext context,
     IAntiforgery antiforgery,
@@ -384,9 +539,46 @@ static HrzFieldPath? ResolvePrimaryField(HrzValidationScope scope)
             || field.Equals(UserInviteValidationForm.DisplayNamePath));
 }
 
+static HrzFieldPath? ResolveMixedPrimaryField(HrzValidationScope scope)
+{
+    return scope.ValidateAll
+        ? MixedValidationAuthoringForm.SeatCountPath
+        : scope.Fields.FirstOrDefault(static field =>
+            field.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+            || field.Equals(MixedValidationAuthoringForm.RequiresApprovalPath)
+            || field.Equals(MixedValidationAuthoringForm.SeatCountPath));
+}
+
 static async Task<IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy>> ResolveLivePoliciesAsync(
     IHrzLiveValidationPolicyResolver livePolicyResolver,
     InviteUserInput input,
+    HrzValidationRootId rootId,
+    HrzFieldPath primaryField,
+    HrzLiveValidationPolicy primaryPolicy,
+    IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,
+    CancellationToken cancellationToken)
+{
+    var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>
+    {
+        [primaryField] = primaryPolicy
+    };
+
+    foreach (var affectedField in primaryPolicy.AffectedFields.Where(field => !field.Equals(primaryField)).Distinct())
+    {
+        policies[affectedField] = await livePolicyResolver.ResolveAsync(
+            input,
+            rootId,
+            affectedField,
+            attemptedValues,
+            cancellationToken);
+    }
+
+    return policies;
+}
+
+static async Task<IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy>> ResolveMixedLivePoliciesAsync(
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    MixedValidationInput input,
     HrzValidationRootId rootId,
     HrzFieldPath primaryField,
     HrzLiveValidationPolicy primaryPolicy,
@@ -470,6 +662,55 @@ static HrzLiveValidationPatch BuildInviteLiveValidationPatch(
         SummaryErrors: summaryErrors);
 }
 
+static HrzLiveValidationPatch BuildMixedLiveValidationPatch(
+    HrzValidationScope scope,
+    HrzFieldPath primaryField,
+    MixedValidationInput input,
+    IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> resolvedPolicies)
+{
+    var primaryPolicy = resolvedPolicies[primaryField];
+    var affectedFields = primaryPolicy.AffectedFields
+        .Append(primaryField)
+        .Distinct()
+        .ToArray();
+    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
+    var summaryErrors = new List<string>();
+    var isProduction = string.Equals(input.Environment, "production", StringComparison.OrdinalIgnoreCase);
+    var requiresApproval = input.RequiresApproval;
+
+    foreach (var field in affectedFields)
+    {
+        if (field.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+            || field.Equals(MixedValidationAuthoringForm.RequiresApprovalPath))
+        {
+            fieldErrors[field] = Array.Empty<string>();
+        }
+
+        if (field.Equals(MixedValidationAuthoringForm.SeatCountPath))
+        {
+            var seatCountErrors = resolvedPolicies[field].Enabled
+                && isProduction
+                && input.SeatCount > 10
+                && !requiresApproval
+                ? new[] { "Production rollouts above 10 seats require approval." }
+                : Array.Empty<string>();
+            fieldErrors[field] = seatCountErrors;
+
+            if (seatCountErrors.Length > 0)
+            {
+                summaryErrors.Add("Approval is required before a production rollout can exceed 10 seats.");
+            }
+        }
+    }
+
+    return new HrzLiveValidationPatch(
+        scope.RootId,
+        affectedFields,
+        fieldErrors,
+        ReplaceSummary: true,
+        SummaryErrors: summaryErrors);
+}
+
 static bool IsEligibleForDisplayNameServerValidation(string? displayName)
 {
     return !string.IsNullOrWhiteSpace(displayName)
@@ -535,6 +776,67 @@ static RenderFragment BuildLivePolicyCarrierFragment(
         builder.AddAttribute(1, nameof(HrzValidationLivePolicyCarrier.Id), carrierId);
         builder.AddAttribute(2, nameof(HrzValidationLivePolicyCarrier.Policy), policy);
         builder.AddAttribute(3, nameof(HrzValidationLivePolicyCarrier.SummarySlotId), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(4, nameof(HrzValidationLivePolicyCarrier.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildMixedFieldSlotFragment(
+    MixedValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    IReadOnlyList<string> errors,
+    bool swapOob)
+{
+    var slotId = fieldPath.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+        ? MixedValidationAuthoringForm.GetEnvironmentServerId(form.IdPrefix)
+        : fieldPath.Equals(MixedValidationAuthoringForm.RequiresApprovalPath)
+            ? MixedValidationAuthoringForm.GetRequiresApprovalServerId(form.IdPrefix)
+            : MixedValidationAuthoringForm.GetSeatCountServerId(form.IdPrefix);
+
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationServerFieldSlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerFieldSlot.Id), slotId);
+        builder.AddAttribute(2, nameof(HrzValidationServerFieldSlot.FieldPath), fieldPath.Value);
+        builder.AddAttribute(3, nameof(HrzValidationServerFieldSlot.Errors), errors);
+        builder.AddAttribute(4, nameof(HrzValidationServerFieldSlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildMixedSummarySlotFragment(
+    MixedValidationFormViewModel form,
+    IReadOnlyList<string> errors,
+    bool swapOob)
+{
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationServerSummarySlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerSummarySlot.Id), MixedValidationAuthoringForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(2, nameof(HrzValidationServerSummarySlot.Errors), errors);
+        builder.AddAttribute(3, nameof(HrzValidationServerSummarySlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildMixedLivePolicyCarrierFragment(
+    MixedValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    HrzLiveValidationPolicy policy,
+    bool swapOob)
+{
+    var carrierId = fieldPath.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+        ? MixedValidationAuthoringForm.GetEnvironmentLivePolicyId(form.IdPrefix)
+        : fieldPath.Equals(MixedValidationAuthoringForm.RequiresApprovalPath)
+            ? MixedValidationAuthoringForm.GetRequiresApprovalLivePolicyId(form.IdPrefix)
+            : MixedValidationAuthoringForm.GetSeatCountLivePolicyId(form.IdPrefix);
+
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationLivePolicyCarrier>(0);
+        builder.AddAttribute(1, nameof(HrzValidationLivePolicyCarrier.Id), carrierId);
+        builder.AddAttribute(2, nameof(HrzValidationLivePolicyCarrier.Policy), policy);
+        builder.AddAttribute(3, nameof(HrzValidationLivePolicyCarrier.SummarySlotId), MixedValidationAuthoringForm.GetSummaryId(form.IdPrefix));
         builder.AddAttribute(4, nameof(HrzValidationLivePolicyCarrier.SwapOob), swapOob);
         builder.CloseComponent();
     };

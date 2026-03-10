@@ -270,7 +270,7 @@ This allows:
 
 ```razor
 <label for="invite-email">Email</label>
-<HrzInput
+<HrzInputText
     Id="invite-email"
     Name="email"
     Type="email"

@@ -1,0 +1,47 @@
+@namespace HyperRazor.Components
+@inherits HrzValidationInputComponentBase
+
+<select multiple="@Multiple" @attributes="InputAttributes">
+    @if (!string.IsNullOrWhiteSpace(Placeholder))
+    {
+        <option value="" selected="@(!Multiple && ResolvedFieldContext.Values.Count == 0)">@Placeholder</option>
+    }
+
+    @foreach (var option in Options)
+    {
+        <option
+            value="@option.Value"
+            selected="@IsSelected(option.Value)"
+            disabled="@option.Disabled">
+            @if (OptionContent is null)
+            {
+                @option.Label
+            }
+            else
+            {
+                @OptionContent(option)
+            }
+        </option>
+    }
+</select>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<HrzInputSelectOption> Options { get; set; } = Array.Empty<HrzInputSelectOption>();
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public bool Multiple { get; set; }
+
+    [Parameter]
+    public RenderFragment<HrzInputSelectOption>? OptionContent { get; set; }
+
+    private bool IsSelected(string value)
+    {
+        return ResolvedFieldContext.Values.Contains(value, StringComparer.Ordinal);
+    }
+
+    private IReadOnlyDictionary<string, object> InputAttributes => BuildControlAttributes();
+}

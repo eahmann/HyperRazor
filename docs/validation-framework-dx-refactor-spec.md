@@ -200,17 +200,19 @@ Proposal D v1 should define these primary components:
 These are enough to prove the authoring model before expanding into:
 
 - `HrzInputNumber`
-- `HrzTextArea`
-- `HrzSelect`
+- `HrzInputTextArea`
+- `HrzInputSelect`
 - `HrzInputCheckbox`
 - richer custom-validator metadata
 
 Current implementation has already started that expansion with:
 
-- `HrzTextArea`
-- `HrzSelect`
+- `HrzInputTextArea`
+- `HrzInputSelect`
 - `HrzInputCheckbox`
 - `HrzInputNumber`
+
+All `HrzInput*` components should follow the same naming convention as the built-in Blazor `Input*` components.
 
 ## 6. Component Contracts
 
@@ -423,6 +425,28 @@ That means:
 - it is not itself the final public Proposal D API
 - it should be treated as infrastructure for `HrzField` and related components
 
+### 7.5 Shared input base
+
+The `HrzInput*` family should share an internal base/helper layer for common control-contract emission.
+
+That shared layer should own:
+
+- `name` and `id`
+- `aria-invalid`
+- `aria-describedby`
+- local validation `data-hrz-*` metadata
+- live validation `data-hrz-*` metadata
+- shared `hx-*` emission for live-enabled fields
+- merging of framework-owned attributes with caller-supplied attributes
+
+Element-specific components should only add what is unique to that element:
+
+- `type`, `placeholder`, and input mode for `HrzInputText`
+- `rows` and inner content handling for `HrzInputTextArea`
+- option rendering for `HrzInputSelect`
+- `checked` and hidden `false` transport behavior for `HrzInputCheckbox`
+- min/max/step handling for `HrzInputNumber`
+
 ## 8. Rendering Contract Emitted By The Authoring Surface
 
 Proposal D should hide the low-level runtime contract from the app, not change it.
@@ -616,8 +640,8 @@ Prove:
 
 Add:
 
-- `HrzTextArea`
-- `HrzSelect`
+- `HrzInputTextArea`
+- `HrzInputSelect`
 - `HrzInputCheckbox`
 - `HrzInputNumber`
 - more validation metadata adapters

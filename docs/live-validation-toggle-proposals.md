@@ -410,7 +410,7 @@ Introduce a framework authoring surface such as:
 
 - `HrzForm`
 - `HrzField`
-- `HrzInput`
+- `HrzInputText`
 - `HrzValidationMessage`
 - `HrzValidationSummary`
 
@@ -432,7 +432,7 @@ Target authoring shape:
 <HrzForm Model="Invite" Action="/validation/minimal/proxy">
     <HrzField For="() => Invite.Email">
         <HrzLabel />
-        <HrzInput Type="email" LivePolicy="InvitePolicies.Email" />
+        <HrzInputText Type="email" LivePolicy="InvitePolicies.Email" />
         <HrzValidationMessage />
     </HrzField>
 </HrzForm>

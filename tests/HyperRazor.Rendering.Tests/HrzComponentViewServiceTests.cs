@@ -338,6 +338,21 @@ public class HrzComponentViewServiceTests
     }
 
     [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_SelectPlaceholderMatchesEmptyValue()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationPlaceholderSelectSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"placeholder-select-role\"", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"\" selected disabled>Select a role</option>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<option value=\"analyst\" selected>Analyst</option>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PartialView_ValidationAuthoringSurface_UsesRegisteredClientValidationMetadataProviders()
     {
         await using var fixture = await CreateFixtureAsync(
@@ -798,6 +813,46 @@ public class HrzComponentViewServiceTests
                     fieldBuilder.OpenComponent<HrzInputTextArea>(1);
                     fieldBuilder.CloseComponent();
                     fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationPlaceholderSelectSurfaceComponent : ComponentBase
+    {
+        private static readonly IReadOnlyList<HrzInputSelectOption> RoleOptions =
+        [
+            new("analyst", "Analyst"),
+            new("manager", "Manager")
+        ];
+
+        private readonly ValidationExpandedModel _model = new()
+        {
+            Role = string.Empty
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationExpandedModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationExpandedModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationExpandedModel>.Action), "/validation/select");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationExpandedModel>.FormName), "placeholder-select");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationExpandedModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Role));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputSelect.Options), RoleOptions);
+                    fieldBuilder.AddAttribute(3, nameof(HrzInputSelect.Placeholder), "Select a role");
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(4);
                     fieldBuilder.CloseComponent();
                 }));
                 formBuilder.CloseComponent();

@@ -12,7 +12,7 @@
     {
         <option
             value="@PlaceholderValue"
-            selected="@(!Multiple && ResolvedFieldContext.Values.Count == 0)"
+            selected="@ShouldSelectPlaceholder()"
             disabled="@PlaceholderDisabled">
             @Placeholder
         </option>
@@ -62,6 +62,14 @@
     private bool IsSelected(string value)
     {
         return ResolvedFieldContext.Values.Contains(value, StringComparer.Ordinal);
+    }
+
+    private bool ShouldSelectPlaceholder()
+    {
+        return !Multiple
+            && (ResolvedFieldContext.Values.Count == 0
+                || (ResolvedFieldContext.Values.Count == 1
+                    && string.Equals(ResolvedFieldContext.Values[0], PlaceholderValue, StringComparison.Ordinal)));
     }
 
     private IReadOnlyDictionary<string, object> InputAttributes => BuildControlAttributes();

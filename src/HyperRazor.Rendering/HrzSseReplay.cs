@@ -72,7 +72,7 @@ public static class HrzSseReplay
                 yield break;
 
             default:
-                throw new ArgumentOutOfRangeException(nameof(decision), decision.Disposition, "Unknown HyperRazor SSE replay disposition.");
+                throw new ArgumentOutOfRangeException(nameof(HrzSseReplayDecision.Disposition), decision.Disposition, "Unknown HyperRazor SSE replay disposition.");
         }
     }
 

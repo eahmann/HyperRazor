@@ -11,8 +11,6 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrzSseRenderer : IHrzSseRenderer
 {
-    private const string ForceSwapRenderingItemKey = "HyperRazor.Rendering.ForceSwapRendering";
-
     private readonly IHrzHtmlRendererAdapter _renderer;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly HrzOptions _options;
@@ -141,7 +139,7 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
         CancellationToken cancellationToken)
     {
         var context = GetHttpContext();
-        context.Items[ForceSwapRenderingItemKey] = true;
+        context.Items[HrzComponentContextItemKeys.ForceSwapRendering] = true;
 
         try
         {
@@ -161,7 +159,7 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
                 [nameof(HrzComponentHost.RenderSwapContent)] = true
             };
 
-            var html = await _renderer.RenderAsync(typeof(HrzComponentHost), hostParameters, cancellationToken);
+            var html = await _renderer.RenderIsolatedAsync(typeof(HrzComponentHost), hostParameters, cancellationToken);
             return new SseItem<string>(html, eventType)
             {
                 EventId = id,
@@ -170,7 +168,7 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
         }
         finally
         {
-            context.Items.Remove(ForceSwapRenderingItemKey);
+            context.Items.Remove(HrzComponentContextItemKeys.ForceSwapRendering);
             context.RequestServices.GetService<IHrzHeadService>()?.Clear();
             context.RequestServices.GetService<IHrzSwapService>()?.Clear();
         }

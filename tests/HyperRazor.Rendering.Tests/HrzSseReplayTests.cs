@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.ServerSentEvents;
+using System.Reflection;
 using HyperRazor;
 using HyperRazor.Mvc;
 using HyperRazor.Rendering;
@@ -63,6 +64,30 @@ public sealed class HrzSseReplayTests
             GetEvents("live-1", "live-2")));
 
         Assert.Equal(["reset-1"], ids);
+    }
+
+    [Fact]
+    public async Task Compose_WhenDispositionIsUnknown_ThrowsWithDispositionParameterName()
+    {
+        var constructor = typeof(HrzSseReplayDecision).GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            [typeof(HrzSseReplayDisposition), typeof(IAsyncEnumerable<SseItem<string>>)],
+            modifiers: null);
+
+        Assert.NotNull(constructor);
+
+        var decision = (HrzSseReplayDecision)constructor!.Invoke([(HrzSseReplayDisposition)999, null]);
+
+        var error = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+        {
+            await foreach (var _ in HrzSseReplay.Compose(decision, GetEvents("live-1")))
+            {
+            }
+        });
+
+        Assert.Equal(nameof(HrzSseReplayDecision.Disposition), error.ParamName);
+        Assert.Equal((HrzSseReplayDisposition)999, error.ActualValue);
     }
 
     [Fact]

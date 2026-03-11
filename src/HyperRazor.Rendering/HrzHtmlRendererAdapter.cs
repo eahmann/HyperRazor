@@ -6,6 +6,7 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisposable
 {
+    private readonly HtmlRenderer _renderer;
     private readonly IServiceProvider _services;
     private readonly ILoggerFactory _loggerFactory;
 
@@ -13,6 +14,7 @@ public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisp
     {
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        _renderer = new HtmlRenderer(_services, _loggerFactory);
     }
 
     public Task<string> RenderAsync(
@@ -23,26 +25,45 @@ public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisp
         ArgumentNullException.ThrowIfNull(componentType);
         ArgumentNullException.ThrowIfNull(parameters);
 
+        return RenderWithRendererAsync(_renderer, componentType, parameters, disposeAfterRender: false, cancellationToken);
+    }
+
+    public Task<string> RenderIsolatedAsync(
+        Type componentType,
+        IReadOnlyDictionary<string, object?> parameters,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(componentType);
+        ArgumentNullException.ThrowIfNull(parameters);
+
         var renderer = new HtmlRenderer(_services, _loggerFactory);
-
-        return renderer.Dispatcher.InvokeAsync(async () =>
-        {
-            await using (renderer)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var rendered = await renderer.RenderComponentAsync(
-                    componentType,
-                    ParameterView.FromDictionary(ToMutableDictionary(parameters)));
-
-                return rendered.ToHtmlString();
-            }
-        });
+        return RenderWithRendererAsync(renderer, componentType, parameters, disposeAfterRender: true, cancellationToken);
     }
 
     public ValueTask DisposeAsync()
     {
-        return ValueTask.CompletedTask;
+        return _renderer.DisposeAsync();
+    }
+
+    private static Task<string> RenderWithRendererAsync(
+        HtmlRenderer renderer,
+        Type componentType,
+        IReadOnlyDictionary<string, object?> parameters,
+        bool disposeAfterRender,
+        CancellationToken cancellationToken)
+    {
+        return renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            if (disposeAfterRender)
+            {
+                await using (renderer)
+                {
+                    return await RenderCoreAsync(renderer, componentType, parameters, cancellationToken);
+                }
+            }
+
+            return await RenderCoreAsync(renderer, componentType, parameters, cancellationToken);
+        });
     }
 
     private static Dictionary<string, object?> ToMutableDictionary(IReadOnlyDictionary<string, object?> parameters)
@@ -54,5 +75,20 @@ public sealed class HrzHtmlRendererAdapter : IHrzHtmlRendererAdapter, IAsyncDisp
         }
 
         return mutable;
+    }
+
+    private static async Task<string> RenderCoreAsync(
+        HtmlRenderer renderer,
+        Type componentType,
+        IReadOnlyDictionary<string, object?> parameters,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var rendered = await renderer.RenderComponentAsync(
+            componentType,
+            ParameterView.FromDictionary(ToMutableDictionary(parameters)));
+
+        return rendered.ToHtmlString();
     }
 }

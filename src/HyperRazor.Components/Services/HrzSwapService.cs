@@ -13,8 +13,6 @@ namespace HyperRazor.Components.Services;
 
 public sealed class HrzSwapService : IHrzSwapService
 {
-    private const string ForceSwapRenderingItemKey = "HyperRazor.Rendering.ForceSwapRendering";
-
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters =
         new Dictionary<string, object?>(0, StringComparer.Ordinal);
 
@@ -222,7 +220,7 @@ public sealed class HrzSwapService : IHrzSwapService
             return false;
         }
 
-        return context.Items.TryGetValue(ForceSwapRenderingItemKey, out var value)
+        return context.Items.TryGetValue(HrzComponentContextItemKeys.ForceSwapRendering, out var value)
             && value is true;
     }
 

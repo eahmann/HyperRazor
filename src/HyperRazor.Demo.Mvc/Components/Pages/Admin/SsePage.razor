@@ -1,0 +1,60 @@
+<section class="panel">
+    <h2>SSE Live Feed</h2>
+    <p>One long-lived response streams rendered HTML into the page without polling or request headers.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> load this route and wait. Three cards should stream into the live feed, the sidecar should change out-of-band, and the connection should stop after the blank-data <code>done</code> event.
+    </div>
+    <p class="demo-caption mb-0">
+        Need named control signals or replay?
+        <a
+            href="/demos/sse/control-events"
+            hx-get="/demos/sse/control-events"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">Open the control-events harness.</a>
+        <span>or</span>
+        <a
+            href="/demos/sse/replay"
+            hx-get="/demos/sse/replay"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">open the replay demo.</a>
+    </p>
+</section>
+
+<section class="sse-demo-grid">
+    <section class="panel">
+        <h3>Live Region</h3>
+        <p class="demo-caption">HTMX 2 consumes unnamed SSE messages with explicit <code>sse-swap="message"</code> markup on the target element.</p>
+
+        <section
+            id="sse-live-shell"
+            class="sse-live-shell"
+            hx-ext="sse"
+            sse-connect="/demos/sse/stream"
+            sse-close="@HrzSseEventNames.Done">
+            <div id="sse-live-feed" class="activity-feed sse-live-feed" sse-swap="message" hx-swap="beforeend" aria-live="polite"></div>
+        </section>
+    </section>
+
+    <section class="panel sse-sidecar-panel">
+        <h3>Out-of-Band Sidecar</h3>
+        <p class="demo-caption">These regions are updated from the same SSE payloads through HyperRazor's queued OOB rendering path.</p>
+
+        <div id="sse-stream-status">
+            <section class="sse-status-card sse-status-card--neutral">
+                <p class="app-kicker">connection</p>
+                <h4>Connecting</h4>
+                <p class="mb-0">Waiting for the first streamed HTML fragment.</p>
+            </section>
+        </div>
+
+        <div id="sse-last-event-id">
+            <section class="sse-status-card sse-status-card--resume">
+                <p class="app-kicker">last-event-id</p>
+                <h4>Fresh Stream</h4>
+                <p class="mb-0">No resume header was supplied on the initial connection.</p>
+            </section>
+        </div>
+    </section>
+</section>

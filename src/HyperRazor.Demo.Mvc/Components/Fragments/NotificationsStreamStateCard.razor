@@ -1,0 +1,22 @@
+<section class="notifications-state-card notifications-state-card--@Tone">
+    <p class="app-kicker">last-event-id</p>
+    <div class="notifications-state-card__heading">
+        <h4>@EventId</h4>
+        <span class="notifications-state-card__position">@Position</span>
+    </div>
+    <p class="mb-0">@Detail</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string EventId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Position { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Detail { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Tone { get; set; } = "neutral";
+}

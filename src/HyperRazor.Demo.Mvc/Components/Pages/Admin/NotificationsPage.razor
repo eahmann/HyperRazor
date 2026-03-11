@@ -1,0 +1,50 @@
+<section class="panel">
+    <div class="notifications-page-intro">
+        <div>
+            <h2>Notifications Center</h2>
+            <p>Ten live server-pushed notes prepend into the panel without polling while the unread badge updates out-of-band.</p>
+        </div>
+
+        <div id="notifications-unread-indicator">
+            <NotificationsUnreadIndicator Count="0" />
+        </div>
+    </div>
+
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> load this route and wait. Ten notifications should arrive one-by-one, the unread badge should increment with the stream, and the connection should stop after the blank-data <code>done</code> event.
+    </div>
+</section>
+
+<section class="notifications-demo-grid">
+    <section class="panel">
+        <h3>Live Notifications</h3>
+        <p class="demo-caption">HTMX 2 consumes unnamed SSE messages with explicit <code>sse-swap="message"</code> markup on the target element.</p>
+
+        <section
+            id="notifications-stream-shell"
+            class="notifications-stream-shell"
+            hx-ext="sse"
+            sse-connect="/demos/notifications/stream"
+            sse-close="@HrzSseEventNames.Done">
+            <div
+                id="notifications-list"
+                class="activity-feed notifications-list"
+                sse-swap="message"
+                hx-swap="afterbegin"
+                aria-live="polite"></div>
+        </section>
+    </section>
+
+    <section class="panel notifications-sidecar-panel">
+        <h3>Stream State</h3>
+        <p class="demo-caption">The unread badge is a server-owned number. This sidecar just shows the latest SSE event ID and where the demo stream is in its 10-note sequence.</p>
+
+        <div id="notifications-stream-state">
+            <NotificationsStreamStateCard
+                EventId="connecting"
+                Position="0 / 10"
+                Detail="Waiting for the first server-pushed notification."
+                Tone="neutral" />
+        </div>
+    </section>
+</section>

@@ -1,0 +1,76 @@
+<section class="panel">
+    <h2>SSE Control Events</h2>
+    <p>Named SSE events do not swap HTML directly in HTMX 2. Instead they dispatch <code>sse:&lt;event&gt;</code> so ordinary HTMX requests can react.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> load this route and wait. Four control-event cards should upgrade one-by-one after <code>stale</code>, <code>rate-limited</code>, <code>reset</code>, and <code>unauthorized</code> fire, then the connection should stop after the blank-data <code>done</code> event.
+    </div>
+</section>
+
+<section class="sse-demo-grid">
+    <section class="panel">
+        <h3>Named Event Listeners</h3>
+        <p class="demo-caption">Each card listens with <code>hx-trigger="sse:&lt;event&gt;"</code> and fetches its replacement through the normal HTMX request pipeline.</p>
+
+        <section
+            id="sse-control-shell"
+            class="sse-live-shell"
+            hx-ext="sse"
+            sse-connect="/demos/sse/control-events/stream"
+            sse-close="@HrzSseEventNames.Done">
+            <div id="sse-control-grid" class="activity-feed sse-live-feed" aria-live="polite">
+                <SseControlEventPanel
+                    Id="sse-control-stale"
+                    EventName="@HrzSseEventNames.Stale"
+                    Title="Waiting for stale"
+                    Detail="No stale signal has been dispatched yet."
+                    Tone="neutral" />
+                <SseControlEventPanel
+                    Id="sse-control-rate-limited"
+                    EventName="@HrzSseEventNames.RateLimited"
+                    Title="Waiting for rate-limited"
+                    Detail="No reconnect throttling signal has been dispatched yet."
+                    Tone="neutral" />
+                <SseControlEventPanel
+                    Id="sse-control-reset"
+                    EventName="@HrzSseEventNames.Reset"
+                    Title="Waiting for reset"
+                    Detail="No reset signal has been dispatched yet."
+                    Tone="neutral" />
+                <SseControlEventPanel
+                    Id="sse-control-unauthorized"
+                    EventName="@HrzSseEventNames.Unauthorized"
+                    Title="Waiting for unauthorized"
+                    Detail="No authorization failure signal has been dispatched yet."
+                    Tone="neutral" />
+            </div>
+        </section>
+    </section>
+
+    <section class="panel sse-sidecar-panel">
+        <h3>Contract</h3>
+        <p class="demo-caption">The SSE response only emits named control events. The visible cards update because HTMX converts those named events into regular fragment requests.</p>
+
+        <SseDemoStatusCard
+            Label="transport"
+            Title="Signal, then fetch"
+            Detail="The stream delivers only control signals here. HyperRazor still uses ordinary fragment rendering for the replacement HTML."
+            Tone="resume" />
+
+        <p class="demo-caption mb-0">
+            Need the unnamed HTML swap path or replay path too?
+            <a
+                href="/demos/sse"
+                hx-get="/demos/sse"
+                hx-target="#hrz-main-layout"
+                hx-swap="innerHTML show:window:top"
+                hx-push-url="true">Open SSE basics.</a>
+            <span>or</span>
+            <a
+                href="/demos/sse/replay"
+                hx-get="/demos/sse/replay"
+                hx-target="#hrz-main-layout"
+                hx-swap="innerHTML show:window:top"
+                hx-push-url="true">open the replay demo.</a>
+        </p>
+    </section>
+</section>

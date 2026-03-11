@@ -81,6 +81,10 @@
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 
+    [Inject]
+    private IEnumerable<IHrzClientValidationMetadataProvider> ClientValidationMetadataProviders { get; set; } =
+        Array.Empty<IHrzClientValidationMetadataProvider>();
+
     private readonly HrzValidationFormContext _formContext = new();
     private bool _registrationRefreshPending;
 
@@ -106,6 +110,7 @@
         _formContext.IdPrefix = idPrefix;
         _formContext.ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId);
         _formContext.EnableClientValidation = EnableClientValidation;
+        _formContext.ClientValidationMetadataProviders = ClientValidationMetadataProviders.ToArray();
         _formContext.LiveValidationPath = LiveValidationPath;
         _formContext.LiveTrigger = LiveTrigger;
         _formContext.LiveInclude = LiveInclude;

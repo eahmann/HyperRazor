@@ -2,9 +2,20 @@
 @inherits HrzInputComponentBase
 
 <select multiple="@Multiple" @attributes="InputAttributes">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else
+    {
     @if (!string.IsNullOrWhiteSpace(Placeholder))
     {
-        <option value="" selected="@(!Multiple && ResolvedFieldContext.Values.Count == 0)">@Placeholder</option>
+        <option
+            value="@PlaceholderValue"
+            selected="@(!Multiple && ResolvedFieldContext.Values.Count == 0)"
+            disabled="@PlaceholderDisabled">
+            @Placeholder
+        </option>
     }
 
     @foreach (var option in Options)
@@ -23,6 +34,7 @@
             }
         </option>
     }
+    }
 </select>
 
 @code {
@@ -33,7 +45,16 @@
     public string? Placeholder { get; set; }
 
     [Parameter]
+    public string PlaceholderValue { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool PlaceholderDisabled { get; set; } = true;
+
+    [Parameter]
     public bool Multiple { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public RenderFragment<HrzInputSelectOption>? OptionContent { get; set; }

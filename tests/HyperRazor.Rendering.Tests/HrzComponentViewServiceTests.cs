@@ -1,5 +1,6 @@
 using System.IO;
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using HyperRazor.Components;
 using HyperRazor.Components.Layouts;
 using HyperRazor.Components.Services;
@@ -12,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
@@ -335,9 +337,42 @@ public class HrzComponentViewServiceTests
         Assert.Contains("id=\"expanded-age-live\"", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_UsesRegisteredClientValidationMetadataProviders()
+    {
+        await using var fixture = await CreateFixtureAsync(
+            configureServices: services =>
+            {
+                services.AddSingleton<IHrzClientValidationMetadataProvider, RolloutPlanClientValidationMetadataProvider>();
+            });
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationCustomMetadataSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("data-val-rolloutplan=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-rolloutplan-keyword=\"rollback\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-valmsg-for=\"notes\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_AllowsManualSelectMarkup()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationManualSelectSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("<optgroup label=\"Operators\">", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("placeholder=\"", html, StringComparison.Ordinal);
+    }
+
     private static async Task<TestFixture> CreateFixtureAsync(
         Action<IHeaderDictionary>? configureHeaders = null,
-        Action<HrzOptions>? configureOptions = null)
+        Action<HrzOptions>? configureOptions = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         var services = new ServiceCollection();
 
@@ -364,10 +399,12 @@ public class HrzComponentViewServiceTests
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
         services.AddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        configureServices?.Invoke(services);
 
         var provider = services.BuildServiceProvider();
         var scope = provider.CreateScope();
@@ -736,6 +773,86 @@ public class HrzComponentViewServiceTests
         }
     }
 
+    private sealed class ValidationCustomMetadataSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationCustomMetadataModel _model = new()
+        {
+            Notes = "Requesting rollback-ready plan."
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationCustomMetadataModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationCustomMetadataModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationCustomMetadataModel>.Action), "/validation/custom");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationCustomMetadataModel>.FormName), "custom-metadata");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationCustomMetadataModel>.EnableClientValidation), true);
+            builder.AddAttribute(5, nameof(HrzForm<ValidationCustomMetadataModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Notes));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputTextArea>(1);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationManualSelectSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationExpandedModel _model = new()
+        {
+            Role = "manager"
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationExpandedModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationExpandedModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationExpandedModel>.Action), "/validation/select");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationExpandedModel>.FormName), "manual-select");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationExpandedModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Role));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputSelect.ChildContent), (RenderFragment)(optionsBuilder =>
+                    {
+                        optionsBuilder.OpenElement(0, "optgroup");
+                        optionsBuilder.AddAttribute(1, "label", "Operators");
+                        optionsBuilder.OpenElement(2, "option");
+                        optionsBuilder.AddAttribute(3, "value", "manager");
+                        optionsBuilder.AddAttribute(4, "selected", true);
+                        optionsBuilder.AddContent(5, "Manager");
+                        optionsBuilder.CloseElement();
+                        optionsBuilder.OpenElement(6, "option");
+                        optionsBuilder.AddAttribute(7, "value", "analyst");
+                        optionsBuilder.AddContent(8, "Analyst");
+                        optionsBuilder.CloseElement();
+                        optionsBuilder.CloseElement();
+                    }));
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
     private sealed class ValidationAuthoringModel
     {
         [MinLength(3)]
@@ -757,6 +874,43 @@ public class HrzComponentViewServiceTests
 
         [Range(1, 120)]
         public int Age { get; set; }
+    }
+
+    private sealed class ValidationCustomMetadataModel
+    {
+        [RolloutPlanKeyword("rollback")]
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    private sealed class RolloutPlanKeywordAttribute : ValidationAttribute
+    {
+        public RolloutPlanKeywordAttribute(string keyword)
+        {
+            Keyword = keyword;
+            ErrorMessage = "Notes must mention rollback.";
+        }
+
+        public string Keyword { get; }
+    }
+
+    private sealed class RolloutPlanClientValidationMetadataProvider : IHrzClientValidationMetadataProvider
+    {
+        public void AddValidationAttributes(
+            PropertyInfo property,
+            string displayName,
+            IDictionary<string, string> attributes)
+        {
+            var attribute = property.GetCustomAttribute<RolloutPlanKeywordAttribute>();
+            if (attribute is null)
+            {
+                return;
+            }
+
+            attributes["data-val"] = "true";
+            attributes["data-val-rolloutplan"] = attribute.FormatErrorMessage(displayName);
+            attributes["data-val-rolloutplan-keyword"] = attribute.Keyword;
+        }
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

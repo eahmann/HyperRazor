@@ -2,7 +2,9 @@
     var carrierEnabledStates = Object.create(null);
     var formDisabledElements = new WeakMap();
     var formPendingRequests = new WeakMap();
-    var validationService = null;
+    var localValidationAdapter = null;
+    var localValidationAdapterFactory = null;
+    var localValidationProviders = Object.create(null);
 
     function isFieldElement(target) {
         return target instanceof HTMLInputElement
@@ -188,7 +190,7 @@
         formDisabledElements.delete(form);
     }
 
-    function configureValidationService(service) {
+    function configureAspNetValidationService(service) {
         var defaultHighlight = service.highlight.bind(service);
         var defaultUnhighlight = service.unhighlight.bind(service);
 
@@ -203,26 +205,144 @@
         };
     }
 
-    function ensureValidationService() {
-        if (validationService) {
-            return validationService;
+    function applyRegisteredLocalValidationProviders(adapter) {
+        if (!adapter || typeof adapter.registerProvider !== 'function') {
+            return;
         }
 
+        Object.keys(localValidationProviders).forEach(function (name) {
+            adapter.registerProvider(name, localValidationProviders[name]);
+        });
+    }
+
+    function createAspNetLocalValidationAdapter(options) {
         var aspnetValidation = window.aspnetValidation;
         if (!aspnetValidation || typeof aspnetValidation.ValidationService !== 'function') {
             return null;
         }
 
-        validationService = new aspnetValidation.ValidationService();
-        configureValidationService(validationService);
-        validationService.bootstrap({
-            root: document.body,
+        var service = new aspnetValidation.ValidationService();
+        configureAspNetValidationService(service);
+        applyRegisteredLocalValidationProviders({
+            registerProvider: function (name, provider) {
+                service.addProvider(name, provider);
+            }
+        });
+        service.bootstrap({
+            root: options.root,
             watch: true,
             addNoValidate: true
         });
-        window.hrzValidationService = validationService;
 
-        return validationService;
+        return {
+            name: 'aspnet-client-validation',
+            instance: service,
+            validateField: function (input) {
+                return service.isFieldValid(input, true);
+            },
+            registerProvider: function (name, provider) {
+                service.addProvider(name, provider);
+            },
+            refresh: function (root) {
+                service.scan(root || options.root);
+            },
+            destroy: function () {
+                if (typeof service.remove === 'function') {
+                    service.remove(options.root);
+                }
+
+                if (service.observer && typeof service.observer.disconnect === 'function') {
+                    service.observer.disconnect();
+                }
+            }
+        };
+    }
+
+    function resolveLocalValidationAdapterFactory() {
+        if (localValidationAdapterFactory) {
+            return localValidationAdapterFactory;
+        }
+
+        var configuredFactory = window.hyperRazorValidationConfig
+            && typeof window.hyperRazorValidationConfig.createLocalValidationAdapter === 'function'
+            ? window.hyperRazorValidationConfig.createLocalValidationAdapter
+            : null;
+
+        localValidationAdapterFactory = configuredFactory || createAspNetLocalValidationAdapter;
+        return localValidationAdapterFactory;
+    }
+
+    function destroyLocalValidationAdapter() {
+        if (!localValidationAdapter) {
+            return;
+        }
+
+        if (typeof localValidationAdapter.destroy === 'function') {
+            localValidationAdapter.destroy();
+        }
+
+        localValidationAdapter = null;
+        window.hrzValidationService = null;
+    }
+
+    function ensureLocalValidationAdapter() {
+        if (localValidationAdapter) {
+            return localValidationAdapter;
+        }
+
+        var factory = resolveLocalValidationAdapterFactory();
+        if (typeof factory !== 'function') {
+            return null;
+        }
+
+        localValidationAdapter = factory({
+            root: document.body,
+            updateFieldState: updateFieldState
+        });
+
+        if (!localValidationAdapter) {
+            return null;
+        }
+
+        applyRegisteredLocalValidationProviders(localValidationAdapter);
+        window.hrzValidationService = localValidationAdapter.instance || null;
+
+        return localValidationAdapter;
+    }
+
+    function registerLocalValidationProvider(name, provider) {
+        if (!name || typeof provider !== 'function') {
+            return false;
+        }
+
+        localValidationProviders[name] = provider;
+
+        if (localValidationAdapter && typeof localValidationAdapter.registerProvider === 'function') {
+            localValidationAdapter.registerProvider(name, provider);
+        }
+
+        return true;
+    }
+
+    function refreshLocalValidation(root) {
+        var adapter = ensureLocalValidationAdapter();
+        if (!adapter || typeof adapter.refresh !== 'function') {
+            return;
+        }
+
+        adapter.refresh(root || document.body);
+    }
+
+    function setLocalValidationAdapterFactory(factory) {
+        if (factory !== null && typeof factory !== 'function') {
+            return false;
+        }
+
+        localValidationAdapterFactory = factory || createAspNetLocalValidationAdapter;
+        destroyLocalValidationAdapter();
+        ensureLocalValidationAdapter();
+        syncFieldStates();
+        return true;
     }
 
     function validateLocally(input) {
@@ -231,13 +351,13 @@
             return true;
         }
 
-        var service = ensureValidationService();
-        if (!service) {
+        var adapter = ensureLocalValidationAdapter();
+        if (!adapter || typeof adapter.validateField !== 'function') {
             updateFieldState(input);
             return true;
         }
 
-        var valid = service.isFieldValid(input, true);
+        var valid = adapter.validateField(input);
         updateFieldState(input);
         return valid;
     }
@@ -396,7 +516,21 @@
         syncFieldStates();
     });
 
-    ensureValidationService();
+    window.hyperRazorValidation = Object.assign(window.hyperRazorValidation || {}, {
+        setLocalValidationAdapterFactory: setLocalValidationAdapterFactory,
+        registerClientValidator: registerLocalValidationProvider,
+        refreshLocalValidation: refreshLocalValidation,
+        getLocalValidationAdapter: ensureLocalValidationAdapter,
+        getLocalValidationAdapterName: function () {
+            var adapter = ensureLocalValidationAdapter();
+            return adapter ? adapter.name : null;
+        },
+        getRegisteredClientValidators: function () {
+            return Object.keys(localValidationProviders).sort();
+        }
+    });
+
+    ensureLocalValidationAdapter();
     syncPolicyCarriers(false);
     syncFieldStates();
 })();

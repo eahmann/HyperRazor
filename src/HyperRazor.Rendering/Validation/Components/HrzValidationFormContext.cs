@@ -16,6 +16,9 @@ internal sealed class HrzValidationFormContext
 
     public bool EnableClientValidation { get; set; }
 
+    public IReadOnlyList<IHrzClientValidationMetadataProvider> ClientValidationMetadataProviders { get; set; } =
+        Array.Empty<IHrzClientValidationMetadataProvider>();
+
     public string? LiveValidationPath { get; set; }
 
     public string LiveTrigger { get; set; } = "input changed delay:400ms, blur";

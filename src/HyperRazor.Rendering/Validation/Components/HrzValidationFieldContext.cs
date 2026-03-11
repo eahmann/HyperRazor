@@ -101,7 +101,7 @@ internal sealed class HrzValidationFieldContext
             ?? GetValues(currentValue);
         var labelText = explicitLabel ?? ResolveLabelText(property);
         var clientValidationAttributes = effectiveClientValidation
-            ? ResolveClientValidationAttributes(property, labelText)
+            ? ResolveClientValidationAttributes(property, labelText, formContext.ClientValidationMetadataProviders)
             : EmptyClientValidationAttributes;
 
         return new HrzValidationFieldContext
@@ -362,77 +362,31 @@ internal sealed class HrzValidationFieldContext
 
     private static IReadOnlyDictionary<string, string> ResolveClientValidationAttributes(
         PropertyInfo property,
-        string labelText)
+        string labelText,
+        IReadOnlyList<IHrzClientValidationMetadataProvider> providers)
     {
+        if (providers.Count == 0)
+        {
+            return EmptyClientValidationAttributes;
+        }
+
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        AddValidationAttribute(attributes, "required", property.GetCustomAttribute<RequiredAttribute>(), labelText);
-        AddValidationAttribute(attributes, "email", property.GetCustomAttribute<EmailAddressAttribute>(), labelText);
-        AddValidationAttribute(attributes, "creditcard", property.GetCustomAttribute<CreditCardAttribute>(), labelText);
-        AddValidationAttribute(attributes, "url", property.GetCustomAttribute<UrlAttribute>(), labelText);
-        AddValidationAttribute(attributes, "phone", property.GetCustomAttribute<PhoneAttribute>(), labelText);
-
-        var stringLength = property.GetCustomAttribute<StringLengthAttribute>();
-        if (stringLength is not null)
+        foreach (var provider in providers)
         {
-            attributes["data-val"] = "true";
-            attributes["data-val-length"] = stringLength.FormatErrorMessage(labelText);
-            attributes["data-val-length-max"] = stringLength.MaximumLength.ToString(CultureInfo.InvariantCulture);
-            if (stringLength.MinimumLength > 0)
-            {
-                attributes["data-val-length-min"] = stringLength.MinimumLength.ToString(CultureInfo.InvariantCulture);
-            }
+            provider.AddValidationAttributes(property, labelText, attributes);
         }
 
-        var minLength = property.GetCustomAttribute<MinLengthAttribute>();
-        if (minLength is not null)
+        if (attributes.Count == 0)
         {
-            attributes["data-val"] = "true";
-            attributes["data-val-minlength"] = minLength.FormatErrorMessage(labelText);
-            attributes["data-val-minlength-min"] = minLength.Length.ToString(CultureInfo.InvariantCulture);
+            return EmptyClientValidationAttributes;
         }
 
-        var maxLength = property.GetCustomAttribute<MaxLengthAttribute>();
-        if (maxLength is not null)
+        if (!attributes.ContainsKey("data-val"))
         {
             attributes["data-val"] = "true";
-            attributes["data-val-maxlength"] = maxLength.FormatErrorMessage(labelText);
-            attributes["data-val-maxlength-max"] = maxLength.Length.ToString(CultureInfo.InvariantCulture);
-        }
-
-        var range = property.GetCustomAttribute<RangeAttribute>();
-        if (range is not null)
-        {
-            attributes["data-val"] = "true";
-            attributes["data-val-range"] = range.FormatErrorMessage(labelText);
-            attributes["data-val-range-min"] = Convert.ToString(range.Minimum, CultureInfo.InvariantCulture) ?? string.Empty;
-            attributes["data-val-range-max"] = Convert.ToString(range.Maximum, CultureInfo.InvariantCulture) ?? string.Empty;
-        }
-
-        var regex = property.GetCustomAttribute<RegularExpressionAttribute>();
-        if (regex is not null)
-        {
-            attributes["data-val"] = "true";
-            attributes["data-val-regex"] = regex.FormatErrorMessage(labelText);
-            attributes["data-val-regex-pattern"] = regex.Pattern;
         }
 
         return attributes;
-    }
-
-    private static void AddValidationAttribute(
-        IDictionary<string, string> attributes,
-        string ruleName,
-        ValidationAttribute? attribute,
-        string labelText)
-    {
-        if (attribute is null)
-        {
-            return;
-        }
-
-        attributes["data-val"] = "true";
-        attributes[$"data-val-{ruleName}"] = attribute.FormatErrorMessage(labelText);
     }
 
     private static string BuildInputName(HrzFieldPath fieldPath)

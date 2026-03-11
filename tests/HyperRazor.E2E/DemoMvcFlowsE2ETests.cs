@@ -234,6 +234,54 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_AllowsCustomClientValidatorsThroughAdapterApi()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        var adapterName = await page.EvaluateAsync<string>("() => window.hyperRazorValidation.getLocalValidationAdapterName()");
+        Assert.Equal("aspnet-client-validation", adapterName);
+
+        await page.EvaluateAsync(
+            @"() => {
+                window.hyperRazorValidation.registerClientValidator('rolloutkeyword', function (value, input, params) {
+                    if (!value) {
+                        return true;
+                    }
+
+                    return value.toLowerCase().indexOf(params.keyword.toLowerCase()) >= 0;
+                });
+
+                const notes = document.querySelector('#validation-mixed-authoring-notes');
+                notes.setAttribute('data-val', 'true');
+                notes.setAttribute('data-val-rolloutkeyword', 'Notes must mention rollback.');
+                notes.setAttribute('data-val-rolloutkeyword-keyword', 'rollback');
+                window.hyperRazorValidation.refreshLocalValidation(notes.form);
+            }");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "Requesting staged release window.");
+        await page.ClickAsync("#validation-mixed-authoring-environment");
+
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-client"))
+            .ToContainTextAsync("Notes must mention rollback.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "Requesting rollback plan for release.");
+        await page.ClickAsync("#validation-mixed-authoring-environment");
+
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-client"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "false");
+    }
+
+    [SkippableFact]
     public async Task ValidationPage_MixedAuthoringSurface_SubmitKeepsLiveAndSubmitErrorsTogether()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

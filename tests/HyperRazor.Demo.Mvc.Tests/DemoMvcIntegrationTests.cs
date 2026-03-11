@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Demo.Mvc.Models;
@@ -1080,7 +1081,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task ThemeToggle_WithHxRequest_SetsCookieAndRefreshes()
+    public async Task ThemeToggle_WithHxRequest_SetsCookieAndReturnsThemeTrigger()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
@@ -1097,9 +1098,14 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Refresh, out var refreshValues));
-        Assert.Equal("true", refreshValues.Single());
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Refresh));
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.TriggerResponse, out var triggerValues));
         Assert.True(response.Headers.TryGetValues("Set-Cookie", out var setCookieValues));
+
+        using var triggerDocument = JsonDocument.Parse(triggerValues.Single());
+        var themeTrigger = triggerDocument.RootElement.GetProperty("chrome:theme-updated");
+        Assert.Equal("light", themeTrigger.GetProperty("theme").GetString());
+        Assert.Equal(DemoChromeState.ThemeStylesheetHref, themeTrigger.GetProperty("href").GetString());
 
         var themeCookie = setCookieValues.Single(value => value.Contains("hrz-demo-theme=light", StringComparison.Ordinal));
         using var themedRequest = new HttpRequestMessage(HttpMethod.Get, "/users");
@@ -1109,7 +1115,24 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         var themedBody = await themedResponse.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, themedResponse.StatusCode);
-        Assert.Contains("/vendor/bootswatch/flatly.min.css", themedBody, StringComparison.Ordinal);
+        Assert.Contains(DemoChromeState.ThemeStylesheetHref, themedBody, StringComparison.Ordinal);
+        Assert.Contains("data-bs-theme=\"light\"", themedBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UsersRoute_WithDarkThemeCookie_UsesSharedStylesheetAndDarkMode()
+    {
+        using var client = CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/users");
+        request.Headers.Add("Cookie", $"{DemoChromeState.ThemeCookieName}=dark");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(DemoChromeState.ThemeStylesheetHref, body, StringComparison.Ordinal);
+        Assert.Contains("data-bs-theme=\"dark\"", body, StringComparison.Ordinal);
     }
 
     [Fact]

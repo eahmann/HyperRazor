@@ -454,6 +454,54 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ThemeToggle_PreservesFormStateAndUpdatesThemeInPlace()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/users");
+        await WaitForHtmxAsync(page);
+        await page.FillAsync("#displayName", "Taylor Skye");
+        await page.FillAsync("#validation-display-name", "Pending Invite");
+
+        var response = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("button[data-theme-option='light']"),
+            r => r.Url.Contains("/fragments/chrome/theme", StringComparison.Ordinal));
+
+        Assert.Equal(200, response.Status);
+        var headers = await response.AllHeadersAsync();
+        Assert.False(headers.ContainsKey("hx-refresh"));
+        Assert.True(headers.ContainsKey("hx-trigger"));
+
+        await page.WaitForFunctionAsync(
+            "() => document.documentElement.getAttribute('data-bs-theme') === 'light'");
+        await page.WaitForFunctionAsync(
+            "() => { const link = document.getElementById('hrz-theme-css'); return link && link.getAttribute('href') === '/vendor/bootswatch/flatly.min.css'; }");
+
+        await Assertions.Expect(page.Locator("#displayName")).ToHaveValueAsync("Taylor Skye");
+        await Assertions.Expect(page.Locator("#validation-display-name")).ToHaveValueAsync("Pending Invite");
+        await Assertions.Expect(page.Locator("button[data-theme-option='light']")).ToHaveAttributeAsync("aria-pressed", "true");
+        await Assertions.Expect(page.Locator("button[data-theme-option='dark']")).ToHaveAttributeAsync("aria-pressed", "false");
+
+        var darkResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("button[data-theme-option='dark']"),
+            r => r.Url.Contains("/fragments/chrome/theme", StringComparison.Ordinal));
+
+        Assert.Equal(200, darkResponse.Status);
+        await page.WaitForFunctionAsync(
+            "() => document.documentElement.getAttribute('data-bs-theme') === 'dark'");
+        await page.WaitForFunctionAsync(
+            "() => { const link = document.getElementById('hrz-theme-css'); return link && link.getAttribute('href') === '/vendor/bootswatch/flatly.min.css'; }");
+
+        await Assertions.Expect(page.Locator("#displayName")).ToHaveValueAsync("Taylor Skye");
+        await Assertions.Expect(page.Locator("#validation-display-name")).ToHaveValueAsync("Pending Invite");
+        await Assertions.Expect(page.Locator("button[data-theme-option='light']")).ToHaveAttributeAsync("aria-pressed", "false");
+        await Assertions.Expect(page.Locator("button[data-theme-option='dark']")).ToHaveAttributeAsync("aria-pressed", "true");
+    }
+
+    [SkippableFact]
     public async Task Dashboard_QuickChecks_RenderResultAndUpdateEventLog()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

@@ -10,10 +10,10 @@
         action="@Action"
         data-hrz-validation-root="@_formContext.RootId.Value"
         data-hrz-validation-region
+        data-hrz-disabled-elt="@(Enhance ? DisabledElementSelector : null)"
         hx-post="@(Enhance ? ResolvedHxPost : null)"
         hx-target="@(Enhance ? SubmitTarget : null)"
         hx-swap="@(Enhance ? SubmitSwap : null)"
-        hx-disabled-elt="@(Enhance ? DisabledElementSelector : null)"
         novalidate
         @attributes="AdditionalAttributes">
         <HrzAntiforgeryInput />

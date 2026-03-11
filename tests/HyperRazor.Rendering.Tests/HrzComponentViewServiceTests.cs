@@ -237,6 +237,8 @@ public class HrzComponentViewServiceTests
         Assert.Contains("id=\"users-invite-form\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"form-custom\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"users-invite\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-disabled-elt=\"find button\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-disabled-elt=", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"validation-summary validation-summary--empty summary-custom\"", html, StringComparison.Ordinal);
         Assert.Contains("label-custom", html, StringComparison.Ordinal);

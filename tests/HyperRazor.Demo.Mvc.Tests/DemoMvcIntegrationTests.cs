@@ -82,7 +82,9 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-email-live\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-live-policy-id=\"validation-minimal-proxy-email-live\"", body, StringComparison.Ordinal);
-        Assert.Contains("hx-disinherit=\"hx-disabled-elt\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-disinherit=\"*\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-disabled-elt=\"find button\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-disabled-elt=\"find button\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-immediate-recheck-when-enabled=\"true\"", body, StringComparison.Ordinal);
     }

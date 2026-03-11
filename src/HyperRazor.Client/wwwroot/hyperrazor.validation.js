@@ -1,5 +1,7 @@
 (function () {
     var carrierEnabledStates = Object.create(null);
+    var formDisabledElements = new WeakMap();
+    var formPendingRequests = new WeakMap();
     var validationService = null;
 
     function isFieldElement(target) {
@@ -10,6 +12,10 @@
 
     function getById(id) {
         return id ? document.getElementById(id) : null;
+    }
+
+    function toArray(list) {
+        return Array.prototype.slice.call(list || []);
     }
 
     function getIds(value) {
@@ -111,6 +117,75 @@
         }
 
         syncFieldStates(getValidationRoot(input));
+    }
+
+    function getFormDisabledElementsSelector(form) {
+        return form.dataset.hrzDisabledElt || '';
+    }
+
+    function getFormDisabledElementsTargets(form) {
+        var selector = getFormDisabledElementsSelector(form).trim();
+        if (!selector) {
+            return [];
+        }
+
+        if (selector === 'this') {
+            return [form];
+        }
+
+        if (selector.indexOf('find ') === 0) {
+            selector = selector.slice(5).trim();
+            if (!selector) {
+                return [];
+            }
+
+            return toArray(form.querySelectorAll(selector));
+        }
+
+        return toArray(form.querySelectorAll(selector));
+    }
+
+    function disableFormTargets(form) {
+        var pendingCount = formPendingRequests.get(form) || 0;
+        formPendingRequests.set(form, pendingCount + 1);
+        if (pendingCount > 0) {
+            return;
+        }
+
+        var targets = getFormDisabledElementsTargets(form).map(function (element) {
+            return {
+                element: element,
+                disabled: !!element.disabled
+            };
+        });
+
+        formDisabledElements.set(form, targets);
+        targets.forEach(function (target) {
+            target.element.disabled = true;
+        });
+    }
+
+    function restoreFormTargets(form) {
+        var pendingCount = formPendingRequests.get(form) || 0;
+        if (pendingCount <= 1) {
+            formPendingRequests.delete(form);
+        } else {
+            formPendingRequests.set(form, pendingCount - 1);
+            return;
+        }
+
+        var targets = formDisabledElements.get(form);
+        if (!targets) {
+            return;
+        }
+
+        targets.forEach(function (target) {
+            if (target.element && 'disabled' in target.element) {
+                target.element.disabled = target.disabled;
+            }
+        });
+
+        formDisabledElements.delete(form);
     }
 
     function configureValidationService(service) {
@@ -296,6 +371,24 @@
             clearServerState(target, policy);
             event.preventDefault();
         }
+    });
+
+    document.body.addEventListener('htmx:beforeRequest', function (event) {
+        var target = event.detail.elt;
+        if (!(target instanceof HTMLFormElement)) {
+            return;
+        }
+
+        disableFormTargets(target);
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function (event) {
+        var target = event.detail.elt;
+        if (!(target instanceof HTMLFormElement)) {
+            return;
+        }
+
+        restoreFormTargets(target);
     });
 
     document.body.addEventListener('htmx:afterSettle', function () {

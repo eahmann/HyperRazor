@@ -38,7 +38,7 @@ public abstract class HrzInputComponentBase : ComponentBase
         {
             attributes["data-hrz-live-policy-id"] = ResolvedFieldContext.LivePolicyId;
             attributes["data-hrz-summary-slot-id"] = ResolvedFieldContext.Form.SummaryId;
-            attributes["hx-disinherit"] = "hx-disabled-elt";
+            attributes["hx-disinherit"] = "*";
             attributes["hx-post"] = ResolvedFieldContext.LiveValidationPath!;
             attributes["hx-trigger"] = ResolvedFieldContext.LiveTrigger!;
             attributes["hx-target"] = $"#{ResolvedFieldContext.ServerSlotId}";

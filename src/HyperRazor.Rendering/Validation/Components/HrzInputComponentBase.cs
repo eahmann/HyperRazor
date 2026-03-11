@@ -48,19 +48,9 @@ public abstract class HrzInputComponentBase : ComponentBase
             attributes["hx-vals"] = ResolvedFieldContext.LiveValidationValuesJson!;
         }
 
-        if (!string.IsNullOrWhiteSpace(ResolvedFieldContext.LocalValidationRule))
+        foreach (var (key, value) in ResolvedFieldContext.ClientValidationAttributes)
         {
-            attributes["data-hrz-local-validation"] = ResolvedFieldContext.LocalValidationRule!;
-        }
-
-        if (ResolvedFieldContext.LocalMinLength is int minLength)
-        {
-            attributes["data-hrz-local-min-length"] = minLength.ToString();
-        }
-
-        if (!string.IsNullOrWhiteSpace(ResolvedFieldContext.LocalMinLengthMessage))
-        {
-            attributes["data-hrz-local-min-length-message"] = ResolvedFieldContext.LocalMinLengthMessage!;
+            attributes[key] = value;
         }
 
         if (ResolvedFieldContext.EnableClientValidation)

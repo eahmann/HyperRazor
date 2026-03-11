@@ -45,11 +45,7 @@ internal sealed class HrzValidationFieldContext
 
     public required bool EnableClientValidation { get; init; }
 
-    public required string? LocalValidationRule { get; init; }
-
-    public int? LocalMinLength { get; init; }
-
-    public string? LocalMinLengthMessage { get; init; }
+    public required IReadOnlyDictionary<string, string> ClientValidationAttributes { get; init; }
 
     public required string AriaDescribedBy { get; init; }
 
@@ -103,10 +99,10 @@ internal sealed class HrzValidationFieldContext
             .Select(static value => value!)
             .ToArray()
             ?? GetValues(currentValue);
-
-        var metadata = effectiveClientValidation
-            ? ResolveLocalValidationMetadata(property)
-            : null;
+        var labelText = explicitLabel ?? ResolveLabelText(property);
+        var clientValidationAttributes = effectiveClientValidation
+            ? ResolveClientValidationAttributes(property, labelText)
+            : EmptyClientValidationAttributes;
 
         return new HrzValidationFieldContext
         {
@@ -125,11 +121,9 @@ internal sealed class HrzValidationFieldContext
             IsChecked = ResolveCheckedState(attemptedValue, currentValue),
             Errors = HrzFormRendering.ErrorsFor(formContext.ValidationState, fieldPath),
             HasErrors = HrzFormRendering.HasErrors(formContext.ValidationState, fieldPath),
-            LabelText = explicitLabel ?? ResolveLabelText(property),
+            LabelText = labelText,
             EnableClientValidation = effectiveClientValidation,
-            LocalValidationRule = metadata?.Rule,
-            LocalMinLength = metadata?.MinLength,
-            LocalMinLengthMessage = metadata?.MinLengthMessage,
+            ClientValidationAttributes = clientValidationAttributes,
             AriaDescribedBy = $"{clientSlotId} {serverSlotId}",
             HasLiveValidation = participatesInLiveValidation,
             LiveValidationPath = participatesInLiveValidation ? resolvedLivePath : null,
@@ -366,27 +360,79 @@ internal sealed class HrzValidationFieldContext
         return SplitPascalCase(property.Name);
     }
 
-    private static HrzLocalValidationMetadata? ResolveLocalValidationMetadata(PropertyInfo property)
+    private static IReadOnlyDictionary<string, string> ResolveClientValidationAttributes(
+        PropertyInfo property,
+        string labelText)
     {
-        var email = property.GetCustomAttribute<EmailAddressAttribute>();
-        if (email is not null)
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        AddValidationAttribute(attributes, "required", property.GetCustomAttribute<RequiredAttribute>(), labelText);
+        AddValidationAttribute(attributes, "email", property.GetCustomAttribute<EmailAddressAttribute>(), labelText);
+        AddValidationAttribute(attributes, "creditcard", property.GetCustomAttribute<CreditCardAttribute>(), labelText);
+        AddValidationAttribute(attributes, "url", property.GetCustomAttribute<UrlAttribute>(), labelText);
+        AddValidationAttribute(attributes, "phone", property.GetCustomAttribute<PhoneAttribute>(), labelText);
+
+        var stringLength = property.GetCustomAttribute<StringLengthAttribute>();
+        if (stringLength is not null)
         {
-            return new HrzLocalValidationMetadata(
-                Rule: "email",
-                MinLength: null,
-                MinLengthMessage: null);
+            attributes["data-val"] = "true";
+            attributes["data-val-length"] = stringLength.FormatErrorMessage(labelText);
+            attributes["data-val-length-max"] = stringLength.MaximumLength.ToString(CultureInfo.InvariantCulture);
+            if (stringLength.MinimumLength > 0)
+            {
+                attributes["data-val-length-min"] = stringLength.MinimumLength.ToString(CultureInfo.InvariantCulture);
+            }
         }
 
         var minLength = property.GetCustomAttribute<MinLengthAttribute>();
         if (minLength is not null)
         {
-            return new HrzLocalValidationMetadata(
-                Rule: "min-length",
-                MinLength: minLength.Length,
-                MinLengthMessage: minLength.ErrorMessage);
+            attributes["data-val"] = "true";
+            attributes["data-val-minlength"] = minLength.FormatErrorMessage(labelText);
+            attributes["data-val-minlength-min"] = minLength.Length.ToString(CultureInfo.InvariantCulture);
         }
 
-        return null;
+        var maxLength = property.GetCustomAttribute<MaxLengthAttribute>();
+        if (maxLength is not null)
+        {
+            attributes["data-val"] = "true";
+            attributes["data-val-maxlength"] = maxLength.FormatErrorMessage(labelText);
+            attributes["data-val-maxlength-max"] = maxLength.Length.ToString(CultureInfo.InvariantCulture);
+        }
+
+        var range = property.GetCustomAttribute<RangeAttribute>();
+        if (range is not null)
+        {
+            attributes["data-val"] = "true";
+            attributes["data-val-range"] = range.FormatErrorMessage(labelText);
+            attributes["data-val-range-min"] = Convert.ToString(range.Minimum, CultureInfo.InvariantCulture) ?? string.Empty;
+            attributes["data-val-range-max"] = Convert.ToString(range.Maximum, CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
+        var regex = property.GetCustomAttribute<RegularExpressionAttribute>();
+        if (regex is not null)
+        {
+            attributes["data-val"] = "true";
+            attributes["data-val-regex"] = regex.FormatErrorMessage(labelText);
+            attributes["data-val-regex-pattern"] = regex.Pattern;
+        }
+
+        return attributes;
+    }
+
+    private static void AddValidationAttribute(
+        IDictionary<string, string> attributes,
+        string ruleName,
+        ValidationAttribute? attribute,
+        string labelText)
+    {
+        if (attribute is null)
+        {
+            return;
+        }
+
+        attributes["data-val"] = "true";
+        attributes[$"data-val-{ruleName}"] = attribute.FormatErrorMessage(labelText);
     }
 
     private static string BuildInputName(HrzFieldPath fieldPath)
@@ -465,8 +511,6 @@ internal sealed class HrzValidationFieldContext
         return builder.ToString();
     }
 
-    private sealed record HrzLocalValidationMetadata(
-        string Rule,
-        int? MinLength,
-        string? MinLengthMessage);
+    private static readonly IReadOnlyDictionary<string, string> EmptyClientValidationAttributes =
+        new Dictionary<string, string>(StringComparer.Ordinal);
 }

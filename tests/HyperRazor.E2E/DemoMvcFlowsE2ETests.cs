@@ -213,6 +213,27 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_ShowsRequiredNotesBeforeSubmit()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.FocusAsync("#validation-mixed-authoring-notes");
+        await page.FillAsync("#validation-mixed-authoring-notes", "");
+        await page.ClickAsync("#validation-mixed-authoring-environment");
+
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-client"))
+            .ToContainTextAsync("Notes are required.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+    }
+
+    [SkippableFact]
     public async Task ValidationPage_MixedAuthoringSurface_SubmitKeepsLiveAndSubmitErrorsTogether()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

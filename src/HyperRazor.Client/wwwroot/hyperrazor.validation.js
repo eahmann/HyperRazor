@@ -1,5 +1,6 @@
 (function () {
     var carrierEnabledStates = Object.create(null);
+    var validationService = null;
 
     function isFieldElement(target) {
         return target instanceof HTMLInputElement
@@ -16,16 +17,6 @@
             .split(',')
             .map(function (id) { return id.trim(); })
             .filter(Boolean);
-    }
-
-    function setMessage(target, message) {
-        if (!target) {
-            return;
-        }
-
-        target.innerHTML = message
-            ? '<p class="validation-message validation-message--client">' + message + '</p>'
-            : '';
     }
 
     function getPolicyCarrier(input) {
@@ -49,9 +40,9 @@
     }
 
     function clearSlotById(slotId) {
-        var serverSlot = getById(slotId);
-        if (serverSlot) {
-            serverSlot.innerHTML = '';
+        var slot = getById(slotId);
+        if (slot) {
+            slot.innerHTML = '';
         }
     }
 
@@ -61,7 +52,8 @@
     }
 
     function updateFieldState(input) {
-        var invalid = slotHasMessage(input.dataset.hrzClientSlotId)
+        var invalid = input.classList.contains('input-validation-error')
+            || slotHasMessage(input.dataset.hrzClientSlotId)
             || slotHasMessage(input.dataset.hrzServerSlotId);
         var field = input.closest('.validation-field');
 
@@ -121,69 +113,65 @@
         syncFieldStates(getValidationRoot(input));
     }
 
-    function validateMinLength(input) {
-        var clientSlot = getById(input.dataset.hrzClientSlotId);
-        var value = (input.value || '').trim();
-        var minLength = parseInt(input.dataset.hrzLocalMinLength || '0', 10);
-        var message = input.dataset.hrzLocalMinLengthMessage || ('Must be at least ' + minLength + ' characters.');
+    function configureValidationService(service) {
+        var defaultHighlight = service.highlight.bind(service);
+        var defaultUnhighlight = service.unhighlight.bind(service);
 
-        if (value.length === 0) {
-            setMessage(clientSlot, '');
-            clearServerState(input, getPolicyCarrier(input));
-            return true;
-        }
+        service.highlight = function (input, errorClass, validClass) {
+            defaultHighlight(input, errorClass, validClass);
+            updateFieldState(input);
+        };
 
-        if (value.length < minLength) {
-            setMessage(clientSlot, message);
-            clearServerState(input, getPolicyCarrier(input));
-            return false;
-        }
-
-        setMessage(clientSlot, '');
-        return true;
+        service.unhighlight = function (input, errorClass, validClass) {
+            defaultUnhighlight(input, errorClass, validClass);
+            updateFieldState(input);
+        };
     }
 
-    function validateEmail(input) {
-        var clientSlot = getById(input.dataset.hrzClientSlotId);
-        var value = (input.value || '').trim();
-        if (value.length === 0) {
-            setMessage(clientSlot, '');
-            clearServerState(input, getPolicyCarrier(input));
-            return false;
+    function ensureValidationService() {
+        if (validationService) {
+            return validationService;
         }
 
-        if (input.validity.typeMismatch || input.validity.patternMismatch) {
-            setMessage(clientSlot, 'Email must be a valid address.');
-            clearServerState(input, getPolicyCarrier(input));
-            return false;
+        var aspnetValidation = window.aspnetValidation;
+        if (!aspnetValidation || typeof aspnetValidation.ValidationService !== 'function') {
+            return null;
         }
 
-        setMessage(clientSlot, '');
-        return true;
+        validationService = new aspnetValidation.ValidationService();
+        configureValidationService(validationService);
+        validationService.bootstrap({
+            root: document.body,
+            watch: true,
+            addNoValidate: true
+        });
+        window.hrzValidationService = validationService;
+
+        return validationService;
     }
 
     function validateLocally(input) {
-        var rule = input.dataset.hrzLocalValidation;
-        if (!rule) {
+        if (input.getAttribute('data-val') !== 'true') {
+            updateFieldState(input);
             return true;
         }
 
-        if (rule === 'min-length') {
-            return validateMinLength(input);
+        var service = ensureValidationService();
+        if (!service) {
+            updateFieldState(input);
+            return true;
         }
 
-        if (rule === 'email') {
-            return validateEmail(input);
-        }
-
-        return true;
+        var valid = service.isFieldValid(input, true);
+        updateFieldState(input);
+        return valid;
     }
 
     function handleInput(target) {
-        validateLocally(target);
-
+        var valid = validateLocally(target);
         var policy = getPolicyCarrier(target);
-        if (!target.dataset.hrzLivePolicyId || (policy && policy.dataset.hrzLiveEnabled !== 'true')) {
+
+        if (!valid || !target.dataset.hrzLivePolicyId || (policy && policy.dataset.hrzLiveEnabled !== 'true')) {
             clearServerState(target, policy);
             return;
         }
@@ -288,6 +276,7 @@
         }
 
         if (!validateLocally(target)) {
+            clearServerState(target, getPolicyCarrier(target));
             event.preventDefault();
             return;
         }
@@ -314,6 +303,7 @@
         syncFieldStates();
     });
 
+    ensureValidationService();
     syncPolicyCarriers(false);
     syncFieldStates();
 })();

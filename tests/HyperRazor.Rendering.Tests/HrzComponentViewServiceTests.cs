@@ -252,9 +252,11 @@ public class HrzComponentViewServiceTests
         Assert.Contains("hx-target=\"#users-invite-email-server\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-include=\"closest form\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-sync=\"closest form:abort\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-hrz-local-validation=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-email=", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-client-slot-id=\"users-invite-email-client\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-valmsg-for=\"email\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"message-custom\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
@@ -277,12 +279,13 @@ public class HrzComponentViewServiceTests
         Assert.Contains("hx-sync=\"closest form:queue last\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"override-live-policies\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"override-email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-email=", html, StringComparison.Ordinal);
 
         Assert.Contains("id=\"override-display-name\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-server-slot-id=\"override-display-name-server\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"override-display-name-live\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-hrz-local-min-length", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-val-minlength", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -308,6 +311,9 @@ public class HrzComponentViewServiceTests
         Assert.Contains("id=\"expanded-notes\"", html, StringComparison.Ordinal);
         Assert.Contains("rows=\"5\"", html, StringComparison.Ordinal);
         Assert.Contains(">Need elevated access</textarea>", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-required=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-minlength=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-minlength-min=\"3\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"expanded-role\"", html, StringComparison.Ordinal);
         Assert.Contains("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
         Assert.Contains("id=\"expanded-is-admin\"", html, StringComparison.Ordinal);
@@ -317,6 +323,9 @@ public class HrzComponentViewServiceTests
         Assert.Contains("id=\"expanded-age\"", html, StringComparison.Ordinal);
         Assert.Contains("type=\"number\"", html, StringComparison.Ordinal);
         Assert.Contains("value=\"42\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range-min=\"1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range-max=\"120\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"expanded-notes-live\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"expanded-role-live\"", html, StringComparison.Ordinal);
@@ -736,6 +745,7 @@ public class HrzComponentViewServiceTests
 
     private sealed class ValidationExpandedModel
     {
+        [Required]
         [MinLength(3)]
         public string Notes { get; set; } = string.Empty;
 
@@ -743,6 +753,7 @@ public class HrzComponentViewServiceTests
 
         public bool IsAdmin { get; set; }
 
+        [Range(1, 120)]
         public int Age { get; set; }
     }
 

@@ -29,8 +29,10 @@ else
     private RenderFragment Slots => @<text>
         <div
             id="@ResolvedFieldContext.ClientSlotId"
-            class="validation-slot validation-slot--client"
-            data-hrz-client-validation-for="@ResolvedFieldContext.FieldPath.Value"></div>
+            class="validation-slot validation-slot--client field-validation-valid"
+            data-hrz-client-validation-for="@ResolvedFieldContext.FieldPath.Value"
+            data-valmsg-for="@ResolvedFieldContext.Name"
+            data-valmsg-replace="true"></div>
 
         <HrzValidationServerFieldSlot
             Id="@ResolvedFieldContext.ServerSlotId"

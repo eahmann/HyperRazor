@@ -819,7 +819,6 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseReplayDemoAsync(
 }
 
 static HrzFieldPath? ResolveMixedPrimaryField(HrzValidationScope scope)
-static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
 {
     return scope.ValidateAll
         ? MixedValidationAuthoringForm.SeatCountPath

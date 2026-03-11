@@ -5,7 +5,7 @@
 
 @if (IncludeHiddenInput)
 {
-    <input type="hidden" name="@ResolvedFieldContext.Name" value="false" />
+    <input type="hidden" name="@ResolvedFieldContext.Name" value="false" disabled="@IsDisabled" />
 }
 
 @code {
@@ -17,4 +17,6 @@
         ["type"] = "checkbox",
         ["value"] = "true"
     });
+
+    private bool IsDisabled => InputAttributes.ContainsKey("disabled");
 }

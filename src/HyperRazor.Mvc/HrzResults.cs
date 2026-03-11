@@ -308,10 +308,20 @@ public static class HrzResults
 
         return new HrzSseOptions
         {
-            HeartbeatInterval = overrides?.HeartbeatInterval ?? defaults.HeartbeatInterval,
+            HeartbeatInterval = ResolveHeartbeatInterval(overrides, defaults),
             HeartbeatComment = overrides?.HeartbeatComment ?? defaults.HeartbeatComment,
             DisableProxyBuffering = overrides?.DisableProxyBuffering ?? defaults.DisableProxyBuffering
         };
+    }
+
+    private static TimeSpan? ResolveHeartbeatInterval(HrzSseResultOptions? overrides, HrzSseOptions defaults)
+    {
+        if (overrides?.DisableHeartbeat == true)
+        {
+            return null;
+        }
+
+        return overrides?.HeartbeatInterval ?? defaults.HeartbeatInterval;
     }
 
     private static void ApplyDefaultSseHeaders(HttpResponse response, HrzSseOptions options)

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace HyperRazor.Rendering.Tests;
 
@@ -108,12 +109,29 @@ public class HrzValidationInfrastructureTests
             field => Assert.Equal("Email", field.Value));
     }
 
-    private static ServiceProvider CreateServices()
+    [Fact]
+    public void AddHyperRazor_RegistersConfiguredSseDefaults()
+    {
+        using var services = CreateServices(configureSse: options =>
+        {
+            options.HeartbeatInterval = TimeSpan.FromSeconds(9);
+            options.HeartbeatComment = "global-heartbeat";
+            options.DisableProxyBuffering = false;
+        });
+
+        var options = services.GetRequiredService<IOptions<HrzSseOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromSeconds(9), options.HeartbeatInterval);
+        Assert.Equal("global-heartbeat", options.HeartbeatComment);
+        Assert.False(options.DisableProxyBuffering);
+    }
+
+    private static ServiceProvider CreateServices(Action<HrzSseOptions>? configureSse = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddControllers();
-        services.AddHyperRazor();
+        services.AddHyperRazor(configureSse: configureSse);
         return services.BuildServiceProvider();
     }
 

@@ -1,0 +1,19 @@
+<section class="sse-status-card sse-status-card--@Tone">
+    <p class="app-kicker">@Label</p>
+    <h4>@Title</h4>
+    <p class="mb-0">@Detail</p>
+</section>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "SSE";
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Detail { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Tone { get; set; } = "neutral";
+}

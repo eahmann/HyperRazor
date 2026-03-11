@@ -1,0 +1,22 @@
+<article class="activity-item sse-event-card" data-sse-event-id="@EventId">
+    <div class="sse-event-card__meta">
+        <p class="app-kicker">@Badge</p>
+        <span class="sse-event-card__id">@EventId</span>
+    </div>
+    <h4>@Title</h4>
+    <p class="mb-0">@Body</p>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public string EventId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Body { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Badge { get; set; } = "message";
+}

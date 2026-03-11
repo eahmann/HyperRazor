@@ -1,0 +1,28 @@
+<article class="activity-item notification-card notification-card--@Tone" data-notification-id="@EventId">
+    <div class="notification-card__meta">
+        <p class="app-kicker">@Category</p>
+        <span class="notification-card__stamp">@Stamp</span>
+    </div>
+    <h4>@Title</h4>
+    <p class="mb-0">@Body</p>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public string EventId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Category { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Body { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Stamp { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Tone { get; set; } = "notice";
+}

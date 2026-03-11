@@ -173,7 +173,7 @@ public sealed class HrzSwapService : IHrzSwapService
     public RenderFragment RenderToFragment(bool clear = false)
     {
         var request = GetCurrentRequest();
-        var includeSwappables = request.IsHtmx && !request.IsHistoryRestoreRequest;
+        var includeSwappables = ShouldForceSwapRendering() || (request.IsHtmx && !request.IsHistoryRestoreRequest);
         var includeRaw = includeSwappables || _options.AllowRawContentOnNonHtmx;
 
         var snapshot = _items
@@ -210,6 +210,18 @@ public sealed class HrzSwapService : IHrzSwapService
                 builder.CloseComponent();
             }
         };
+    }
+
+    private bool ShouldForceSwapRendering()
+    {
+        var context = _httpContextAccessor.HttpContext;
+        if (context is null)
+        {
+            return false;
+        }
+
+        return context.Items.TryGetValue(HrzComponentContextItemKeys.ForceSwapRendering, out var value)
+            && value is true;
     }
 
     public async Task<string> RenderToString(bool clear = false, CancellationToken cancellationToken = default)

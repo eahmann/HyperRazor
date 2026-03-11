@@ -64,6 +64,7 @@ internal sealed class HrzValidationFieldContext
     public static HrzValidationFieldContext Create<TValue>(
         HrzValidationFormContext formContext,
         Expression<Func<TValue>> accessor,
+        Func<TValue> compiledAccessor,
         string? explicitLabel,
         bool? enableClientValidationOverride,
         bool? liveOverride,
@@ -74,6 +75,7 @@ internal sealed class HrzValidationFieldContext
     {
         ArgumentNullException.ThrowIfNull(formContext);
         ArgumentNullException.ThrowIfNull(accessor);
+        ArgumentNullException.ThrowIfNull(compiledAccessor);
 
         var property = ResolveProperty(accessor.Body);
         var fieldPath = ResolveRelativeFieldPath(accessor, formContext.Model);
@@ -92,7 +94,7 @@ internal sealed class HrzValidationFieldContext
         var liveSync = participatesInLiveValidation
             ? liveSyncOverride ?? formContext.LiveSync
             : null;
-        var currentValue = accessor.Compile().Invoke();
+        var currentValue = compiledAccessor();
         var attemptedValue = HrzFormRendering.AttemptedValueFor(formContext.ValidationState, fieldPath);
         var values = attemptedValue?.Values
             .Where(static value => value is not null)

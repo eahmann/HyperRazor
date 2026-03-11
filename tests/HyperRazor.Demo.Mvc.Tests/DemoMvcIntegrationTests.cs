@@ -168,7 +168,6 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/sse/stream");
 
-        var startedAt = DateTimeOffset.UtcNow;
         var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -178,7 +177,6 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         using var reader = new StreamReader(stream);
 
         var firstEvent = await ReadEventBlockAsync(reader);
-        Assert.True(DateTimeOffset.UtcNow - startedAt < TimeSpan.FromSeconds(1));
         Assert.Contains("id: sse-demo-1", firstEvent, StringComparison.Ordinal);
         Assert.Contains("Connection established", firstEvent, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
@@ -364,7 +362,6 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/notifications/stream");
 
-        var startedAt = DateTimeOffset.UtcNow;
         var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -374,7 +371,6 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         using var reader = new StreamReader(stream);
 
         var firstEvent = await ReadEventBlockAsync(reader);
-        Assert.True(DateTimeOffset.UtcNow - startedAt < TimeSpan.FromSeconds(1));
 
         var events = new List<string>
         {

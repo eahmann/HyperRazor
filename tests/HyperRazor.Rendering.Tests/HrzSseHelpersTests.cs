@@ -329,6 +329,39 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public async Task ServerSentEvents_DisableHeartbeat_SuppressesGlobalHeartbeatDefault()
+    {
+        var services = new ServiceCollection();
+        services.AddOptions<HrzSseOptions>()
+            .Configure(options =>
+            {
+                options.HeartbeatInterval = TimeSpan.FromMilliseconds(10);
+                options.HeartbeatComment = "global-heartbeat";
+            });
+
+        var context = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider()
+        };
+        context.Response.Body = new MemoryStream();
+
+        var result = HrzResults.ServerSentEvents(
+            GetDelayedEvents(),
+            options: new HrzSseResultOptions
+            {
+                DisableHeartbeat = true
+            });
+
+        await result.ExecuteAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var reader = new StreamReader(context.Response.Body);
+        var body = await reader.ReadToEndAsync();
+
+        Assert.DoesNotContain(": global-heartbeat", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ServerSentEvents_AllowsResponseCustomization()
     {
         var context = new DefaultHttpContext

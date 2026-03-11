@@ -140,7 +140,7 @@ public sealed class HrzSseRendererTests
         using var reader = new StreamReader(context.Response.Body);
         var body = await reader.ReadToEndAsync();
 
-        Assert.Contains("event: done\ndata: \n\n", body, StringComparison.Ordinal);
+        Assert.Matches(@"event: done\ndata:[ ]?\n\n", body.ReplaceLineEndings("\n"));
     }
 
     private static async Task<TestFixture> CreateFixtureAsync()

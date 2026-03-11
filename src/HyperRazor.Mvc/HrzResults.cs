@@ -226,12 +226,13 @@ public static class HrzResults
         public async Task ExecuteAsync(HttpContext httpContext)
         {
             var resolvedOptions = ResolveSseOptions(httpContext.RequestServices, _options);
+            var response = httpContext.Response;
 
-            ApplyDefaultSseHeaders(httpContext.Response, resolvedOptions);
-            _configureResponse?.Invoke(httpContext.Response);
+            ApplyDefaultSseHeaders(response, resolvedOptions);
 
             if (resolvedOptions.HeartbeatInterval is null)
             {
+                _configureResponse?.Invoke(response);
                 await TypedResults.ServerSentEvents(_source).ExecuteAsync(httpContext);
                 return;
             }
@@ -241,6 +242,8 @@ public static class HrzResults
                 throw new InvalidOperationException("Heartbeat comments are only supported for string SSE streams.");
             }
 
+            ApplyHeartbeatResponseDefaults(response);
+            _configureResponse?.Invoke(response);
             await ExecuteWithHeartbeatsAsync(httpContext, resolvedOptions);
         }
 
@@ -249,10 +252,6 @@ public static class HrzResults
             var cancellationToken = httpContext.RequestAborted;
             var response = httpContext.Response;
             var heartbeatInterval = options.HeartbeatInterval ?? throw new InvalidOperationException("A heartbeat interval is required.");
-
-            response.StatusCode = StatusCodes.Status200OK;
-            response.ContentType ??= "text/event-stream";
-            response.Headers["Cache-Control"] = "no-cache,no-store";
 
             await using var enumerator = _source.GetAsyncEnumerator(cancellationToken);
             var pendingMoveNext = enumerator.MoveNextAsync().AsTask();
@@ -304,6 +303,17 @@ public static class HrzResults
         if (options.DisableProxyBuffering)
         {
             response.Headers[ProxyBufferingHeader] = ProxyBufferingDisabledValue;
+        }
+    }
+
+    private static void ApplyHeartbeatResponseDefaults(HttpResponse response)
+    {
+        response.StatusCode = StatusCodes.Status200OK;
+        response.ContentType ??= "text/event-stream";
+
+        if (!response.Headers.ContainsKey("Cache-Control"))
+        {
+            response.Headers["Cache-Control"] = "no-cache,no-store";
         }
     }
 }

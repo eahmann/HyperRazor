@@ -29,7 +29,7 @@ public static class HrzSseReplay
 
         var decision = await DecideAsync(httpContext, streamName, cancellationToken);
 
-        await foreach (var item in Compose(decision, liveEvents, cancellationToken).WithCancellation(cancellationToken))
+        await foreach (var item in Compose(decision, liveEvents, cancellationToken))
         {
             yield return item;
         }

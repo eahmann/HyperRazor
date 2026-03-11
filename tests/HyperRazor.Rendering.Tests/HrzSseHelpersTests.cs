@@ -207,6 +207,34 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public async Task ServerSentEvents_WithHeartbeatInterval_PreservesResponseCustomization()
+    {
+        var context = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection().BuildServiceProvider()
+        };
+        context.Response.Body = new MemoryStream();
+
+        var result = HrzResults.ServerSentEvents(
+            GetDelayedEvents(),
+            response =>
+            {
+                response.ContentType = "text/plain; charset=utf-8";
+                response.Headers["Cache-Control"] = "private, max-age=5";
+            },
+            options: new HrzSseResultOptions
+            {
+                HeartbeatInterval = TimeSpan.FromMilliseconds(10),
+                HeartbeatComment = "still-here"
+            });
+
+        await result.ExecuteAsync(context);
+
+        Assert.Equal("text/plain; charset=utf-8", context.Response.ContentType);
+        Assert.Equal("private, max-age=5", context.Response.Headers["Cache-Control"].ToString());
+    }
+
+    [Fact]
     public async Task ServerSentEvents_UsesGlobalSseDefaultsWhenNoPerResultOverridesProvided()
     {
         var services = new ServiceCollection();

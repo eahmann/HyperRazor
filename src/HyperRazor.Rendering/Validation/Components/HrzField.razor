@@ -47,6 +47,8 @@
 
     private HrzValidationFieldContext _fieldContext = default!;
     private HrzFieldPath? _registeredFieldPath;
+    private Expression<Func<TValue>>? _cachedFor;
+    private Func<TValue>? _compiledAccessor;
 
     private string FieldClass => string.Join(
         " ",
@@ -64,9 +66,18 @@
             throw new InvalidOperationException($"{nameof(HrzField<object>)} requires a cascading {nameof(HrzForm<object>)}.");
         }
 
+        var compiledAccessor = _compiledAccessor;
+        if (!ReferenceEquals(For, _cachedFor) || compiledAccessor is null)
+        {
+            compiledAccessor = For.Compile();
+            _compiledAccessor = compiledAccessor;
+            _cachedFor = For;
+        }
+
         _fieldContext = HrzValidationFieldContext.Create(
             FormContext,
             For,
+            compiledAccessor,
             Label,
             EnableClientValidation,
             Live,

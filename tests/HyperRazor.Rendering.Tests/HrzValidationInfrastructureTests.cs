@@ -130,7 +130,7 @@ public class HrzValidationInfrastructureTests
         Assert.False(policy.ImmediateRecheckWhenEnabled);
     }
 
-    private static ServiceProvider CreateServices()
+    [Fact]
     public void AddHyperRazor_RegistersConfiguredSseDefaults()
     {
         using var services = CreateServices(configureSse: options =>

@@ -42,15 +42,20 @@
         }
 
         var attemptedValues = ResolvedFormContext.ValidationState?.AttemptedValues ?? EmptyAttemptedValues;
-        var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
+        var fields = ResolvedFormContext.RegisteredLiveFields;
 
-        foreach (var field in ResolvedFormContext.RegisteredLiveFields)
+        var tasks = fields.Select(field => LiveValidationPolicyResolver.ResolveAsync(
+            ResolvedFormContext.Model,
+            ResolvedFormContext.RootId,
+            field.FieldPath,
+            attemptedValues));
+
+        var results = await Task.WhenAll(tasks);
+
+        var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
+        for (var i = 0; i < fields.Count; i++)
         {
-            policies[field.FieldPath] = await LiveValidationPolicyResolver.ResolveAsync(
-                ResolvedFormContext.Model,
-                ResolvedFormContext.RootId,
-                field.FieldPath,
-                attemptedValues);
+            policies[fields[i].FieldPath] = results[i];
         }
 
         Policies = policies;

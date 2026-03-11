@@ -268,17 +268,59 @@ internal sealed class HrzValidationFieldContext
     private static int FindModelBoundary(Expression expression, object model)
     {
         var chain = GetMemberChain(expression);
+        var current = EvaluateChainRoot(chain);
         for (var index = 0; index < chain.Count; index++)
         {
-            var lambda = Expression.Lambda<Func<object?>>(
-                Expression.Convert(chain[index], typeof(object)));
-            if (ReferenceEquals(lambda.Compile().Invoke(), model))
+            // GetMemberChain only adds MemberExpression nodes to the chain
+            var memberExpr = (MemberExpression)chain[index];
+            current = EvaluateMember(memberExpr.Member, current);
+
+            if (ReferenceEquals(current, model))
             {
                 return index;
             }
         }
 
         return -1;
+    }
+
+    private static object? EvaluateChainRoot(IReadOnlyList<Expression> chain)
+    {
+        if (chain.Count == 0)
+        {
+            return null;
+        }
+
+        return chain[0] is MemberExpression firstMember
+            ? EvaluateLeaf(Unwrap(firstMember.Expression!))
+            : null;
+    }
+
+    private static object? EvaluateLeaf(Expression expression)
+    {
+        if (expression is ConstantExpression constant)
+        {
+            return constant.Value;
+        }
+
+        if (expression is MemberExpression member)
+        {
+            var parent = EvaluateLeaf(Unwrap(member.Expression!));
+            return EvaluateMember(member.Member, parent);
+        }
+
+        // Fallback for complex expression types
+        return Expression.Lambda<Func<object?>>(Expression.Convert(expression, typeof(object))).Compile().Invoke();
+    }
+
+    private static object? EvaluateMember(MemberInfo member, object? target)
+    {
+        return member switch
+        {
+            PropertyInfo property => property.GetValue(target),
+            FieldInfo field => field.GetValue(target),
+            _ => null
+        };
     }
 
     private static IReadOnlyList<Expression> GetMemberChain(Expression expression)

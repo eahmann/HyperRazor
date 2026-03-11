@@ -19,7 +19,11 @@
                 <HrzAntiforgeryInput />
                 <input type="hidden" name="theme" value="@option.Value" />
                 <input type="hidden" name="returnUrl" value="@RouteLabel" />
-                <button type="submit" class="@GetThemeButtonClass(option.Value)" aria-pressed="@IsActiveTheme(option.Value)">@option.Label</button>
+                <button
+                    type="submit"
+                    class="@GetThemeButtonClass(option.Value)"
+                    aria-pressed="@IsActiveTheme(option.Value)"
+                    data-theme-option="@option.Value">@option.Label</button>
             </form>
         }
     </div>

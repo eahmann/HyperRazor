@@ -111,9 +111,8 @@
     function clearServerState(input, policy) {
         clearServerSlots(input, policy);
 
-        var shouldClearSummary = !policy
-            || policy.dataset.hrzLiveReplaceSummaryWhenDisabled === 'true'
-            || !!input.dataset.hrzSummarySlotId;
+        var shouldClearSummary = !!input.dataset.hrzSummarySlotId
+            || (!!policy && policy.dataset.hrzLiveReplaceSummaryWhenDisabled === 'true');
         if (shouldClearSummary) {
             clearSummary(input, policy);
         }
@@ -190,9 +189,26 @@
         formDisabledElements.delete(form);
     }
 
+    function isHtmxEnhancedForm(form) {
+        return form instanceof HTMLFormElement
+            && (
+                form.hasAttribute('hx-get')
+                || form.hasAttribute('data-hx-get')
+                || form.hasAttribute('hx-post')
+                || form.hasAttribute('data-hx-post')
+                || form.hasAttribute('hx-put')
+                || form.hasAttribute('data-hx-put')
+                || form.hasAttribute('hx-patch')
+                || form.hasAttribute('data-hx-patch')
+                || form.hasAttribute('hx-delete')
+                || form.hasAttribute('data-hx-delete')
+            );
+    }
+
     function configureAspNetValidationService(service) {
         var defaultHighlight = service.highlight.bind(service);
         var defaultUnhighlight = service.unhighlight.bind(service);
+        var defaultShouldValidate = service.shouldValidate.bind(service);
 
         service.highlight = function (input, errorClass, validClass) {
             defaultHighlight(input, errorClass, validClass);
@@ -202,6 +218,14 @@
         service.unhighlight = function (input, errorClass, validClass) {
             defaultUnhighlight(input, errorClass, validClass);
             updateFieldState(input);
+        };
+
+        service.shouldValidate = function (event) {
+            if (event && event.type === 'submit' && isHtmxEnhancedForm(event.target)) {
+                return false;
+            }
+
+            return defaultShouldValidate(event);
         };
     }
 

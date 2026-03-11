@@ -213,6 +213,39 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_EditingNotesPreservesApprovalSummary()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.SelectOptionAsync("#validation-mixed-authoring-environment", "production");
+        await page.FillAsync("#validation-mixed-authoring-seat-count", "18");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToContainTextAsync("Production rollouts above 10 seats require approval.");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "short");
+        var submitResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#validation-mixed-authoring-form button[type='submit']"),
+            response => response.Url.Contains("/validation/mixed", StringComparison.Ordinal) && response.Status == 200);
+
+        var submitHtml = await submitResponse.TextAsync();
+        Assert.Contains("Approval is required before a production rollout can exceed 10 seats.", submitHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "These notes are now long enough.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-server"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+    }
+
+    [SkippableFact]
     public async Task ValidationPage_MixedAuthoringSurface_ShowsRequiredNotesBeforeSubmit()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

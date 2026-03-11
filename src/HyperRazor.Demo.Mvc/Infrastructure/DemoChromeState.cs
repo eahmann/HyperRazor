@@ -10,6 +10,7 @@ public sealed record DemoChromeState(
 {
     public const string ThemeCookieName = "hrz-demo-theme";
     public const string DefaultTheme = "dark";
+    public const string ThemeStylesheetHref = "/vendor/bootswatch/flatly.min.css";
 
     public string ThemeHref => GetThemeHref(Theme);
 
@@ -55,9 +56,8 @@ public sealed record DemoChromeState(
 
     public static string GetThemeHref(string theme)
     {
-        return NormalizeTheme(theme) == "light"
-            ? "/vendor/bootswatch/flatly.min.css"
-            : "/vendor/bootswatch/slate.min.css";
+        _ = NormalizeTheme(theme);
+        return ThemeStylesheetHref;
     }
 
     public static void WriteThemeCookie(HttpContext context, string theme)

@@ -31,7 +31,11 @@ public sealed class FragmentsController : HrController
 
         if (HttpContext.HtmxRequest().IsHtmx)
         {
-            HttpContext.HtmxResponse().Refresh();
+            HttpContext.HtmxResponse().Trigger("chrome:theme-updated", new
+            {
+                theme = normalizedTheme,
+                href = DemoChromeState.GetThemeHref(normalizedTheme)
+            });
             return Results.Content(string.Empty, "text/html; charset=utf-8");
         }
 

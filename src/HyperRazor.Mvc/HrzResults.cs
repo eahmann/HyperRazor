@@ -259,17 +259,24 @@ public static class HrzResults
             var response = httpContext.Response;
 
             await using var enumerator = _source.GetAsyncEnumerator(cancellationToken);
+            using var timer = new PeriodicTimer(heartbeatInterval);
+
             var pendingMoveNext = enumerator.MoveNextAsync().AsTask();
+            var pendingHeartbeat = timer.WaitForNextTickAsync(cancellationToken).AsTask();
 
             while (true)
             {
-                var heartbeatDelay = Task.Delay(heartbeatInterval, cancellationToken);
-                var completed = await Task.WhenAny(pendingMoveNext, heartbeatDelay);
+                var completed = await Task.WhenAny(pendingMoveNext, pendingHeartbeat);
 
-                if (completed == heartbeatDelay)
+                if (completed == pendingHeartbeat)
                 {
-                    await HrzSse.WriteCommentAsync(response.Body, heartbeatComment, cancellationToken);
-                    await response.Body.FlushAsync(cancellationToken);
+                    if (await pendingHeartbeat)
+                    {
+                        await HrzSse.WriteCommentAsync(response.Body, heartbeatComment, cancellationToken);
+                        await response.Body.FlushAsync(cancellationToken);
+                    }
+
+                    pendingHeartbeat = timer.WaitForNextTickAsync(cancellationToken).AsTask();
                     continue;
                 }
 

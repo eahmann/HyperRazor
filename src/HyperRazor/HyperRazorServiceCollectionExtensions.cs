@@ -48,6 +48,7 @@ public static class HyperRazorServiceCollectionExtensions
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
         services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();
+        services.TryAddScoped<IHrzSseReplayStrategy, HrzDefaultSseReplayStrategy>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();

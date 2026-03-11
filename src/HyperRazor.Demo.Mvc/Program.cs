@@ -41,6 +41,7 @@ builder.Services.AddHyperRazor(options =>
     options.LayoutBoundary.ShellReselectSelector = "#hrz-app-shell";
     options.LayoutBoundary.AddVaryHeader = true;
 });
+builder.Services.AddScoped<IHrzSseReplayStrategy, DemoSseReplayStrategy>();
 builder.Services.AddHtmx(htmx =>
 {
     htmx.ClientProfile = HtmxClientProfile.Htmx2Defaults;
@@ -130,6 +131,8 @@ app.MapGet("/demos/sse", (HttpContext context, CancellationToken cancellationTok
     HrzResults.Page<SsePage>(context, cancellationToken: cancellationToken));
 app.MapGet("/demos/sse/control-events", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<SseControlEventsPage>(context, cancellationToken: cancellationToken));
+app.MapGet("/demos/sse/replay", (HttpContext context, CancellationToken cancellationToken) =>
+    HrzResults.Page<SseReplayPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/demos/notifications", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<NotificationsPage>(context, cancellationToken: cancellationToken));
 app.MapGet("/settings/branding", (HttpContext context, CancellationToken cancellationToken) =>
@@ -142,6 +145,12 @@ app.MapGet("/demos/sse/stream", (
     HrzResults.ServerSentEvents(StreamSseDemoAsync(context, sseRenderer, swapService, cancellationToken)));
 app.MapGet("/demos/sse/control-events/stream", (CancellationToken cancellationToken) =>
     HrzResults.ServerSentEvents(StreamSseControlEventsDemoAsync(cancellationToken)));
+app.MapGet("/demos/sse/replay/stream", (
+    HttpContext context,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    CancellationToken cancellationToken) =>
+    HrzResults.ServerSentEvents(StreamSseReplayDemoAsync(context, sseRenderer, swapService, cancellationToken)));
 app.MapGet("/demos/sse/control-events/panels/{eventName}", async Task<IResult> (
     HttpContext context,
     string eventName,
@@ -559,6 +568,45 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseControlEventsDemoAsync(
     yield return HrzSse.Done();
 }
 
+static async IAsyncEnumerable<SseItem<string>> StreamSseReplayDemoAsync(
+    HttpContext context,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    [EnumeratorCancellation] CancellationToken cancellationToken)
+{
+    var frameDelay = TimeSpan.FromMilliseconds(850);
+    var resumeContext = HrzSseResumeContext.FromRequest(context.Request);
+
+    if (!resumeContext.HasLastEventId)
+    {
+        foreach (var entry in DemoSseReplayScenario.InitialEntries)
+        {
+            yield return await DemoSseReplayScenario.RenderEntryAsync(
+                entry,
+                resumeContext,
+                sseRenderer,
+                swapService,
+                cancellationToken);
+
+            if (!string.Equals(entry.EventId, DemoSseReplayScenario.DisconnectAfterEventId, StringComparison.Ordinal))
+            {
+                await Task.Delay(frameDelay, cancellationToken);
+            }
+        }
+
+        yield break;
+    }
+
+    await foreach (var item in HrzSseReplay.Compose(
+        context,
+        StreamSseReplayLiveTailAsync(resumeContext, sseRenderer, swapService, frameDelay, cancellationToken),
+        DemoSseReplayScenario.StreamName,
+        cancellationToken))
+    {
+        yield return item;
+    }
+}
+
 static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
 {
     var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
@@ -695,6 +743,25 @@ static SseControlEventPanelState? ResolveSseControlEventPanel(string eventName)
             Tone: "warning"),
         _ => null
     };
+}
+
+static async IAsyncEnumerable<SseItem<string>> StreamSseReplayLiveTailAsync(
+    HrzSseResumeContext resumeContext,
+    IHrzSseRenderer sseRenderer,
+    IHrzSwapService swapService,
+    TimeSpan frameDelay,
+    [EnumeratorCancellation] CancellationToken cancellationToken)
+{
+    await Task.Delay(frameDelay, cancellationToken);
+
+    yield return await DemoSseReplayScenario.RenderEntryAsync(
+        DemoSseReplayScenario.LiveResumeEntry,
+        resumeContext,
+        sseRenderer,
+        swapService,
+        cancellationToken);
+
+    yield return HrzSse.Done();
 }
 
 app.Run();

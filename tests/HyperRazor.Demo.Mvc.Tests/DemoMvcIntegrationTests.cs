@@ -33,6 +33,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("href=\"/users\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/validation\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/sse/replay\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/demos/notifications\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/access-requests\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/incidents\"", body, StringComparison.Ordinal);
@@ -107,6 +108,12 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("sse-connect=\"/demos/sse/stream\"", body, StringComparison.Ordinal);
         Assert.Contains("sse-close=\"done\"", body, StringComparison.Ordinal);
         Assert.Contains("sse-swap=\"message\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/sse/control-events\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse/control-events\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/sse/replay\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse/replay\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#hrz-main-layout\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-push-url=\"true\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -127,6 +134,32 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("hx-trigger=\"sse:reset\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-trigger=\"sse:unauthorized\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-get=\"/demos/sse/control-events/panels/stale\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("href=\"/demos/sse/replay\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse/replay\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#hrz-main-layout\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-push-url=\"true\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SseReplayRoute_ReturnsReplayHarnessMarkup()
+    {
+        using var client = CreateClient();
+
+        var response = await client.GetAsync("/demos/sse/replay");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<h2>SSE Replay</h2>", body, StringComparison.Ordinal);
+        Assert.Contains("sse-connect=\"/demos/sse/replay/stream\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-close=\"done\"", body, StringComparison.Ordinal);
+        Assert.Contains("sse-swap=\"message\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"sse-replay-feed\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"sse-replay-resume\"", body, StringComparison.Ordinal);
+        Assert.Contains("Browser DevTools may log one expected", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-get=\"/demos/sse/control-events\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -161,6 +194,69 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id: sse-demo-3", thirdEvent, StringComparison.Ordinal);
         Assert.Contains("Closed cleanly", thirdEvent, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", thirdEvent, StringComparison.Ordinal);
+
+        var doneEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);
+        Assert.Contains("data: ", doneEvent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SseReplayStream_FirstConnection_EndsAfterTwoSeedFramesWithoutDone()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/sse/replay/stream");
+
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        var firstEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: replay-demo-01", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("Live stream opened", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("Awaiting reconnect", firstEvent, StringComparison.Ordinal);
+
+        var secondEvent = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: replay-demo-02", secondEvent, StringComparison.Ordinal);
+        Assert.Contains("Intentional disconnect", secondEvent, StringComparison.Ordinal);
+        Assert.Contains("Disconnect after replay-demo-02", secondEvent, StringComparison.Ordinal);
+
+        var tailLine = await reader.ReadLineAsync();
+        Assert.Null(tailLine);
+    }
+
+    [Fact]
+    public async Task SseReplayStream_WithLastEventId_ReplaysBufferedFramesThenCloses()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/demos/sse/replay/stream");
+        request.Headers.Add("Last-Event-ID", "replay-demo-02");
+
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        var replayThree = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: replay-demo-03", replayThree, StringComparison.Ordinal);
+        Assert.Contains("Buffered event recovered", replayThree, StringComparison.Ordinal);
+        Assert.Contains("Resumed after replay-demo-02", replayThree, StringComparison.Ordinal);
+
+        var replayFour = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: replay-demo-04", replayFour, StringComparison.Ordinal);
+        Assert.Contains("Replay buffer drained", replayFour, StringComparison.Ordinal);
+
+        var liveFive = await ReadEventBlockAsync(reader);
+        Assert.Contains("id: replay-demo-05", liveFive, StringComparison.Ordinal);
+        Assert.Contains("Live streaming resumed", liveFive, StringComparison.Ordinal);
+        Assert.Contains("Live stream resumed", liveFive, StringComparison.Ordinal);
 
         var doneEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);

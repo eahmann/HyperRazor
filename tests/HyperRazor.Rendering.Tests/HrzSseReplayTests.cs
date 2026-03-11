@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.ServerSentEvents;
+using HyperRazor;
 using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,19 @@ public sealed class HrzSseReplayTests
 
         Assert.True(resumeContext.HasLastEventId);
         Assert.Equal("evt-42", resumeContext.LastEventId);
+    }
+
+    [Fact]
+    public void ReplayRequest_FromHttpContext_ReadsResumeContextAndStreamName()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers["Last-Event-ID"] = "evt-77";
+
+        var request = HrzSseReplayRequest.FromHttpContext(context, "notifications");
+
+        Assert.Same(context, request.HttpContext);
+        Assert.Equal("notifications", request.StreamName);
+        Assert.Equal("evt-77", request.ResumeContext.LastEventId);
     }
 
     [Fact]
@@ -49,6 +63,72 @@ public sealed class HrzSseReplayTests
             GetEvents("live-1", "live-2")));
 
         Assert.Equal(["reset-1"], ids);
+    }
+
+    [Fact]
+    public async Task DecideAsync_UsesRegisteredReplayStrategy()
+    {
+        var strategy = new TestReplayStrategy(_ => HrzSseReplayDecision.Replay(GetEvents("replay-1")));
+        await using var provider = new ServiceCollection()
+            .AddLogging()
+            .AddHyperRazor()
+            .AddScoped<IHrzSseReplayStrategy>(_ => strategy)
+            .BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider
+        };
+        context.Request.Headers["Last-Event-ID"] = "evt-9";
+
+        var decision = await HrzSseReplay.DecideAsync(context, "notifications");
+
+        Assert.Equal(HrzSseReplayDisposition.ReplayThenLive, decision.Disposition);
+        Assert.NotNull(strategy.LastRequest);
+        Assert.Equal("notifications", strategy.LastRequest.Value.StreamName);
+        Assert.Equal("evt-9", strategy.LastRequest.Value.ResumeContext.LastEventId);
+    }
+
+    [Fact]
+    public async Task Compose_WithHttpContext_UsesRegisteredReplayStrategy()
+    {
+        var strategy = new TestReplayStrategy(request =>
+            request.ResumeContext.HasLastEventId
+                ? HrzSseReplayDecision.Replay(GetEvents("replay-1"))
+                : HrzSseReplayDecision.Live());
+        await using var provider = new ServiceCollection()
+            .AddLogging()
+            .AddHyperRazor()
+            .AddScoped<IHrzSseReplayStrategy>(_ => strategy)
+            .BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider
+        };
+        context.Request.Headers["Last-Event-ID"] = "evt-11";
+
+        var ids = await ReadEventIdsAsync(HrzSseReplay.Compose(
+            context,
+            GetEvents("live-1", "live-2"),
+            "notifications"));
+
+        Assert.Equal(["replay-1", "live-1", "live-2"], ids);
+        Assert.Equal("notifications", strategy.LastRequest?.StreamName);
+    }
+
+    [Fact]
+    public void AddHyperRazor_RegistersDefaultReplayStrategy()
+    {
+        using var provider = new ServiceCollection()
+            .AddLogging()
+            .AddHyperRazor()
+            .BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var strategy = scope.ServiceProvider.GetRequiredService<IHrzSseReplayStrategy>();
+
+        Assert.IsType<HrzDefaultSseReplayStrategy>(strategy);
     }
 
     [Fact]
@@ -88,5 +168,25 @@ public sealed class HrzSseReplayTests
         }
 
         await Task.CompletedTask;
+    }
+
+    private sealed class TestReplayStrategy : IHrzSseReplayStrategy
+    {
+        private readonly Func<HrzSseReplayRequest, HrzSseReplayDecision> _resolve;
+
+        public TestReplayStrategy(Func<HrzSseReplayRequest, HrzSseReplayDecision> resolve)
+        {
+            _resolve = resolve;
+        }
+
+        public HrzSseReplayRequest? LastRequest { get; private set; }
+
+        public ValueTask<HrzSseReplayDecision> DecideAsync(
+            HrzSseReplayRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            LastRequest = request;
+            return ValueTask.FromResult(_resolve(request));
+        }
     }
 }

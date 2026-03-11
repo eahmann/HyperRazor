@@ -5,8 +5,20 @@
         <strong>How To Test:</strong> load this route and wait. Three cards should stream into the live feed, the sidecar should change out-of-band, and the connection should stop after the blank-data <code>done</code> event.
     </div>
     <p class="demo-caption mb-0">
-        Need named control signals too?
-        <a href="/demos/sse/control-events">Open the control-events harness.</a>
+        Need named control signals or replay?
+        <a
+            href="/demos/sse/control-events"
+            hx-get="/demos/sse/control-events"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">Open the control-events harness.</a>
+        <span>or</span>
+        <a
+            href="/demos/sse/replay"
+            hx-get="/demos/sse/replay"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">open the replay demo.</a>
     </p>
 </section>
 

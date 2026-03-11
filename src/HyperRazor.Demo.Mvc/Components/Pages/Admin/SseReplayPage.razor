@@ -1,0 +1,60 @@
+<section class="panel">
+    <h2>SSE Replay</h2>
+    <p>This page intentionally drops the first SSE response after two frames. HTMX reconnects with <code>Last-Event-ID</code>, the server replays buffered frames, then live streaming resumes.</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> load this route and wait. Two live frames should arrive, the first response should end without <code>done</code>, then the browser should reconnect and append two replayed frames plus one final live frame before the stream closes cleanly. Browser DevTools may log one expected <code>EventSource</code> error when that forced reconnect happens.
+    </div>
+    <p class="demo-caption mb-0">
+        Need the simpler demos too?
+        <a
+            href="/demos/sse"
+            hx-get="/demos/sse"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">Open SSE basics.</a>
+        <span>or</span>
+        <a
+            href="/demos/sse/control-events"
+            hx-get="/demos/sse/control-events"
+            hx-target="#hrz-main-layout"
+            hx-swap="innerHTML show:window:top"
+            hx-push-url="true">open the control-events harness.</a>
+    </p>
+</section>
+
+<section class="sse-demo-grid">
+    <section class="panel">
+        <h3>Replay Feed</h3>
+        <p class="demo-caption">Unnamed SSE messages still carry rendered HTML. The difference here is transport behavior: the client reconnects and the server fills the buffered gap before live frames continue.</p>
+
+        <section
+            id="sse-replay-shell"
+            class="sse-live-shell"
+            hx-ext="sse"
+            sse-connect="/demos/sse/replay/stream"
+            sse-close="@HrzSseEventNames.Done">
+            <div id="sse-replay-feed" class="activity-feed sse-live-feed" sse-swap="message" hx-swap="beforeend" aria-live="polite"></div>
+        </section>
+    </section>
+
+    <section class="panel sse-sidecar-panel">
+        <h3>Replay State</h3>
+        <p class="demo-caption">The left feed stays HTML-first. These status cards show when the first response ends, when the reconnect happens, and when replay hands back to live streaming.</p>
+
+        <div id="sse-replay-connection">
+            <section class="sse-status-card sse-status-card--neutral">
+                <p class="app-kicker">connection</p>
+                <h4>Opening connection</h4>
+                <p class="mb-0">Waiting for the first live frame.</p>
+            </section>
+        </div>
+
+        <div id="sse-replay-resume">
+            <section class="sse-status-card sse-status-card--neutral">
+                <p class="app-kicker">last-event-id</p>
+                <h4>Awaiting reconnect</h4>
+                <p class="mb-0">The first response will end after <code>replay-demo-02</code> so EventSource can reconnect with a resume header.</p>
+            </section>
+        </div>
+    </section>
+</section>

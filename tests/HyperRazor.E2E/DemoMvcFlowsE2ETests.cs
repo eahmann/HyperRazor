@@ -344,6 +344,82 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task SseReplayPage_ReconnectsAndAppendsBufferedFramesBeforeDone()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/demos/sse/replay");
+        await WaitForHtmxAsync(page);
+
+        var cards = page.Locator("#sse-replay-feed .sse-event-card");
+
+        await Assertions.Expect(cards).ToHaveCountAsync(1);
+        await Assertions.Expect(cards).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#sse-replay-connection")).ToContainTextAsync("Disconnect after replay-demo-02");
+
+        await page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('#sse-replay-feed .sse-event-card').length === 5",
+            new PageWaitForFunctionOptions
+            {
+                Timeout = 15000
+            });
+
+        await Assertions.Expect(page.Locator("#sse-replay-resume")).ToContainTextAsync("Resumed after replay-demo-02");
+        await Assertions.Expect(page.Locator("#sse-replay-feed")).ToContainTextAsync("Buffered event recovered");
+        await Assertions.Expect(page.Locator("#sse-replay-feed")).ToContainTextAsync("Replay buffer drained");
+        await Assertions.Expect(cards.Last).ToContainTextAsync("Live streaming resumed");
+
+        await page.WaitForTimeoutAsync(1200);
+
+        Assert.Equal(5, await cards.CountAsync());
+    }
+
+    [SkippableFact]
+    public async Task SsePages_InlineLinks_NavigateThroughHtmxRequests()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/demos/sse");
+        await WaitForHtmxAsync(page);
+
+        var controlEventsResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("a[href='/demos/sse/control-events']"),
+            response => response.Url.EndsWith("/demos/sse/control-events", StringComparison.Ordinal));
+
+        Assert.Equal(200, controlEventsResponse.Status);
+        Assert.Equal("xhr", controlEventsResponse.Request.ResourceType);
+        Assert.Equal("true", controlEventsResponse.Request.Headers["hx-request"]);
+        await ExpectHeadingAsync(page, "SSE Control Events");
+        Assert.EndsWith("/demos/sse/control-events", page.Url, StringComparison.Ordinal);
+
+        var replayResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("a[href='/demos/sse/replay']"),
+            response => response.Url.EndsWith("/demos/sse/replay", StringComparison.Ordinal));
+
+        Assert.Equal(200, replayResponse.Status);
+        Assert.Equal("xhr", replayResponse.Request.ResourceType);
+        Assert.Equal("true", replayResponse.Request.Headers["hx-request"]);
+        await ExpectHeadingAsync(page, "SSE Replay");
+        Assert.EndsWith("/demos/sse/replay", page.Url, StringComparison.Ordinal);
+
+        var basicsResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("a[href='/demos/sse']"),
+            response => response.Url.EndsWith("/demos/sse", StringComparison.Ordinal));
+
+        Assert.Equal(200, basicsResponse.Status);
+        Assert.Equal("xhr", basicsResponse.Request.ResourceType);
+        Assert.Equal("true", basicsResponse.Request.Headers["hx-request"]);
+        await ExpectHeadingAsync(page, "SSE Live Feed");
+        Assert.EndsWith("/demos/sse", page.Url, StringComparison.Ordinal);
+    }
+
+    [SkippableFact]
     public async Task NotificationsDemoPage_StreamsTenNotesAndStopsAfterDone()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

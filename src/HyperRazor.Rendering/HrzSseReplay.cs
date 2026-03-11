@@ -1,10 +1,40 @@
 using System.Net.ServerSentEvents;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HyperRazor.Rendering;
 
 public static class HrzSseReplay
 {
+    public static ValueTask<HrzSseReplayDecision> DecideAsync(
+        HttpContext httpContext,
+        string? streamName = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var strategy = httpContext.RequestServices.GetRequiredService<IHrzSseReplayStrategy>();
+        var request = HrzSseReplayRequest.FromHttpContext(httpContext, streamName);
+        return strategy.DecideAsync(request, cancellationToken);
+    }
+
+    public static async IAsyncEnumerable<SseItem<string>> Compose(
+        HttpContext httpContext,
+        IAsyncEnumerable<SseItem<string>> liveEvents,
+        string? streamName = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var decision = await DecideAsync(httpContext, streamName, cancellationToken);
+
+        await foreach (var item in Compose(decision, liveEvents, cancellationToken).WithCancellation(cancellationToken))
+        {
+            yield return item;
+        }
+    }
+
     public static async IAsyncEnumerable<SseItem<string>> Compose(
         HrzSseReplayDecision decision,
         IAsyncEnumerable<SseItem<string>> liveEvents,

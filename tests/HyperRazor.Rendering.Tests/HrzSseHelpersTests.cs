@@ -235,6 +235,28 @@ public sealed class HrzSseHelpersTests
     }
 
     [Fact]
+    public async Task ServerSentEvents_WithInvalidHeartbeatInterval_ThrowsArgumentOutOfRange()
+    {
+        var context = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection().BuildServiceProvider()
+        };
+        context.Response.Body = new MemoryStream();
+
+        var result = HrzResults.ServerSentEvents(
+            GetDelayedEvents(),
+            options: new HrzSseResultOptions
+            {
+                HeartbeatInterval = TimeSpan.Zero
+            });
+
+        var error = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => result.ExecuteAsync(context));
+
+        Assert.Equal(nameof(HrzSseOptions.HeartbeatInterval), error.ParamName);
+        Assert.Equal(TimeSpan.Zero, error.ActualValue);
+    }
+
+    [Fact]
     public async Task ServerSentEvents_UsesGlobalSseDefaultsWhenNoPerResultOverridesProvided()
     {
         var services = new ServiceCollection();

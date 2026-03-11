@@ -112,7 +112,7 @@ public class HrzValidationInfrastructureTests
     [Fact]
     public void AddHyperRazor_RegistersConfiguredSseDefaults()
     {
-        var services = CreateServices(configureSse: options =>
+        using var services = CreateServices(configureSse: options =>
         {
             options.HeartbeatInterval = TimeSpan.FromSeconds(9);
             options.HeartbeatComment = "global-heartbeat";

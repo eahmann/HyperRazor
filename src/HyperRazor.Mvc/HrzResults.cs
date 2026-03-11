@@ -237,6 +237,9 @@ public static class HrzResults
                 return;
             }
 
+            var heartbeatInterval = resolvedOptions.HeartbeatInterval.Value;
+            ValidateHeartbeatInterval(heartbeatInterval);
+
             if (typeof(T) != typeof(string))
             {
                 throw new InvalidOperationException("Heartbeat comments are only supported for string SSE streams.");
@@ -244,14 +247,16 @@ public static class HrzResults
 
             ApplyHeartbeatResponseDefaults(response);
             _configureResponse?.Invoke(response);
-            await ExecuteWithHeartbeatsAsync(httpContext, resolvedOptions);
+            await ExecuteWithHeartbeatsAsync(httpContext, heartbeatInterval, resolvedOptions.HeartbeatComment);
         }
 
-        private async Task ExecuteWithHeartbeatsAsync(HttpContext httpContext, HrzSseOptions options)
+        private async Task ExecuteWithHeartbeatsAsync(
+            HttpContext httpContext,
+            TimeSpan heartbeatInterval,
+            string? heartbeatComment)
         {
             var cancellationToken = httpContext.RequestAborted;
             var response = httpContext.Response;
-            var heartbeatInterval = options.HeartbeatInterval ?? throw new InvalidOperationException("A heartbeat interval is required.");
 
             await using var enumerator = _source.GetAsyncEnumerator(cancellationToken);
             var pendingMoveNext = enumerator.MoveNextAsync().AsTask();
@@ -263,7 +268,7 @@ public static class HrzResults
 
                 if (completed == heartbeatDelay)
                 {
-                    await HrzSse.WriteCommentAsync(response.Body, options.HeartbeatComment, cancellationToken);
+                    await HrzSse.WriteCommentAsync(response.Body, heartbeatComment, cancellationToken);
                     await response.Body.FlushAsync(cancellationToken);
                     continue;
                 }
@@ -283,6 +288,17 @@ public static class HrzResults
         {
             yield return item;
             await Task.CompletedTask;
+        }
+
+        private static void ValidateHeartbeatInterval(TimeSpan heartbeatInterval)
+        {
+            if (heartbeatInterval <= TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(HrzSseOptions.HeartbeatInterval),
+                    heartbeatInterval,
+                    "HeartbeatInterval must be greater than TimeSpan.Zero.");
+            }
         }
     }
 

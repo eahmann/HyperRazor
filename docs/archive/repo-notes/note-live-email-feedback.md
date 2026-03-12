@@ -65,8 +65,8 @@ Reason:
 
 This fits the current MVC-first validation design:
 
-- whole-form submit remains in [ValidationDemoController.cs](/home/eric/repos/HyperRazor/src/HyperRazor.Demo.Mvc/Controllers/ValidationDemoController.cs)
-- the form authoring surface remains in [ValidationDemoForm.razor](/home/eric/repos/HyperRazor/src/HyperRazor.Demo.Mvc/Components/Fragments/ValidationDemoForm.razor)
+- whole-form submit remains in [ValidationController.cs](../../../src/HyperRazor.Demo.Mvc/Controllers/ValidationController.cs)
+- the form authoring surface remains in [UserInviteValidationForm.razor](../../../src/HyperRazor.Demo.Mvc/Components/Fragments/UserInviteValidationForm.razor)
 - the server-only uniqueness rule already exists in the form submit path and could move into a reusable validator service
 
 ## Bottom Line

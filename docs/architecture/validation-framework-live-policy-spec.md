@@ -7,7 +7,7 @@
 
 ## 0. Summary
 
-This document turns Proposal B from `docs/live-validation-toggle-proposals.md` into a concrete runtime spec.
+This document turns Proposal B from `docs/architecture/live-validation-toggle-proposals.md` into a concrete runtime spec.
 
 The core decision is:
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Implemented on 2026-03-07  
-**Depends on:** `docs/validation-framework-phase-2-submit-runtime.md`, `docs/validation-framework-phase-3-api-and-proxy.md`
+**Depends on:** `docs/archive/validation/validation-framework-phase-2-submit-runtime.md`, `docs/archive/validation/validation-framework-phase-3-api-and-proxy.md`
 
 > Implemented surface: the live-validation harness runs on `/validation` with `/validation/live`, using targeted server-owned field slots and OOB summary/dependency updates.
 
@@ -48,10 +48,10 @@ Implement the server live-validation path and finish the documentation/demo stor
 
 ### Documentation
 
-- `docs/validation-framework-spec-greenfield.md`
-- `docs/live-email-feedback-spec.md`
-- `docs/validation-framework-spec.md`
-- `docs/validation-framework-plan.md`
+- `docs/architecture/validation-framework-spec-greenfield.md`
+- `docs/archive/validation/live-email-feedback-spec.md`
+- `docs/archive/validation/validation-framework-spec.md`
+- `docs/archive/validation/validation-framework-plan.md`
 
 ### Tests
 

@@ -139,4 +139,4 @@ Include the fallback helper in HTMX form components:
 
 The bundled client script reads the antiforgery meta tag and adds the configured request header automatically for unsafe HTMX verbs.
 
-For CI/release expectations, see [release-policy.md](/home/eric/repos/HyperRazor/docs/release-policy.md).
+For CI/release expectations, see [release-policy.md](./release-policy.md).

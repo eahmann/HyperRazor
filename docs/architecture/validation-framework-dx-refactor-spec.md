@@ -115,7 +115,7 @@ Proposal D should not be treated as:
 
 ## 4. Frozen Runtime Dependencies
 
-Proposal D must emit and respect the current runtime decisions from `docs/validation-framework-live-policy-spec.md`.
+Proposal D must emit and respect the current runtime decisions from `docs/architecture/validation-framework-live-policy-spec.md`.
 
 That means the authoring surface must preserve:
 

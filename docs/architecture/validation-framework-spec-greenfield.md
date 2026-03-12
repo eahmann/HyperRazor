@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Current proposal  
-**Supersedes:** `docs/validation-framework-spec.md`
+**Supersedes:** `docs/archive/validation/validation-framework-spec.md`
 
 ## Core Position
 

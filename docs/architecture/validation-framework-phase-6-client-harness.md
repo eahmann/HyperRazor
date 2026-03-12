@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Proposed  
-**Depends on:** `docs/validation-framework-spec-greenfield.md`, `docs/validation-framework-phase-4-live-validation.md`, `docs/validation-framework-phase-6-authoring-surface.md`
+**Depends on:** `docs/architecture/validation-framework-spec-greenfield.md`, `docs/archive/validation/validation-framework-phase-4-live-validation.md`, `docs/architecture/validation-framework-phase-6-authoring-surface.md`
 
 ---
 

@@ -1,7 +1,9 @@
 <Solution>
   <Folder Name="/docs/">
-    <File Path="plan-phase-1.md" />
-    <File Path="plan-phase-2.md" />
+    <File Path="docs/README.md" />
+    <File Path="docs/quickstart.md" />
+    <File Path="docs/adopting-hyperrazor.md" />
+    <File Path="docs/release-policy.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/HyperRazor/HyperRazor.csproj" />

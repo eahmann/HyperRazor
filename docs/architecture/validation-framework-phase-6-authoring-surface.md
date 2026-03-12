@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Proposed  
-**Depends on:** `docs/validation-framework-spec-greenfield.md`, `docs/validation-framework-phase-2-submit-runtime.md`, `docs/validation-framework-phase-4-live-validation.md`
+**Depends on:** `docs/architecture/validation-framework-spec-greenfield.md`, `docs/archive/validation/validation-framework-phase-2-submit-runtime.md`, `docs/archive/validation/validation-framework-phase-4-live-validation.md`
 
 ---
 
@@ -327,7 +327,7 @@ Add `HrzInputText`, `HrzInputTextArea`, and `HrzInputSelect` in `src/HyperRazor.
 
 Initial targets:
 
-- [UserInviteValidationForm.razor](/home/eric/repos/HyperRazor/src/HyperRazor.Demo.Mvc/Components/Fragments/UserInviteValidationForm.razor)
+- [UserInviteValidationForm.razor](../../src/HyperRazor.Demo.Mvc/Components/Fragments/UserInviteValidationForm.razor)
 - `/users` invite form
 - `/validation` MVC proxy form
 - `/validation` Minimal API local form

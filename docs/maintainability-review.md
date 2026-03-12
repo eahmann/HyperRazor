@@ -21,7 +21,7 @@ Someone new to the repo should be able to answer these questions quickly:
 This assessment was static.
 
 - The repo targets `net10.0`.
-- `dotnet` was not available in the execution environment, so test runs could not be verified here.
+- Test runs were not performed as part of this review, so their status could not be validated here.
 - The findings below are based on source layout, implementation shape, duplication, and test/documentation structure.
 
 Useful repo-level numbers from the review:

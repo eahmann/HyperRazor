@@ -31,20 +31,23 @@ public abstract class DemoMvcIntegrationTestBase
 
     protected static async Task<string> GetAntiforgeryTokenAsync(HttpClient client)
     {
-        var response = await client.GetAsync("/");
+        using var response = await client.GetAsync("/");
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return ExtractMetaContent(html, "hrz-antiforgery");
     }
 
-    protected static async Task<string> ReadEventBlockAsync(StreamReader reader)
+    protected static async Task<string> ReadEventBlockAsync(StreamReader reader, CancellationToken cancellationToken = default)
     {
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
         var builder = new StringBuilder();
 
         while (true)
         {
-            var line = await reader.ReadLineAsync();
+            var line = await reader.ReadLineAsync(linkedCts.Token);
             Assert.NotNull(line);
 
             if (line.Length == 0)

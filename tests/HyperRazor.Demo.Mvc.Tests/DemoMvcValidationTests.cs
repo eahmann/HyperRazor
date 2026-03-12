@@ -8,7 +8,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HyperRazor.Demo.Mvc.Tests;
 
-public class DemoMvcValidationTests : DemoMvcIntegrationTestBase, IClassFixture<WebApplicationFactory<Program>>
+[Collection("DemoMvcWebAppFactoryCollection")]
+public class DemoMvcValidationTests : DemoMvcIntegrationTestBase
 {
     public DemoMvcValidationTests(WebApplicationFactory<Program> factory)
         : base(factory)

@@ -24,7 +24,7 @@ This assessment was static.
 - `dotnet` was not available in the execution environment, so test runs could not be verified here.
 - The findings below are based on source layout, implementation shape, duplication, and test/documentation structure.
 
-Useful repo-level numbers from the review:
+Useful repo-level numbers from the review (point-in-time snapshot, not updated as the repo evolves):
 
 - Source lines excluding `bin/obj`: about 12.3k
 - Test lines excluding `bin/obj/TestResults`: about 5.9k
@@ -71,7 +71,7 @@ If the team wants the repo to feel coherent quickly, use this order:
 - helper-method module
 - local record/type container
 
-This file is 1,247 lines and is the strongest single "this will be painful later" signal in the repo.
+This file is ~1,250 lines and is the strongest single "this will be painful later" signal in the repo.
 
 ### Evidence
 

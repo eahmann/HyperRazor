@@ -4,24 +4,18 @@ This is the current golden path for a server-rendered ASP.NET Core app that uses
 
 ## Packages
 
-For the normal HyperRazor app path, reference this package in your web app:
+- For the normal HyperRazor app path, reference `HyperRazor`.
+- If you only want typed HTMX support without HyperRazor rendering, reference `HyperRazor.Htmx`.
 
-- `HyperRazor`
+`HyperRazor` is the public golden path. It brings in the MVC and HTMX layers transitively.
 
-That single package is the public golden path. It brings in the MVC and HTMX layers transitively.
-
-If you only want typed HTMX support without HyperRazor rendering, use `HyperRazor.Htmx` instead.
-
-The primary package IDs now line up with the namespaces you use most often: `HyperRazor`, `HyperRazor.Htmx`, and `HyperRazor.Mvc`. Lower-level types still live in namespaces like `HyperRazor.Components` and `HyperRazor.Rendering`.
+The primary packages also add the common HyperRazor namespace imports for the happy path. If you reference lower-level packages directly, add the specific namespaces you need yourself.
 
 ## Service registration
 
 ```csharp
-using HyperRazor.Components;
-using HyperRazor.Components.Layouts;
 using HyperRazor;
-using HyperRazor.Htmx;
-using HyperRazor.Rendering;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,7 +69,6 @@ For MVC controllers, inherit from `HrController` and use `View<TComponent>()` fo
 
 ```csharp
 using HyperRazor.Demo.Mvc.Components.Pages;
-using HyperRazor.Mvc;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -98,7 +91,6 @@ For Minimal APIs, the canonical result helpers are:
 
 ```csharp
 using HyperRazor.Demo.Mvc.Components.Pages.Admin;
-using HyperRazor.Mvc;
 
 app.MapGet("/", (HttpContext context, CancellationToken cancellationToken) =>
     HrzResults.Page<DashboardPage>(context, cancellationToken: cancellationToken));
@@ -139,4 +131,4 @@ Include the fallback helper in HTMX form components:
 
 The bundled client script reads the antiforgery meta tag and adds the configured request header automatically for unsafe HTMX verbs.
 
-For CI/release expectations, see [release-policy.md](/home/eric/repos/HyperRazor/docs/release-policy.md).
+For CI/release expectations, see [release-policy.md](release-policy.md).

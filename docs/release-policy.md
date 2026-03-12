@@ -4,14 +4,14 @@ This is the release and versioning policy for the repository as Phase 4 wraps.
 
 ## Package scope
 
-Public entry-point packages:
+Primary entry-point packages:
 
 - `HyperRazor` from `src/HyperRazor`
 - `HyperRazor.Htmx`
   - the public HTMX-only ASP.NET Core package
   - produced from `src/HyperRazor.Htmx`
 
-Advanced/composition packages that still publish separately:
+Advanced but supported composition packages that still publish separately:
 
 - `HyperRazor.Client`
 - `HyperRazor.Components`
@@ -20,7 +20,7 @@ Advanced/composition packages that still publish separately:
 - `HyperRazor.Mvc`
 - `HyperRazor.Rendering`
 
-Do not publish demo or test projects.
+Internal-only projects do not publish:
 
 - `HyperRazor.Demo.Api`
 - `HyperRazor.Demo.Mvc`
@@ -42,6 +42,8 @@ Use prerelease suffixes for staged releases:
 ## Packaging guidance
 
 Keep version stamping centralized at pack/publish time so package versions cannot drift between projects.
+
+The primary packages own the onboarding story. The advanced packages remain versioned and published because the current architecture ships multiple assemblies, but they are not the default docs path.
 
 Example:
 

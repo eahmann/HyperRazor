@@ -3,9 +3,7 @@ using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Demo.Mvc.Models;
 using HyperRazor.Htmx;
 using HyperRazor.Mvc;
-using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace HyperRazor.Demo.Mvc.Controllers;
 
@@ -18,8 +16,8 @@ public sealed class UsersController : HrController
     {
         if (!ModelState.IsValid)
         {
-            TriggerInvalid(ModelState.ErrorCount);
-            SetSubmitValidationState(UserInviteValidationRoots.MvcLocal);
+            DemoValidationFeedback.TriggerInvalid(HttpContext, ModelState.ErrorCount);
+            DemoValidationFeedback.SetSubmitValidationState(HttpContext, ModelState, UserInviteValidationRoots.MvcLocal);
             DemoInspectorUpdates.Queue(
                 HttpContext,
                 action: "users-invite-invalid",
@@ -32,7 +30,7 @@ public sealed class UsersController : HrController
         }
 
         var count = Interlocked.Increment(ref _inviteCount);
-        TriggerValid(input, count);
+        DemoValidationFeedback.TriggerValid(HttpContext, input, count);
         DemoInspectorUpdates.Queue(
             HttpContext,
             action: "users-invite-valid",
@@ -49,32 +47,5 @@ public sealed class UsersController : HrController
         }
 
         return Task.FromResult<IResult>(Results.Redirect("/users"));
-    }
-
-    private void TriggerInvalid(int errorCount)
-    {
-        HttpContext.HtmxResponse().Trigger("form:invalid", new
-        {
-            errorCount
-        });
-    }
-
-    private void TriggerValid(InviteUserInput input, int count)
-    {
-        HttpContext.HtmxResponse().Trigger("form:valid", new
-        {
-            name = input.DisplayName,
-            email = input.Email,
-            count
-        });
-    }
-
-    private void SetSubmitValidationState(HrzValidationRootId rootId)
-    {
-        var resolver = HttpContext.RequestServices.GetRequiredService<IHrzFieldPathResolver>();
-        HttpContext.SetSubmitValidationState(ModelState.ToSubmitValidationState(
-            rootId,
-            resolver,
-            HrzAttemptedValues.FromRequest(Request)));
     }
 }

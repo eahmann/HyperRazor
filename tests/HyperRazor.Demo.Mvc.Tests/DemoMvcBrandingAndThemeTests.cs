@@ -88,7 +88,8 @@ public class DemoMvcBrandingAndThemeTests : DemoMvcIntegrationTestBase
         Assert.Equal("light", themeTrigger.GetProperty("theme").GetString());
         Assert.Equal(DemoChromeState.ThemeStylesheetHref, themeTrigger.GetProperty("href").GetString());
 
-        var themeCookie = setCookieValues.Single(value => value.Contains("hrz-demo-theme=light", StringComparison.Ordinal));
+        var themeCookie = setCookieValues.Single(
+            value => value.Contains($"{DemoChromeState.ThemeCookieName}=light", StringComparison.Ordinal));
         using var themedRequest = new HttpRequestMessage(HttpMethod.Get, "/users");
         themedRequest.Headers.Add("Cookie", themeCookie.Split(';', 2)[0]);
 

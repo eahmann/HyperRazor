@@ -141,7 +141,8 @@ public class DemoMvcSseTests : DemoMvcIntegrationTestBase
         Assert.Contains("Intentional disconnect", secondEvent, StringComparison.Ordinal);
         Assert.Contains("Disconnect after replay-demo-02", secondEvent, StringComparison.Ordinal);
 
-        var tailLine = await reader.ReadLineAsync();
+        using var tailCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var tailLine = await reader.ReadLineAsync(tailCts.Token);
         Assert.Null(tailLine);
     }
 

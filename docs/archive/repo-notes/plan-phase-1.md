@@ -237,8 +237,8 @@ Quality gate:
 
 ### M4 — Docs
 Deliverables:
-- `/docs/htmx-conventions.md`
-- `/docs/adopting-hyperrazor.md`
+- `docs/htmx-conventions.md`
+- `docs/adopting-hyperrazor.md`
 
 Quality gate:
 - A new project can adopt the HTMX layer in under ~10 minutes.

@@ -3,8 +3,10 @@
 Typed HTMX support for ASP.NET with server-rendered components and MVC endpoint helpers.
 
 Docs:
-- [Quickstart](/home/eric/repos/HyperRazor/docs/quickstart.md)
-- [Release Policy](/home/eric/repos/HyperRazor/docs/release-policy.md)
+- [Docs Index](docs/README.md)
+- [Quickstart](docs/quickstart.md)
+- [Adopting HyperRazor](docs/adopting-hyperrazor.md)
+- [Release Policy](docs/release-policy.md)
 
 Public package setups:
 - `HyperRazor`: the golden-path package for a full HyperRazor app

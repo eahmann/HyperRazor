@@ -1,6 +1,6 @@
 # HyperRazor Validation Framework Plan
 
-> Superseded on 2026-03-06 by `docs/validation-framework-spec.md`.
+> Superseded on 2026-03-06 by `docs/archive/validation/validation-framework-spec.md`.
 >
 > This document is retained for history only. The current proposal is HTML-first, removes direct JSON-to-browser validation as an official path, and separates local client validation from server live validation.
 

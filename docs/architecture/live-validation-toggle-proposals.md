@@ -4,7 +4,7 @@
 **Status:** Proposal  
 **Audience:** DX and validation planning
 
-> Detailed Proposal B runtime follow-up: `docs/validation-framework-live-policy-spec.md`
+> Detailed Proposal B runtime follow-up: `docs/architecture/validation-framework-live-policy-spec.md`
 > 
 > Note: the detailed spec refines the early Proposal B sketch in this memo. Hidden live-policy carriers, not field-shell swaps, are now the default policy update unit.
 
@@ -400,9 +400,9 @@ Treat the live-toggle problem as a symptom of a broader DX issue and solve it at
 
 This proposal builds directly on the direction already described in:
 
-- `docs/validation-framework-dx-refactor-spec.md`
-- `docs/validation-framework-phase-6-authoring-surface.md`
-- `docs/validation-framework-phase-6-client-harness.md`
+- `docs/architecture/validation-framework-dx-refactor-spec.md`
+- `docs/architecture/validation-framework-phase-6-authoring-surface.md`
+- `docs/architecture/validation-framework-phase-6-client-harness.md`
 
 ### What changes
 

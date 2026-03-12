@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Implemented on 2026-03-07  
-**Depends on:** `docs/validation-framework-spec-greenfield.md`
+**Depends on:** `docs/architecture/validation-framework-spec-greenfield.md`
 
 ---
 

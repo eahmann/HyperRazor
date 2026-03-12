@@ -19,20 +19,20 @@ Phase 2 delivered baseline out-of-band swap primitives. Phase 2.1 focuses on fin
 ## Must-Ship Action Items
 
 - [ ] Add `SwapStyle` and formatter utilities for valid HTMX OOB values.
-  - Files: `src/HyperRazor.Components/Services/*` (new enum/formatter), [HrxSwappable.razor](/home/eric/repos/HyperRazor/src/HyperRazor.Components/HrxSwappable.razor)
+  - Files: `src/HyperRazor.Components/Services/*` (new enum/formatter), `src/HyperRazor.Components/HrxSwappable.razor`
 
 - [ ] Expand `IHrxSwapService` to support typed enqueue APIs and visibility state.
   - Add: `ContentAvailable`, `AddSwappableComponent`, `AddSwappableFragment`, `AddSwappableContent`, `AddRawContent`, `RenderToFragment(bool clear = false)`, `Clear`
-  - Files: [IHrxSwapService.cs](/home/eric/repos/HyperRazor/src/HyperRazor.Components/Services/IHrxSwapService.cs), [HrxSwapService.cs](/home/eric/repos/HyperRazor/src/HyperRazor.Components/Services/HrxSwapService.cs)
+  - Files: `src/HyperRazor.Components/Services/IHrxSwapService.cs`, `src/HyperRazor.Components/Services/HrxSwapService.cs`
 
 - [ ] Implement HTMX request guard in OOB rendering path.
   - Swappable items render only on HTMX requests.
   - `AddRawContent` follows the same guard by default, with explicit opt-in option for non-HTMX rendering.
-  - Files: `src/HyperRazor.Components/Services/*`, [HrxSwapContent.razor](/home/eric/repos/HyperRazor/src/HyperRazor.Components/HrxSwapContent.razor)
+  - Files: `src/HyperRazor.Components/Services/*`, `src/HyperRazor.Components/HrxSwapContent.razor`
 
 - [ ] Tighten host glue for fragment responses.
   - Append `<HrxSwapContent />` only when `IsHtmx && !IsHistoryRestore`.
-  - File: [HrxComponentHost.razor](/home/eric/repos/HyperRazor/src/HyperRazor.Components/HrxComponentHost.razor)
+  - File: `src/HyperRazor.Components/HrxComponentHost.razor`
 
 - [ ] Add a dedicated demo flow proving one-request multi-region OOB updates.
   - Scenario: update main users fragment + append toast + replace header counter.
@@ -46,11 +46,11 @@ Phase 2 delivered baseline out-of-band swap primitives. Phase 2.1 focuses on fin
   - Assert non-HTMX responses exclude swappable OOB blocks.
   - Assert `Vary: HX-Request` remains present on branching endpoints.
   - Assert `Vary` also includes `HX-History-Restore-Request` when endpoint behavior branches on history restore.
-  - File: [DemoMvcIntegrationTests.cs](/home/eric/repos/HyperRazor/tests/HyperRazor.Demo.Mvc.Tests/DemoMvcIntegrationTests.cs)
+  - File: [DemoMvcIntegrationTests.cs](../../../tests/HyperRazor.Demo.Mvc.Tests/DemoMvcIntegrationTests.cs)
 
 - [ ] Validate and close Phase 2.1.
   - Command: `dotnet test HyperRazor.slnx -v minimal`
-  - Update docs summary: [README.md](/home/eric/repos/HyperRazor/README.md), [phase-2-wrap-oob.md](/home/eric/repos/HyperRazor/phase-2-wrap-oob.md)
+  - Update docs summary: [README.md](../../../README.md), [phase-2-wrap-oob.md](./phase-2-wrap-oob.md)
 
 ## Good-To-Have (Phase 2.1+)
 - Add `RenderToString()` to `IHrxSwapService` for non-component composition paths.

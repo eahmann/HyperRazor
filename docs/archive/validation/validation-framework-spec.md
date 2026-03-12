@@ -1,12 +1,12 @@
 # HyperRazor Validation Framework Spec
 
-> Superseded on 2026-03-06 by `docs/validation-framework-spec-greenfield.md`.
+> Superseded on 2026-03-06 by `docs/architecture/validation-framework-spec-greenfield.md`.
 >
 > This revision assumed validation-specific glue that is no longer considered a valid starting point. The greenfield spec is the current document.
 
 **Date:** 2026-03-06  
 **Status:** Superseded  
-**Supersedes:** `docs/validation-framework-plan.md`
+**Supersedes:** `docs/archive/validation/validation-framework-plan.md`
 
 ## Core Position
 

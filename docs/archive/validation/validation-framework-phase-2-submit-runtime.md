@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Implemented on 2026-03-07  
-**Depends on:** `docs/validation-framework-phase-1-foundations.md`
+**Depends on:** `docs/archive/validation/validation-framework-phase-1-foundations.md`
 
 ---
 

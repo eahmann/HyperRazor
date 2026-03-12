@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07  
 **Status:** Historical implementation roadmap; phases 1-4 implemented on 2026-03-07  
-**Source spec:** `docs/validation-framework-spec-greenfield.md`
+**Source spec:** `docs/architecture/validation-framework-spec-greenfield.md`
 
 ---
 
@@ -33,7 +33,7 @@ The implementation remains HTML-first, keeps plain `<form>` as the primary autho
 
 ### Phase 1
 
-`docs/validation-framework-phase-1-foundations.md`
+`docs/archive/validation/validation-framework-phase-1-foundations.md`
 
 Deliver:
 
@@ -46,7 +46,7 @@ Deliver:
 
 ### Phase 2
 
-`docs/validation-framework-phase-2-submit-runtime.md`
+`docs/archive/validation/validation-framework-phase-2-submit-runtime.md`
 
 Deliver:
 
@@ -58,7 +58,7 @@ Deliver:
 
 ### Phase 3
 
-`docs/validation-framework-phase-3-api-and-proxy.md`
+`docs/archive/validation/validation-framework-phase-3-api-and-proxy.md`
 
 Deliver:
 
@@ -69,7 +69,7 @@ Deliver:
 
 ### Phase 4
 
-`docs/validation-framework-phase-4-live-validation.md`
+`docs/archive/validation/validation-framework-phase-4-live-validation.md`
 
 Deliver:
 
@@ -153,7 +153,7 @@ Must cover:
 
 The implementation plan is complete when:
 
-- the public contract in `docs/validation-framework-spec-greenfield.md` is implemented without undocumented API drift
+- the public contract in `docs/architecture/validation-framework-spec-greenfield.md` is implemented without undocumented API drift
 - each phase exit criterion is met
 - the demo and test suite cover every supported validation path in the spec
 - legacy `ModelState` behavior is either still functional or explicitly marked as deprecated-but-supported

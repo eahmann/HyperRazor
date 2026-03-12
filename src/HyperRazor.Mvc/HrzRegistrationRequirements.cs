@@ -42,6 +42,6 @@ internal static class HrzRegistrationRequirements
         }
 
         throw new InvalidOperationException(
-            $"{operation} requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call builder.Services.{HyperRazorRegistration} and builder.Services.{HtmxRegistration} during startup.");
+            $"{operation} requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call services.{HyperRazorRegistration} and services.{HtmxRegistration} during startup.");
     }
 }

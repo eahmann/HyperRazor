@@ -43,6 +43,6 @@ public static class HyperRazorApplicationBuilderExtensions
         }
 
         throw new InvalidOperationException(
-            $"UseHyperRazor() requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call builder.Services.AddHyperRazor() and builder.Services.AddHtmx() during startup.");
+            $"UseHyperRazor() requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call AddHyperRazor() and AddHtmx() on your IServiceCollection during startup (for example, services.AddHyperRazor(); services.AddHtmx(); or builder.Services.AddHyperRazor(); builder.Services.AddHtmx()).");
     }
 }

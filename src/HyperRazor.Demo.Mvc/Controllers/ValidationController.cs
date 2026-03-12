@@ -23,8 +23,8 @@ public sealed class ValidationController : HrController
     {
         if (!ModelState.IsValid)
         {
-            TriggerInvalid(ModelState.ErrorCount);
-            SetSubmitValidationState(UserInviteValidationRoots.MvcProxy);
+            DemoValidationFeedback.TriggerInvalid(HttpContext, ModelState.ErrorCount);
+            DemoValidationFeedback.SetSubmitValidationState(HttpContext, ModelState, UserInviteValidationRoots.MvcProxy);
             DemoInspectorUpdates.Queue(
                 HttpContext,
                 action: "validation-mvc-proxy-invalid",
@@ -44,7 +44,7 @@ public sealed class ValidationController : HrController
                 UserInviteValidationRoots.MvcProxy,
                 resolver,
                 HrzAttemptedValues.FromRequest(Request)));
-            TriggerInvalid(HttpContext.GetSubmitValidationState(UserInviteValidationRoots.MvcProxy)?.FieldErrors.Count ?? 1);
+            DemoValidationFeedback.TriggerInvalid(HttpContext, HttpContext.GetSubmitValidationState(UserInviteValidationRoots.MvcProxy)?.FieldErrors.Count ?? 1);
             DemoInspectorUpdates.Queue(
                 HttpContext,
                 action: "validation-mvc-proxy-backend-invalid",
@@ -57,7 +57,7 @@ public sealed class ValidationController : HrController
                 cancellationToken);
         }
 
-        TriggerValid(input, backendResult.Count);
+        DemoValidationFeedback.TriggerValid(HttpContext, input, backendResult.Count);
         DemoInspectorUpdates.Queue(
             HttpContext,
             action: "validation-mvc-proxy-valid",
@@ -73,32 +73,5 @@ public sealed class ValidationController : HrController
         }
 
         return Results.Redirect("/validation");
-    }
-
-    private void TriggerInvalid(int errorCount)
-    {
-        HttpContext.HtmxResponse().Trigger("form:invalid", new
-        {
-            errorCount
-        });
-    }
-
-    private void TriggerValid(InviteUserInput input, int count)
-    {
-        HttpContext.HtmxResponse().Trigger("form:valid", new
-        {
-            name = input.DisplayName,
-            email = input.Email,
-            count
-        });
-    }
-
-    private void SetSubmitValidationState(HrzValidationRootId rootId)
-    {
-        var resolver = HttpContext.RequestServices.GetRequiredService<IHrzFieldPathResolver>();
-        HttpContext.SetSubmitValidationState(ModelState.ToSubmitValidationState(
-            rootId,
-            resolver,
-            HrzAttemptedValues.FromRequest(Request)));
     }
 }

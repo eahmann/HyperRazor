@@ -3,14 +3,15 @@
 Typed HTMX support for ASP.NET with server-rendered components and MVC endpoint helpers.
 
 Docs:
-- [Quickstart](/home/eric/repos/HyperRazor/docs/quickstart.md)
-- [Release Policy](/home/eric/repos/HyperRazor/docs/release-policy.md)
+- [Quickstart](docs/quickstart.md)
+- [Package Surface](docs/package-surface.md)
+- [Release Policy](docs/release-policy.md)
 
-Public package setups:
+Primary entry-point packages:
 - `HyperRazor`: the golden-path package for a full HyperRazor app
 - `HyperRazor.Htmx`: typed HTMX support for ASP.NET without opting into full HyperRazor rendering
 
-Advanced composition packages:
+Advanced but supported composition packages:
 - `HyperRazor.Client`
 - `HyperRazor.Components`
 - `HyperRazor.Htmx.Core`
@@ -18,13 +19,14 @@ Advanced composition packages:
 - `HyperRazor.Mvc`
 - `HyperRazor.Rendering`
 
+Internal-only projects:
+- `HyperRazor.Demo.Api`
+- `HyperRazor.Demo.Mvc`
+- `tests/*`
+
 Includes:
 - request context/profile parsing for HTMX 2 and HTMX 4-style headers
 - OOB swap queue + `RenderToString()` support
 - first-party head queue/flush support (`IHrzHeadService` + `HrzHeadContent`)
 - antiforgery token meta/input helpers and client request wiring
 - diagnostics middleware + operations-console demo app
-
-Non-packable demo applications:
-- `HyperRazor.Demo.Api`
-- `HyperRazor.Demo.Mvc`

@@ -14,4 +14,8 @@
     <ProjectReference Include="..\HyperRazor.Rendering\HyperRazor.Rendering.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="buildTransitive/HyperRazor.props" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
 </Project>

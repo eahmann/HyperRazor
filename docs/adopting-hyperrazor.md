@@ -1,18 +1,21 @@
 # Adopting HyperRazor (v1)
 
-For the current canonical setup, start with [quickstart.md](/home/eric/repos/HyperRazor/docs/quickstart.md).
-For CI and package/versioning expectations, see [release-policy.md](/home/eric/repos/HyperRazor/docs/release-policy.md).
+For the current canonical setup, start with [quickstart.md](quickstart.md).
+For package-surface definitions, see [package-surface.md](package-surface.md).
+For CI and package/versioning expectations, see [release-policy.md](release-policy.md).
 
 1. Reference HyperRazor packages from your web app:
 - `HyperRazor` for the full framework path
 - `HyperRazor.Htmx` for HTMX-only ASP.NET integration without the HyperRazor rendering stack
 
 For the normal HyperRazor app path, install `HyperRazor`. The lower-level MVC and HTMX packages flow transitively from there.
-The main entry-point namespaces now align with the package story: `HyperRazor`, `HyperRazor.Htmx`, and `HyperRazor.Mvc`.
+The primary packages carry the common HyperRazor namespace imports for the happy path. If you reference lower-level packages directly, add the relevant namespaces explicitly in your app.
 
 2. Register services:
 
 ```csharp
+using Microsoft.AspNetCore.Mvc;
+
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());

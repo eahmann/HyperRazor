@@ -17,8 +17,10 @@ public class HyperRazorHtmxServiceCollectionExtensionsTests
 
         using var provider = services.BuildServiceProvider();
         var config = provider.GetRequiredService<HtmxConfig>();
+        var marker = provider.GetRequiredService<IHtmxRegistrationMarker>();
 
         Assert.False(config.SelfRequestsOnly);
+        Assert.NotNull(marker);
     }
 
     [Fact]
@@ -31,6 +33,31 @@ public class HyperRazorHtmxServiceCollectionExtensionsTests
             config.SelfRequestsOnly = false;
             config.HistoryRestoreAsHxRequest = true;
             config.AllowNestedOobSwaps = false;
+            config.DefaultSwapStyle = "innerHTML";
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var config = provider.GetRequiredService<HtmxConfig>();
+
+        Assert.False(config.SelfRequestsOnly);
+        Assert.True(config.HistoryRestoreAsHxRequest);
+        Assert.False(config.AllowNestedOobSwaps);
+        Assert.Equal("innerHTML", config.DefaultSwapStyle);
+    }
+
+    [Fact]
+    public void AddHtmx_ComposesMultipleConfigureCallbacks()
+    {
+        var services = new ServiceCollection();
+
+        services.AddHtmx(config =>
+        {
+            config.SelfRequestsOnly = false;
+            config.AllowNestedOobSwaps = false;
+        });
+        services.AddHtmx(config =>
+        {
+            config.HistoryRestoreAsHxRequest = true;
             config.DefaultSwapStyle = "innerHTML";
         });
 

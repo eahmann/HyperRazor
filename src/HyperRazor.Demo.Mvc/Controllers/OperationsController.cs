@@ -11,7 +11,7 @@ public sealed class OperationsController : HrController
     [HttpGet("/access-requests")]
     public Task<IResult> AccessRequests([FromQuery] int? completed, CancellationToken cancellationToken)
     {
-        return View<AccessRequestsPage>(new
+        return Page<AccessRequestsPage>(new
         {
             CompletedRequestId = completed
         }, cancellationToken);
@@ -20,7 +20,7 @@ public sealed class OperationsController : HrController
     [HttpGet("/access-requests/{requestId:int}/review")]
     public Task<IResult> ReviewAccessRequest(int requestId, CancellationToken cancellationToken)
     {
-        return View<ReviewAccessRequestPage>(new
+        return Page<ReviewAccessRequestPage>(new
         {
             RequestId = requestId
         }, cancellationToken);
@@ -29,13 +29,13 @@ public sealed class OperationsController : HrController
     [HttpGet("/incidents")]
     public Task<IResult> Incidents(CancellationToken cancellationToken)
     {
-        return View<IncidentsPage>(cancellationToken: cancellationToken);
+        return Page<IncidentsPage>(cancellationToken: cancellationToken);
     }
 
     [HttpGet("/incidents/{incidentId:int}/triage")]
     public Task<IResult> IncidentTriage(int incidentId, CancellationToken cancellationToken)
     {
-        return View<IncidentTriagePage>(new
+        return Page<IncidentTriagePage>(new
         {
             IncidentId = incidentId
         }, cancellationToken);

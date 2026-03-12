@@ -186,7 +186,7 @@ public static class HrzResults
 
     private static IHrzComponentViewService ResolveViewService(HttpContext context)
     {
-        return context.RequestServices.GetRequiredService<IHrzComponentViewService>();
+        return HrzRegistrationRequirements.ResolveViewService(context.RequestServices);
     }
 
     private sealed class HrzStatusResult : IResult

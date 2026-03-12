@@ -1,95 +1,34 @@
-# Adopting HyperRazor (v1)
+# Adopting HyperRazor
 
-For the current canonical setup, start with [quickstart.md](quickstart.md).
+Start with [quickstart.md](quickstart.md) for the smallest public setup.
 For package-surface definitions, see [package-surface.md](package-surface.md).
 For CI and package/versioning expectations, see [release-policy.md](release-policy.md).
 
-1. Reference HyperRazor packages from your web app:
-- `HyperRazor` for the full framework path
-- `HyperRazor.Htmx` for HTMX-only ASP.NET integration without the HyperRazor rendering stack
+## Startup contract
 
-For the normal HyperRazor app path, install `HyperRazor`. The lower-level MVC and HTMX packages flow transitively from there.
-The primary packages carry the common HyperRazor namespace imports for the happy path. If you reference lower-level packages directly, add the relevant namespaces explicitly in your app.
-
-2. Register services:
+The adoption path is intentionally explicit:
 
 ```csharp
-using Microsoft.AspNetCore.Mvc;
+builder.Services.AddControllersWithViews();
+builder.Services.AddAntiforgery();
+builder.Services.AddHyperRazor();
+builder.Services.AddHtmx();
 
-builder.Services.AddControllersWithViews(options =>
-{
-    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-});
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "RequestVerificationToken";
-});
+var app = builder.Build();
 
-builder.Services.AddHyperRazor(options =>
-{
-    options.UseMinimalLayoutForHtmx = true;
-});
-
-builder.Services.AddHtmx(htmx =>
-{
-    htmx.ClientProfile = HtmxClientProfile.Htmx2Defaults;
-    htmx.SelfRequestsOnly = true;
-    htmx.HistoryRestoreAsHxRequest = false;
-    htmx.AllowNestedOobSwaps = false;
-    htmx.ResponseHandling =
-    [
-        new HtmxResponseHandlingRule { Code = "4..", Swap = true, Error = false },
-        new HtmxResponseHandlingRule { Code = "5..", Swap = true, Error = false }
-    ];
-});
-```
-
-3. Add middleware for diagnostics + cache safety:
-
-```csharp
 app.UseHyperRazor();
 ```
 
-4. In endpoints, read/write HTMX via typed APIs:
+There is no wrapper registration method in the public story. `AddHyperRazor()` and `AddHtmx()` are both required, and `UseHyperRazor()` fails early when either registration is missing.
 
-```csharp
-var (request, response) = HttpContext.Htmx();
-response.Trigger("toast:show", new { message = "Saved" });
-```
+## Endpoint vocabulary
 
-5. For status-oriented responses, use `HrzResults` helpers:
+Use the same page/partial terms everywhere:
 
-```csharp
-return HrzResults.NotFound<MyNotFoundComponent>(HttpContext);
-return HrzResults.Forbidden<MyForbiddenComponent>(HttpContext);
-return await HrzResults.Validation<MyFormResultComponent>(
-    HttpContext,
-    data: new { Errors = errors },
-    statusCode: StatusCodes.Status200OK);
-```
+- MVC controllers use `Page<TComponent>()` and `Partial<TComponent>()` through `HrController`.
+- Minimal APIs use `MapPage<TComponent>(pattern)` and `MapPartial<TComponent>(pattern)` for direct mappings.
+- `HrzResults.Page<TComponent>(...)` and `HrzResults.Partial<TComponent>(...)` remain available for advanced composition.
 
-6. Optional strict validation semantics (`422`):
+## Demo vs. onboarding
 
-```csharp
-builder.Services.AddHtmx(htmx =>
-{
-    htmx.ResponseHandling =
-    [
-        new HtmxResponseHandlingRule
-        {
-            Code = "422",
-            Swap = true,
-            Error = false
-        }
-    ];
-});
-```
-
-7. For component POST forms, include antiforgery input fallback:
-
-```razor
-<form action="/fragments/users/create" hx-post="/fragments/users/create">
-    <HrzAntiforgeryInput />
-    ...
-</form>
-```
+The demo app still uses internal composition helpers because they help organize showcase code. That demo composition is not part of the framework startup contract and should not be treated as required ceremony for a real app.

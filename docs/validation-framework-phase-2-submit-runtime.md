@@ -63,8 +63,8 @@ Implement the submit-time validation runtime for MVC and SSR rendering. At the e
 
 Extend `HrController` with explicit `validationRootId` support:
 
-- `View<TComponent>(..., HrzValidationRootId? validationRootId = null, ...)`
-- `PartialView<TComponent>(..., HrzValidationRootId? validationRootId = null, ...)`
+- `Page<TComponent>(..., HrzValidationRootId? validationRootId = null, ...)`
+- `Partial<TComponent>(..., HrzValidationRootId? validationRootId = null, ...)`
 - `Validation<TComponent>(HrzValidationRootId validationRootId, ...)`
 
 The contract is:

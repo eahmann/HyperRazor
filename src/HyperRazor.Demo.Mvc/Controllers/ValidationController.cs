@@ -64,7 +64,7 @@ public sealed class ValidationController : HrController
             details: $"MVC proxy validated successfully and the backend accepted {input.DisplayName} (#{backendResult.Count}).");
         if (HttpContext.HtmxRequest().IsHtmx)
         {
-            return await PartialView<UserInviteValidationForm>(
+            return await Partial<UserInviteValidationForm>(
                 new
                 {
                     Form = UserInviteValidationDefinitions.MvcProxy(input, success: true, count: backendResult.Count)

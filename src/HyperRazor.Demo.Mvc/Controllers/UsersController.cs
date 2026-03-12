@@ -38,7 +38,7 @@ public sealed class UsersController : HrController
 
         if (HttpContext.HtmxRequest().IsHtmx)
         {
-            return PartialView<UserInviteValidationForm>(
+            return Partial<UserInviteValidationForm>(
                 new
                 {
                     Form = UserInviteValidationDefinitions.MvcLocal(input, success: true, count: count)

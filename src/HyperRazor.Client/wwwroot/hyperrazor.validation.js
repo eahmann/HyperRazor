@@ -30,16 +30,20 @@
             return element.closest('[data-hrz-validation-root]');
         }
 
+        function escapeAttrValue(value) {
+            return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        }
+
         function getInputForFieldPath(root, fieldPath) {
             if (!root || !fieldPath) {
                 return null;
             }
 
-            return root.querySelector('[data-hrz-field-path="' + fieldPath + '"]');
+            return root.querySelector('[data-hrz-field-path="' + escapeAttrValue(fieldPath) + '"]');
         }
 
         function getInputForCarrierId(carrierId) {
-            return document.querySelector('[data-hrz-live-policy-id="' + carrierId + '"]');
+            return document.querySelector('[data-hrz-live-policy-id="' + escapeAttrValue(carrierId) + '"]');
         }
 
         function clearSlotById(slotId) {
@@ -597,7 +601,11 @@
             fieldState.syncFieldStates();
         }
 
+        var _registered = false;
+
         function register() {
+            if (_registered) { return; }
+            _registered = true;
             document.addEventListener('input', handleFieldEvent);
             document.addEventListener('change', handleFieldEvent);
             document.body.addEventListener('htmx:configRequest', handleConfigRequest);
@@ -606,8 +614,20 @@
             document.body.addEventListener('htmx:afterSettle', handleAfterSettle);
         }
 
+        function unregister() {
+            if (!_registered) { return; }
+            _registered = false;
+            document.removeEventListener('input', handleFieldEvent);
+            document.removeEventListener('change', handleFieldEvent);
+            document.body.removeEventListener('htmx:configRequest', handleConfigRequest);
+            document.body.removeEventListener('htmx:beforeRequest', handleBeforeRequest);
+            document.body.removeEventListener('htmx:afterRequest', handleAfterRequest);
+            document.body.removeEventListener('htmx:afterSettle', handleAfterSettle);
+        }
+
         return {
-            register: register
+            register: register,
+            unregister: unregister
         };
     })(validationDom, fieldStateRuntime, formRequestRuntime, localValidationRuntime, livePolicyRuntime);
 
@@ -619,7 +639,9 @@
         refreshLocalValidation: localValidationRuntime.refreshLocalValidation,
         getLocalValidationAdapter: localValidationRuntime.ensureLocalValidationAdapter,
         getLocalValidationAdapterName: localValidationRuntime.getLocalValidationAdapterName,
-        getRegisteredClientValidators: localValidationRuntime.getRegisteredClientValidators
+        getRegisteredClientValidators: localValidationRuntime.getRegisteredClientValidators,
+        register: validationEvents.register,
+        unregister: validationEvents.unregister
     });
 
     localValidationRuntime.ensureLocalValidationAdapter();

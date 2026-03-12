@@ -143,6 +143,210 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_UsesSelectCheckboxAndNumberForLiveValidation()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.SelectOptionAsync("#validation-mixed-authoring-environment", "production");
+        var seatCountResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.FillAsync("#validation-mixed-authoring-seat-count", "20"),
+            response => response.Url.Contains("/validation/mixed/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var seatCountHtml = await seatCountResponse.TextAsync();
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-server\"", seatCountHtml, StringComparison.Ordinal);
+        Assert.Contains("Production rollouts above 10 seats require approval.", seatCountHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToContainTextAsync("Production rollouts above 10 seats require approval.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+
+        var approvalResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.CheckAsync("#validation-mixed-authoring-requires-approval"),
+            response => response.Url.Contains("/validation/mixed/live", StringComparison.Ordinal) && response.Status == 200);
+
+        var approvalHtml = await approvalResponse.TextAsync();
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-server\"", approvalHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count"))
+            .ToHaveAttributeAsync("aria-invalid", "false");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToBeEmptyAsync();
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_ClearsSubmitOnlyTextareaErrorsOnEdit()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "");
+        var submitResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#validation-mixed-authoring-form button[type='submit']"),
+            response => response.Url.Contains("/validation/mixed", StringComparison.Ordinal) && response.Status == 200);
+
+        var submitHtml = await submitResponse.TextAsync();
+        Assert.Contains("Notes are required.", submitHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-server"))
+            .ToContainTextAsync("Notes are required.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "These are the notes.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-server"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "false");
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_EditingNotesPreservesApprovalSummary()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.SelectOptionAsync("#validation-mixed-authoring-environment", "production");
+        await page.FillAsync("#validation-mixed-authoring-seat-count", "18");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToContainTextAsync("Production rollouts above 10 seats require approval.");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "short");
+        var submitResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#validation-mixed-authoring-form button[type='submit']"),
+            response => response.Url.Contains("/validation/mixed", StringComparison.Ordinal) && response.Status == 200);
+
+        var submitHtml = await submitResponse.TextAsync();
+        Assert.Contains("Approval is required before a production rollout can exceed 10 seats.", submitHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "These notes are now long enough.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-server"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_ShowsRequiredNotesBeforeSubmit()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.FocusAsync("#validation-mixed-authoring-notes");
+        await page.FillAsync("#validation-mixed-authoring-notes", "");
+        await page.ClickAsync("#validation-mixed-authoring-environment");
+
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-client"))
+            .ToContainTextAsync("Notes are required.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_AllowsCustomClientValidatorsThroughAdapterApi()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        var adapterName = await page.EvaluateAsync<string>("() => window.hyperRazorValidation.getLocalValidationAdapterName()");
+        Assert.Equal("aspnet-client-validation", adapterName);
+
+        await page.EvaluateAsync(
+            @"() => {
+                window.hyperRazorValidation.registerClientValidator('rolloutkeyword', function (value, input, params) {
+                    if (!value) {
+                        return true;
+                    }
+
+                    return value.toLowerCase().indexOf(params.keyword.toLowerCase()) >= 0;
+                });
+
+                const notes = document.querySelector('#validation-mixed-authoring-notes');
+                notes.setAttribute('data-val', 'true');
+                notes.setAttribute('data-val-rolloutkeyword', 'Notes must mention rollback.');
+                notes.setAttribute('data-val-rolloutkeyword-keyword', 'rollback');
+                window.hyperRazorValidation.refreshLocalValidation(notes.form);
+            }");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "Requesting staged release window.");
+        await page.ClickAsync("#validation-mixed-authoring-environment");
+
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-client"))
+            .ToContainTextAsync("Notes must mention rollback.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "true");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "Requesting rollback plan for release.");
+        await page.ClickAsync("#validation-mixed-authoring-environment");
+
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-client"))
+            .ToBeEmptyAsync();
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes"))
+            .ToHaveAttributeAsync("aria-invalid", "false");
+    }
+
+    [SkippableFact]
+    public async Task ValidationPage_MixedAuthoringSurface_SubmitKeepsLiveAndSubmitErrorsTogether()
+    {
+        Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
+
+        await using var context = await _fixture.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/validation");
+        await WaitForHtmxAsync(page);
+
+        await page.SelectOptionAsync("#validation-mixed-authoring-environment", "production");
+        await page.FillAsync("#validation-mixed-authoring-seat-count", "18");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToContainTextAsync("Production rollouts above 10 seats require approval.");
+
+        await page.FillAsync("#validation-mixed-authoring-notes", "short");
+        var submitResponse = await page.RunAndWaitForResponseAsync(
+            async () => await page.ClickAsync("#validation-mixed-authoring-form button[type='submit']"),
+            response => response.Url.Contains("/validation/mixed", StringComparison.Ordinal) && response.Status == 200);
+
+        var submitHtml = await submitResponse.TextAsync();
+        Assert.Contains("Production rollouts above 10 seats require approval.", submitHtml, StringComparison.Ordinal);
+        Assert.Contains("Notes must be at least 10 characters.", submitHtml, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-seat-count-server"))
+            .ToContainTextAsync("Production rollouts above 10 seats require approval.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-server-summary"))
+            .ToContainTextAsync("Approval is required before a production rollout can exceed 10 seats.");
+        await Assertions.Expect(page.Locator("#validation-mixed-authoring-notes-server"))
+            .ToContainTextAsync("Notes must be at least 10 characters.");
+    }
+
+    [SkippableFact]
     public async Task AccessReview_TaskFlow_InvalidThenValid_ReturnsToWorkbenchViaHxLocation()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");

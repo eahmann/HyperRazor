@@ -1,0 +1,22 @@
+@namespace HyperRazor.Components
+@inherits HrzInputComponentBase
+
+<input checked="@ResolvedFieldContext.IsChecked" @attributes="InputAttributes" />
+
+@if (IncludeHiddenInput)
+{
+    <input type="hidden" name="@ResolvedFieldContext.Name" value="false" disabled="@IsDisabled" />
+}
+
+@code {
+    [Parameter]
+    public bool IncludeHiddenInput { get; set; } = true;
+
+    private IReadOnlyDictionary<string, object> InputAttributes => BuildControlAttributes(new Dictionary<string, object?>
+    {
+        ["type"] = "checkbox",
+        ["value"] = "true"
+    });
+
+    private bool IsDisabled => InputAttributes.ContainsKey("disabled");
+}

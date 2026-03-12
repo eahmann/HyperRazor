@@ -2,7 +2,7 @@
     <h2>Validation Paths</h2>
     <p>Compare MVC and Minimal API form-post validation flows, including backend-proxy mapping back into HTML fragments.</p>
     <div class="demo-note" role="note">
-        <strong>How To Test:</strong> trigger a local invalid submit first, then use <code>backend-taken@example.com</code> to force backend <code>422</code> mapping. On the Minimal API proxy form, try <code>shared-mailbox@example.com</code> to watch a live server rule update the display-name slot out-of-band.
+        <strong>How To Test:</strong> trigger a local invalid submit first, then use <code>backend-taken@example.com</code> to force backend <code>422</code> mapping. On the Minimal API proxy form, try <code>shared-mailbox@example.com</code> to watch a live server rule update the display-name slot out-of-band. On the mixed-input form, switch to <code>Production</code>, raise Seat Count above <code>10</code>, then toggle Requires Approval.
     </div>
 </section>
 
@@ -10,6 +10,7 @@
     <UserInviteValidationForm Form="MvcProxyInviteForm" />
     <UserInviteValidationForm Form="MinimalInviteForm" />
     <UserInviteValidationForm Form="MinimalProxyInviteForm" />
+    <MixedValidationAuthoringForm Form="MixedAuthoringForm" />
 </section>
 
 @code {
@@ -21,4 +22,7 @@
 
     [Parameter]
     public InviteValidationFormViewModel MinimalProxyInviteForm { get; set; } = UserInviteValidationDefinitions.MinimalProxy();
+
+    [Parameter]
+    public MixedValidationFormViewModel MixedAuthoringForm { get; set; } = MixedValidationDefinitions.Authoring();
 }

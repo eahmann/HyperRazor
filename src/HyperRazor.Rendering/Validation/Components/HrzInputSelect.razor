@@ -1,0 +1,76 @@
+@namespace HyperRazor.Components
+@inherits HrzInputComponentBase
+
+<select multiple="@Multiple" @attributes="InputAttributes">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else
+    {
+    @if (!string.IsNullOrWhiteSpace(Placeholder))
+    {
+        <option
+            value="@PlaceholderValue"
+            selected="@ShouldSelectPlaceholder()"
+            disabled="@PlaceholderDisabled">
+            @Placeholder
+        </option>
+    }
+
+    @foreach (var option in Options)
+    {
+        <option
+            value="@option.Value"
+            selected="@IsSelected(option.Value)"
+            disabled="@option.Disabled">
+            @if (OptionContent is null)
+            {
+                @option.Label
+            }
+            else
+            {
+                @OptionContent(option)
+            }
+        </option>
+    }
+    }
+</select>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<HrzInputSelectOption> Options { get; set; } = Array.Empty<HrzInputSelectOption>();
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public string PlaceholderValue { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool PlaceholderDisabled { get; set; } = true;
+
+    [Parameter]
+    public bool Multiple { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<HrzInputSelectOption>? OptionContent { get; set; }
+
+    private bool IsSelected(string value)
+    {
+        return ResolvedFieldContext.Values.Contains(value, StringComparer.Ordinal);
+    }
+
+    private bool ShouldSelectPlaceholder()
+    {
+        return !Multiple
+            && (ResolvedFieldContext.Values.Count == 0
+                || (ResolvedFieldContext.Values.Count == 1
+                    && string.Equals(ResolvedFieldContext.Values[0], PlaceholderValue, StringComparison.Ordinal)));
+    }
+
+    private IReadOnlyDictionary<string, object> InputAttributes => BuildControlAttributes();
+}

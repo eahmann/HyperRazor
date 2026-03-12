@@ -1,4 +1,6 @@
 using System.IO;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using HyperRazor.Components;
 using HyperRazor.Components.Layouts;
 using HyperRazor.Components.Services;
@@ -11,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
@@ -224,9 +227,167 @@ public class HrzComponentViewServiceTests
         Assert.Contains("Email must be unique.", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_EmitsLiveRuntimeContract()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationAuthoringSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"users-invite-form\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"form-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-validation-root=\"users-invite\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-disabled-elt=\"find button\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-disabled-elt=", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"validation-summary validation-summary--empty summary-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("label-custom", html, StringComparison.Ordinal);
+        Assert.Contains("for=\"users-invite-email\"", html, StringComparison.Ordinal);
+        Assert.Contains(">Email</label>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"input-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"name@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("autocomplete=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("inputmode=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-trigger=\"input changed delay:400ms, blur\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-include=\"closest form\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-sync=\"closest form:abort\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-email=", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-client-slot-id=\"users-invite-email-client\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-valmsg-for=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"message-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-summary-slot-id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_HonorsFieldOverrides()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationAuthoringOverridesComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"override-form\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"override-email\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-sync=\"closest form:queue last\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"override-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"override-email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-email=", html, StringComparison.Ordinal);
+
+        Assert.Contains("id=\"override-display-name\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"override-display-name-server\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"override-display-name-live\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-val-minlength", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_RendersExpandedTypedInputs()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.HttpContext.SetSubmitValidationState(new HrzSubmitValidationState(
+            new HrzValidationRootId("expanded"),
+            Array.Empty<string>(),
+            new Dictionary<HrzFieldPath, IReadOnlyList<string>>(),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>
+            {
+                [HrzFieldPaths.FromFieldName("Notes")] = new(new StringValues("Need elevated access"), Array.Empty<HrzAttemptedFile>()),
+                [HrzFieldPaths.FromFieldName("Role")] = new(new StringValues("manager"), Array.Empty<HrzAttemptedFile>()),
+                [HrzFieldPaths.FromFieldName("IsAdmin")] = new(new StringValues(new[] { "false", "true" }), Array.Empty<HrzAttemptedFile>()),
+                [HrzFieldPaths.FromFieldName("Age")] = new(new StringValues("42"), Array.Empty<HrzAttemptedFile>())
+            }));
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationExpandedInputSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"expanded-notes\"", html, StringComparison.Ordinal);
+        Assert.Contains("rows=\"5\"", html, StringComparison.Ordinal);
+        Assert.Contains(">Need elevated access</textarea>", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-required=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-minlength=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-minlength-min=\"3\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-role\"", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-is-admin\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"hidden\" name=\"isAdmin\" value=\"false\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"checkbox\"", html, StringComparison.Ordinal);
+        Assert.Contains("checked", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-age\"", html, StringComparison.Ordinal);
+        Assert.Contains("type=\"number\"", html, StringComparison.Ordinal);
+        Assert.Contains("value=\"42\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range-min=\"1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-range-max=\"120\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-notes-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-role-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-is-admin-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expanded-age-live\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_SelectPlaceholderMatchesEmptyValue()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationPlaceholderSelectSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"placeholder-select-role\"", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"\" selected disabled>Select a role</option>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<option value=\"analyst\" selected>Analyst</option>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_UsesRegisteredClientValidationMetadataProviders()
+    {
+        await using var fixture = await CreateFixtureAsync(
+            configureServices: services =>
+            {
+                services.AddSingleton<IHrzClientValidationMetadataProvider, RolloutPlanClientValidationMetadataProvider>();
+            });
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationCustomMetadataSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("data-val-rolloutplan=", html, StringComparison.Ordinal);
+        Assert.Contains("data-val-rolloutplan-keyword=\"rollback\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-valmsg-for=\"notes\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_AllowsManualSelectMarkup()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.ViewService.PartialView<ValidationManualSelectSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("<optgroup label=\"Operators\">", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"manager\" selected>Manager</option>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("placeholder=\"", html, StringComparison.Ordinal);
+    }
+
     private static async Task<TestFixture> CreateFixtureAsync(
         Action<IHeaderDictionary>? configureHeaders = null,
-        Action<HrzOptions>? configureOptions = null)
+        Action<HrzOptions>? configureOptions = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         var services = new ServiceCollection();
 
@@ -252,10 +413,13 @@ public class HrzComponentViewServiceTests
         services.AddOptions<HrzSwapOptions>();
         services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
+        services.AddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        configureServices?.Invoke(services);
 
         var provider = services.BuildServiceProvider();
         var scope = provider.CreateScope();
@@ -440,6 +604,368 @@ public class HrzComponentViewServiceTests
     private sealed class EditFormBridgeModel
     {
         public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class ValidationAuthoringSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new()
+        {
+            Email = "riley@example.com"
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationAuthoringModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationAuthoringModel>.FormName), "users-invite");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.Class), "form-custom");
+            builder.AddAttribute(6, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzValidationSummary>(0);
+                formBuilder.AddAttribute(1, nameof(HrzValidationSummary.Class), "summary-custom");
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<string>>(2);
+                formBuilder.AddAttribute(3, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                formBuilder.AddAttribute(4, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.AddAttribute(1, nameof(HrzLabel.Class), "label-custom");
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzInputText>(2);
+                    fieldBuilder.AddAttribute(3, nameof(HrzInputText.Type), "email");
+                    fieldBuilder.AddAttribute(4, nameof(HrzInputText.Class), "input-custom");
+                    fieldBuilder.AddAttribute(5, nameof(HrzInputText.Placeholder), "name@example.com");
+                    fieldBuilder.AddAttribute(6, nameof(HrzInputText.Autocomplete), "email");
+                    fieldBuilder.AddAttribute(7, nameof(HrzInputText.InputMode), "email");
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(8);
+                    fieldBuilder.AddAttribute(9, nameof(HrzValidationMessage.Class), "message-custom");
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationAuthoringOverridesComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new();
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationAuthoringModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationAuthoringModel>.FormName), "override");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.EnableClientValidation), true);
+            builder.AddAttribute(6, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.DisplayName));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.Live), false);
+                formBuilder.AddAttribute(3, nameof(HrzField<string>.EnableClientValidation), false);
+                formBuilder.AddAttribute(4, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputText>(1);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<string>>(5);
+                formBuilder.AddAttribute(6, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                formBuilder.AddAttribute(7, nameof(HrzField<string>.LiveValidationPath), "/validation/email-live");
+                formBuilder.AddAttribute(8, nameof(HrzField<string>.LiveSync), "closest form:queue last");
+                formBuilder.AddAttribute(9, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputText>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputText.Type), "email");
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationExpandedInputSurfaceComponent : ComponentBase
+    {
+        private static readonly IReadOnlyList<HrzInputSelectOption> RoleOptions =
+        [
+            new("analyst", "Analyst"),
+            new("manager", "Manager"),
+            new("admin", "Administrator")
+        ];
+
+        private readonly ValidationExpandedModel _model = new()
+        {
+            Notes = "Initial notes",
+            Role = "analyst",
+            IsAdmin = false,
+            Age = 21
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationExpandedModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationExpandedModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationExpandedModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationExpandedModel>.FormName), "expanded");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationExpandedModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(5, nameof(HrzForm<ValidationExpandedModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Notes));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputTextArea>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputTextArea.Rows), 5);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<string>>(4);
+                formBuilder.AddAttribute(5, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Role));
+                formBuilder.AddAttribute(6, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputSelect.Options), RoleOptions);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<bool>>(8);
+                formBuilder.AddAttribute(9, nameof(HrzField<bool>.For), (Expression<Func<bool>>)(() => _model.IsAdmin));
+                formBuilder.AddAttribute(10, nameof(HrzField<bool>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzInputCheckbox>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzLabel>(1);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+
+                formBuilder.OpenComponent<HrzField<int>>(12);
+                formBuilder.AddAttribute(13, nameof(HrzField<int>.For), (Expression<Func<int>>)(() => _model.Age));
+                formBuilder.AddAttribute(14, nameof(HrzField<int>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputNumber>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputNumber.Min), "0");
+                    fieldBuilder.AddAttribute(3, nameof(HrzInputNumber.Step), "1");
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(4);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationCustomMetadataSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationCustomMetadataModel _model = new()
+        {
+            Notes = "Requesting rollback-ready plan."
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationCustomMetadataModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationCustomMetadataModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationCustomMetadataModel>.Action), "/validation/custom");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationCustomMetadataModel>.FormName), "custom-metadata");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationCustomMetadataModel>.EnableClientValidation), true);
+            builder.AddAttribute(5, nameof(HrzForm<ValidationCustomMetadataModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Notes));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputTextArea>(1);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(2);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationPlaceholderSelectSurfaceComponent : ComponentBase
+    {
+        private static readonly IReadOnlyList<HrzInputSelectOption> RoleOptions =
+        [
+            new("analyst", "Analyst"),
+            new("manager", "Manager")
+        ];
+
+        private readonly ValidationExpandedModel _model = new()
+        {
+            Role = string.Empty
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationExpandedModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationExpandedModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationExpandedModel>.Action), "/validation/select");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationExpandedModel>.FormName), "placeholder-select");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationExpandedModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Role));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputSelect.Options), RoleOptions);
+                    fieldBuilder.AddAttribute(3, nameof(HrzInputSelect.Placeholder), "Select a role");
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(4);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationManualSelectSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationExpandedModel _model = new()
+        {
+            Role = "manager"
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationExpandedModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationExpandedModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationExpandedModel>.Action), "/validation/select");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationExpandedModel>.FormName), "manual-select");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationExpandedModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Role));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzInputSelect>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputSelect.ChildContent), (RenderFragment)(optionsBuilder =>
+                    {
+                        optionsBuilder.OpenElement(0, "optgroup");
+                        optionsBuilder.AddAttribute(1, "label", "Operators");
+                        optionsBuilder.OpenElement(2, "option");
+                        optionsBuilder.AddAttribute(3, "value", "manager");
+                        optionsBuilder.AddAttribute(4, "selected", true);
+                        optionsBuilder.AddContent(5, "Manager");
+                        optionsBuilder.CloseElement();
+                        optionsBuilder.OpenElement(6, "option");
+                        optionsBuilder.AddAttribute(7, "value", "analyst");
+                        optionsBuilder.AddContent(8, "Analyst");
+                        optionsBuilder.CloseElement();
+                        optionsBuilder.CloseElement();
+                    }));
+                    fieldBuilder.CloseComponent();
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValidationAuthoringModel
+    {
+        [MinLength(3)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class ValidationExpandedModel
+    {
+        [Required]
+        [MinLength(3)]
+        public string Notes { get; set; } = string.Empty;
+
+        public string Role { get; set; } = string.Empty;
+
+        public bool IsAdmin { get; set; }
+
+        [Range(1, 120)]
+        public int Age { get; set; }
+    }
+
+    private sealed class ValidationCustomMetadataModel
+    {
+        [RolloutPlanKeyword("rollback")]
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    private sealed class RolloutPlanKeywordAttribute : ValidationAttribute
+    {
+        public RolloutPlanKeywordAttribute(string keyword)
+        {
+            Keyword = keyword;
+            ErrorMessage = "Notes must mention rollback.";
+        }
+
+        public string Keyword { get; }
+    }
+
+    private sealed class RolloutPlanClientValidationMetadataProvider : IHrzClientValidationMetadataProvider
+    {
+        public void AddValidationAttributes(
+            PropertyInfo property,
+            string displayName,
+            IDictionary<string, string> attributes)
+        {
+            var attribute = property.GetCustomAttribute<RolloutPlanKeywordAttribute>();
+            if (attribute is null)
+            {
+                return;
+            }
+
+            attributes["data-val"] = "true";
+            attributes["data-val-rolloutplan"] = attribute.FormatErrorMessage(displayName);
+            attributes["data-val-rolloutplan-keyword"] = attribute.Keyword;
+        }
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

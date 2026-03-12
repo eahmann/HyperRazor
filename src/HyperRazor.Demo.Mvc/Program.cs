@@ -73,6 +73,7 @@ builder.Services.AddHtmx(htmx =>
     ];
 });
 builder.Services.AddSingleton<IInviteValidationBackend, DemoInviteValidationBackend>();
+builder.Services.AddSingleton<IHrzLiveValidationPolicyResolver, DemoValidationLivePolicyResolver>();
 
 var app = builder.Build();
 
@@ -318,9 +319,172 @@ app.MapPost("/validation/minimal/proxy", async (
 
     return Results.Redirect("/validation");
 });
+app.MapPost("/validation/mixed", async (
+    HttpContext context,
+    IAntiforgery antiforgery,
+    IHrzModelValidator modelValidator,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    CancellationToken cancellationToken) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+
+    var formPostState = await context.BindFormAsync<MixedValidationInput>(
+        UserInviteValidationRoots.MixedAuthoring,
+        cancellationToken);
+    var validationState = await BuildMixedSubmitValidationStateAsync(
+        modelValidator,
+        livePolicyResolver,
+        formPostState,
+        cancellationToken);
+
+    if (!validationState.IsValid)
+    {
+        context.SetSubmitValidationState(validationState);
+        context.HtmxResponse().Trigger("form:invalid", new
+        {
+            errorCount = CountErrors(validationState)
+        });
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-mixed-invalid",
+            details: $"Mixed authoring validation failed with {CountErrors(validationState)} error(s).");
+
+        return await MixedValidationResponses.RenderValidationAsync(
+            context,
+            nameof(ValidationPage.MixedAuthoringForm),
+            MixedValidationDefinitions.Authoring(formPostState.Model),
+            cancellationToken);
+    }
+
+    context.HtmxResponse().Trigger("form:valid", new
+    {
+        environment = formPostState.Model.Environment,
+        seatCount = formPostState.Model.SeatCount,
+        requiresApproval = formPostState.Model.RequiresApproval
+    });
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-mixed-valid",
+        details: $"Mixed authoring validation accepted a {formPostState.Model.Environment} rollout for {formPostState.Model.SeatCount} seats.");
+
+    if (context.HtmxRequest().IsHtmx)
+    {
+        return await HrzResults.Partial<MixedValidationAuthoringForm>(
+            context,
+            new
+            {
+                Form = MixedValidationDefinitions.Authoring(formPostState.Model, success: true)
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    return Results.Redirect("/validation");
+});
+app.MapPost("/validation/mixed/live", async (
+    HttpContext context,
+    IAntiforgery antiforgery,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    CancellationToken cancellationToken) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+
+    var scope = await context.BindLiveValidationScopeAsync(cancellationToken);
+    if (scope is null || scope.Fields.Count == 0)
+    {
+        return Results.NoContent();
+    }
+
+    var formPostState = await context.BindFormAsync<MixedValidationInput>(scope.RootId, cancellationToken);
+    if (!MixedValidationDefinitions.TryResolve(scope.RootId, formPostState.Model, out var form))
+    {
+        return Results.NoContent();
+    }
+
+    var primaryField = ResolveMixedPrimaryField(scope);
+    if (primaryField is null)
+    {
+        return Results.NoContent();
+    }
+
+    var primaryPolicy = await livePolicyResolver.ResolveAsync(
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+    var resolvedPolicies = await ResolveMixedLivePoliciesAsync(
+        livePolicyResolver,
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        primaryPolicy,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+
+    if (!primaryPolicy.Enabled)
+    {
+        var disabledFragments = new List<RenderFragment>
+        {
+            BuildMixedFieldSlotFragment(form, primaryField, Array.Empty<string>(), swapOob: false)
+        };
+
+        foreach (var resolvedPolicy in resolvedPolicies)
+        {
+            disabledFragments.Add(BuildMixedLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+        }
+
+        foreach (var clearField in primaryPolicy.ClearFields
+                     .Distinct()
+                     .Where(field => !field.Equals(primaryField)))
+        {
+            disabledFragments.Add(BuildMixedFieldSlotFragment(form, clearField, Array.Empty<string>(), swapOob: true));
+        }
+
+        if (primaryPolicy.ReplaceSummaryWhenDisabled)
+        {
+            disabledFragments.Add(BuildMixedSummarySlotFragment(form, Array.Empty<string>(), swapOob: true));
+        }
+
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-mixed-live-policy-disabled",
+            details: $"Mixed live policy blocked {primaryField.Value} and cleared {string.Join(", ", primaryPolicy.ClearFields.Select(static field => field.Value))}.");
+
+        return await HrzResults.Partial(context, cancellationToken, disabledFragments.ToArray());
+    }
+
+    var livePatch = BuildMixedLiveValidationPatch(scope, primaryField, formPostState.Model, resolvedPolicies);
+    var fragments = new List<RenderFragment>
+    {
+        BuildMixedFieldSlotFragment(form, primaryField, GetFieldErrors(livePatch, primaryField), swapOob: false)
+    };
+
+    foreach (var resolvedPolicy in resolvedPolicies)
+    {
+        fragments.Add(BuildMixedLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+    }
+
+    foreach (var affectedField in livePatch.AffectedFields.Where(field => !field.Equals(primaryField)))
+    {
+        fragments.Add(BuildMixedFieldSlotFragment(form, affectedField, GetFieldErrors(livePatch, affectedField), swapOob: true));
+    }
+
+    if (livePatch.ReplaceSummary)
+    {
+        fragments.Add(BuildMixedSummarySlotFragment(form, livePatch.SummaryErrors, swapOob: true));
+    }
+
+    DemoInspectorUpdates.Queue(
+        context,
+        action: "validation-mixed-live",
+        details: $"Mixed live validation updated {string.Join(", ", livePatch.AffectedFields.Select(static field => field.Value))}.");
+
+    return await HrzResults.Partial(context, cancellationToken, fragments.ToArray());
+});
 app.MapPost("/validation/live", async (
     HttpContext context,
     IAntiforgery antiforgery,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
     CancellationToken cancellationToken) =>
 {
     await antiforgery.ValidateRequestAsync(context);
@@ -343,25 +507,72 @@ app.MapPost("/validation/live", async (
         return Results.NoContent();
     }
 
-    var livePatch = BuildInviteLiveValidationPatch(scope, formPostState.Model);
-    if (livePatch is null)
+    var primaryPolicy = await livePolicyResolver.ResolveAsync(
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+    var resolvedPolicies = await ResolveLivePoliciesAsync(
+        livePolicyResolver,
+        formPostState.Model,
+        scope.RootId,
+        primaryField,
+        primaryPolicy,
+        formPostState.ValidationState.AttemptedValues,
+        cancellationToken);
+
+    if (!primaryPolicy.Enabled)
     {
-        return Results.NoContent();
+        var disabledFragments = new List<RenderFragment>
+        {
+            BuildFieldSlotFragment(form, primaryField, Array.Empty<string>(), swapOob: false)
+        };
+
+        foreach (var resolvedPolicy in resolvedPolicies)
+        {
+            disabledFragments.Add(BuildLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+        }
+
+        foreach (var clearField in primaryPolicy.ClearFields
+                     .Distinct()
+                     .Where(field => !field.Equals(primaryField)))
+        {
+            disabledFragments.Add(BuildFieldSlotFragment(form, clearField, Array.Empty<string>(), swapOob: true));
+        }
+
+        if (primaryPolicy.ReplaceSummaryWhenDisabled)
+        {
+            disabledFragments.Add(BuildSummarySlotFragment(form, Array.Empty<string>(), swapOob: true));
+        }
+
+        DemoInspectorUpdates.Queue(
+            context,
+            action: "validation-live-policy-disabled",
+            details: $"Live policy blocked {primaryField.Value} and cleared {string.Join(", ", primaryPolicy.ClearFields.Select(static field => field.Value))}.");
+
+        return await HrzResults.Partial(context, cancellationToken, disabledFragments.ToArray());
     }
 
+    var livePatch = BuildInviteLiveValidationPatch(scope, primaryField, formPostState.Model, resolvedPolicies);
     var fragments = new List<RenderFragment>
     {
-        BuildFieldSlotFragment(form, primaryField, livePatch, swapOob: false)
+        BuildFieldSlotFragment(form, primaryField, GetFieldErrors(livePatch, primaryField), swapOob: false)
     };
+
+    foreach (var resolvedPolicy in resolvedPolicies)
+    {
+        fragments.Add(BuildLivePolicyCarrierFragment(form, resolvedPolicy.Key, resolvedPolicy.Value, swapOob: true));
+    }
 
     foreach (var affectedField in livePatch.AffectedFields.Where(field => !field.Equals(primaryField)))
     {
-        fragments.Add(BuildFieldSlotFragment(form, affectedField, livePatch, swapOob: true));
+        fragments.Add(BuildFieldSlotFragment(form, affectedField, GetFieldErrors(livePatch, affectedField), swapOob: true));
     }
 
     if (livePatch.ReplaceSummary)
     {
-        fragments.Add(BuildSummarySlotFragment(form, livePatch, swapOob: true));
+        fragments.Add(BuildSummarySlotFragment(form, livePatch.SummaryErrors, swapOob: true));
     }
 
     DemoInspectorUpdates.Queue(
@@ -607,108 +818,352 @@ static async IAsyncEnumerable<SseItem<string>> StreamSseReplayDemoAsync(
     }
 }
 
-static HrzLiveValidationPatch? BuildInviteLiveValidationPatch(HrzValidationScope scope, InviteUserInput input)
+static HrzFieldPath? ResolveMixedPrimaryField(HrzValidationScope scope)
 {
-    var validatesEmail = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.EmailPath);
-    var validatesDisplayName = scope.ValidateAll || scope.Fields.Contains(UserInviteValidationForm.DisplayNamePath);
-    if (!validatesEmail && !validatesDisplayName)
+    return scope.ValidateAll
+        ? MixedValidationAuthoringForm.SeatCountPath
+        : scope.Fields.FirstOrDefault(static field =>
+            field.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+            || field.Equals(MixedValidationAuthoringForm.RequiresApprovalPath)
+            || field.Equals(MixedValidationAuthoringForm.SeatCountPath));
+}
+
+static async Task<IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy>> ResolveLivePoliciesAsync(
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    InviteUserInput input,
+    HrzValidationRootId rootId,
+    HrzFieldPath primaryField,
+    HrzLiveValidationPolicy primaryPolicy,
+    IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,
+    CancellationToken cancellationToken)
+{
+    var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>
     {
-        return null;
+        [primaryField] = primaryPolicy
+    };
+
+    foreach (var affectedField in primaryPolicy.AffectedFields.Where(field => !field.Equals(primaryField)).Distinct())
+    {
+        policies[affectedField] = await livePolicyResolver.ResolveAsync(
+            input,
+            rootId,
+            affectedField,
+            attemptedValues,
+            cancellationToken);
     }
 
+    return policies;
+}
+
+static async Task<IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy>> ResolveMixedLivePoliciesAsync(
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    MixedValidationInput input,
+    HrzValidationRootId rootId,
+    HrzFieldPath primaryField,
+    HrzLiveValidationPolicy primaryPolicy,
+    IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,
+    CancellationToken cancellationToken)
+{
+    var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>
+    {
+        [primaryField] = primaryPolicy
+    };
+
+    foreach (var affectedField in primaryPolicy.AffectedFields.Where(field => !field.Equals(primaryField)).Distinct())
+    {
+        policies[affectedField] = await livePolicyResolver.ResolveAsync(
+            input,
+            rootId,
+            affectedField,
+            attemptedValues,
+            cancellationToken);
+    }
+
+    return policies;
+}
+
+static async Task<HrzSubmitValidationState> BuildMixedSubmitValidationStateAsync(
+    IHrzModelValidator modelValidator,
+    IHrzLiveValidationPolicyResolver livePolicyResolver,
+    HrzFormPostState<MixedValidationInput> formPostState,
+    CancellationToken cancellationToken)
+{
+    var rootId = UserInviteValidationRoots.MixedAuthoring;
+    var validationState = formPostState.ValidationState.Merge(
+        modelValidator.Validate(
+            formPostState.Model,
+            rootId,
+            formPostState.ValidationState.AttemptedValues));
+    var primaryField = MixedValidationAuthoringForm.SeatCountPath;
+    var primaryPolicy = await livePolicyResolver.ResolveAsync(
+        formPostState.Model,
+        rootId,
+        primaryField,
+        validationState.AttemptedValues,
+        cancellationToken);
+    var resolvedPolicies = await ResolveMixedLivePoliciesAsync(
+        livePolicyResolver,
+        formPostState.Model,
+        rootId,
+        primaryField,
+        primaryPolicy,
+        validationState.AttemptedValues,
+        cancellationToken);
+    var livePatch = BuildMixedLiveValidationPatch(
+        new HrzValidationScope(rootId, ValidateAll: true, Fields: [primaryField]),
+        primaryField,
+        formPostState.Model,
+        resolvedPolicies);
+
+    return validationState.Merge(ToSubmitValidationState(livePatch, validationState.AttemptedValues));
+}
+
+static HrzLiveValidationPatch BuildInviteLiveValidationPatch(
+    HrzValidationScope scope,
+    HrzFieldPath primaryField,
+    InviteUserInput input,
+    IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> resolvedPolicies)
+{
+    var primaryPolicy = resolvedPolicies[primaryField];
+    var affectedFields = primaryPolicy.AffectedFields
+        .Append(primaryField)
+        .Distinct()
+        .ToArray();
+    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
+    var summaryErrors = new List<string>();
     var email = input.Email?.Trim();
     var displayName = input.DisplayName?.Trim();
     var requiresTeamDisplayName = string.Equals(email, "shared-mailbox@example.com", StringComparison.OrdinalIgnoreCase);
-    if ((validatesEmail && string.IsNullOrWhiteSpace(email))
-        || (requiresTeamDisplayName && string.IsNullOrWhiteSpace(displayName)))
+
+    foreach (var field in affectedFields)
     {
-        return null;
-    }
-
-    var affectedFields = new List<HrzFieldPath>();
-    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
-    var summaryErrors = new List<string>();
-
-    if (validatesEmail)
-    {
-        affectedFields.Add(UserInviteValidationForm.EmailPath);
-        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
-
-        var emailErrors = string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
-            ? new[] { "Email already exists in the upstream directory." }
-            : Array.Empty<string>();
-        fieldErrors[UserInviteValidationForm.EmailPath] = emailErrors;
-
-        if (emailErrors.Length > 0)
+        if (field.Equals(UserInviteValidationForm.EmailPath))
         {
-            summaryErrors.Add("Backend would reject this invite on submit.");
+            var emailErrors = resolvedPolicies[field].Enabled
+                && !string.IsNullOrWhiteSpace(email)
+                && string.Equals(email, "backend-taken@example.com", StringComparison.OrdinalIgnoreCase)
+                ? new[] { "Email already exists in the upstream directory." }
+                : Array.Empty<string>();
+            fieldErrors[field] = emailErrors;
+
+            if (emailErrors.Length > 0)
+            {
+                summaryErrors.Add("Backend would reject this invite on submit.");
+            }
         }
-    }
 
-    if (validatesDisplayName || validatesEmail)
-    {
-        affectedFields.Add(UserInviteValidationForm.DisplayNamePath);
-
-        var displayNameErrors = requiresTeamDisplayName
-            && !displayName!.Contains("team", StringComparison.OrdinalIgnoreCase)
-            ? new[] { "Shared mailbox invites must use a team display name." }
-            : Array.Empty<string>();
-        fieldErrors[UserInviteValidationForm.DisplayNamePath] = displayNameErrors;
-
-        if (displayNameErrors.Length > 0)
+        if (field.Equals(UserInviteValidationForm.DisplayNamePath))
         {
-            summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
-        }
-    }
+            var displayNameErrors = resolvedPolicies[field].Enabled
+                && requiresTeamDisplayName
+                && IsEligibleForDisplayNameServerValidation(displayName)
+                && !displayName!.Contains("team", StringComparison.OrdinalIgnoreCase)
+                ? new[] { "Shared mailbox invites must use a team display name." }
+                : Array.Empty<string>();
+            fieldErrors[field] = displayNameErrors;
 
-    if (!fieldErrors.ContainsKey(UserInviteValidationForm.EmailPath) && validatesDisplayName)
-    {
-        fieldErrors[UserInviteValidationForm.EmailPath] = Array.Empty<string>();
+            if (displayNameErrors.Length > 0)
+            {
+                summaryErrors.Add("Shared mailbox invites need a team display name before the backend will accept them.");
+            }
+        }
     }
 
     return new HrzLiveValidationPatch(
         scope.RootId,
-        affectedFields.Distinct().ToArray(),
+        affectedFields,
         fieldErrors,
         ReplaceSummary: true,
         SummaryErrors: summaryErrors);
 }
 
+static HrzLiveValidationPatch BuildMixedLiveValidationPatch(
+    HrzValidationScope scope,
+    HrzFieldPath primaryField,
+    MixedValidationInput input,
+    IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> resolvedPolicies)
+{
+    var primaryPolicy = resolvedPolicies[primaryField];
+    var affectedFields = primaryPolicy.AffectedFields
+        .Append(primaryField)
+        .Distinct()
+        .ToArray();
+    var fieldErrors = new Dictionary<HrzFieldPath, IReadOnlyList<string>>();
+    var summaryErrors = new List<string>();
+    var isProduction = string.Equals(input.Environment, "production", StringComparison.OrdinalIgnoreCase);
+    var requiresApproval = input.RequiresApproval;
+
+    foreach (var field in affectedFields)
+    {
+        if (field.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+            || field.Equals(MixedValidationAuthoringForm.RequiresApprovalPath))
+        {
+            fieldErrors[field] = Array.Empty<string>();
+        }
+
+        if (field.Equals(MixedValidationAuthoringForm.SeatCountPath))
+        {
+            var seatCountErrors = resolvedPolicies[field].Enabled
+                && isProduction
+                && input.SeatCount > 10
+                && !requiresApproval
+                ? new[] { "Production rollouts above 10 seats require approval." }
+                : Array.Empty<string>();
+            fieldErrors[field] = seatCountErrors;
+
+            if (seatCountErrors.Length > 0)
+            {
+                summaryErrors.Add("Approval is required before a production rollout can exceed 10 seats.");
+            }
+        }
+    }
+
+    return new HrzLiveValidationPatch(
+        scope.RootId,
+        affectedFields,
+        fieldErrors,
+        ReplaceSummary: true,
+        SummaryErrors: summaryErrors);
+}
+
+static bool IsEligibleForDisplayNameServerValidation(string? displayName)
+{
+    return !string.IsNullOrWhiteSpace(displayName)
+        && displayName.Trim().Length >= 3;
+}
+
+static IReadOnlyList<string> GetFieldErrors(HrzLiveValidationPatch patch, HrzFieldPath fieldPath)
+{
+    return patch.FieldErrors.TryGetValue(fieldPath, out var messages)
+        ? messages
+        : Array.Empty<string>();
+}
+
+static HrzSubmitValidationState ToSubmitValidationState(
+    HrzLiveValidationPatch patch,
+    IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues)
+{
+    return new HrzSubmitValidationState(
+        patch.RootId,
+        patch.SummaryErrors,
+        patch.FieldErrors,
+        attemptedValues);
+}
+
 static RenderFragment BuildFieldSlotFragment(
     InviteValidationFormViewModel form,
     HrzFieldPath fieldPath,
-    HrzLiveValidationPatch patch,
+    IReadOnlyList<string> errors,
     bool swapOob)
 {
     var slotId = fieldPath.Equals(UserInviteValidationForm.DisplayNamePath)
-        ? $"{form.IdPrefix}-display-name-server"
-        : $"{form.IdPrefix}-email-server";
-    var errors = patch.FieldErrors.TryGetValue(fieldPath, out var messages)
-        ? messages
-        : Array.Empty<string>();
+        ? UserInviteValidationForm.GetDisplayNameServerId(form.IdPrefix)
+        : UserInviteValidationForm.GetEmailServerId(form.IdPrefix);
 
     return builder =>
     {
-        builder.OpenComponent<ValidationServerFieldSlot>(0);
-        builder.AddAttribute(1, nameof(ValidationServerFieldSlot.Id), slotId);
-        builder.AddAttribute(2, nameof(ValidationServerFieldSlot.FieldPath), fieldPath.Value);
-        builder.AddAttribute(3, nameof(ValidationServerFieldSlot.Errors), errors);
-        builder.AddAttribute(4, nameof(ValidationServerFieldSlot.SwapOob), swapOob);
+        builder.OpenComponent<HrzValidationServerFieldSlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerFieldSlot.Id), slotId);
+        builder.AddAttribute(2, nameof(HrzValidationServerFieldSlot.FieldPath), fieldPath.Value);
+        builder.AddAttribute(3, nameof(HrzValidationServerFieldSlot.Errors), errors);
+        builder.AddAttribute(4, nameof(HrzValidationServerFieldSlot.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }
 
 static RenderFragment BuildSummarySlotFragment(
     InviteValidationFormViewModel form,
-    HrzLiveValidationPatch patch,
+    IReadOnlyList<string> errors,
     bool swapOob)
 {
     return builder =>
     {
-        builder.OpenComponent<ValidationServerSummarySlot>(0);
-        builder.AddAttribute(1, nameof(ValidationServerSummarySlot.Id), $"{form.IdPrefix}-server-summary");
-        builder.AddAttribute(2, nameof(ValidationServerSummarySlot.Errors), patch.SummaryErrors);
-        builder.AddAttribute(3, nameof(ValidationServerSummarySlot.SwapOob), swapOob);
+        builder.OpenComponent<HrzValidationServerSummarySlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerSummarySlot.Id), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(2, nameof(HrzValidationServerSummarySlot.Errors), errors);
+        builder.AddAttribute(3, nameof(HrzValidationServerSummarySlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildLivePolicyCarrierFragment(
+    InviteValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    HrzLiveValidationPolicy policy,
+    bool swapOob)
+{
+    var carrierId = fieldPath.Equals(UserInviteValidationForm.DisplayNamePath)
+        ? UserInviteValidationForm.GetDisplayNameLivePolicyId(form.IdPrefix)
+        : UserInviteValidationForm.GetEmailLivePolicyId(form.IdPrefix);
+
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationLivePolicyCarrier>(0);
+        builder.AddAttribute(1, nameof(HrzValidationLivePolicyCarrier.Id), carrierId);
+        builder.AddAttribute(2, nameof(HrzValidationLivePolicyCarrier.Policy), policy);
+        builder.AddAttribute(3, nameof(HrzValidationLivePolicyCarrier.SummarySlotId), UserInviteValidationForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(4, nameof(HrzValidationLivePolicyCarrier.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildMixedFieldSlotFragment(
+    MixedValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    IReadOnlyList<string> errors,
+    bool swapOob)
+{
+    var slotId = fieldPath.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+        ? MixedValidationAuthoringForm.GetEnvironmentServerId(form.IdPrefix)
+        : fieldPath.Equals(MixedValidationAuthoringForm.RequiresApprovalPath)
+            ? MixedValidationAuthoringForm.GetRequiresApprovalServerId(form.IdPrefix)
+            : MixedValidationAuthoringForm.GetSeatCountServerId(form.IdPrefix);
+
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationServerFieldSlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerFieldSlot.Id), slotId);
+        builder.AddAttribute(2, nameof(HrzValidationServerFieldSlot.FieldPath), fieldPath.Value);
+        builder.AddAttribute(3, nameof(HrzValidationServerFieldSlot.Errors), errors);
+        builder.AddAttribute(4, nameof(HrzValidationServerFieldSlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildMixedSummarySlotFragment(
+    MixedValidationFormViewModel form,
+    IReadOnlyList<string> errors,
+    bool swapOob)
+{
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationServerSummarySlot>(0);
+        builder.AddAttribute(1, nameof(HrzValidationServerSummarySlot.Id), MixedValidationAuthoringForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(2, nameof(HrzValidationServerSummarySlot.Errors), errors);
+        builder.AddAttribute(3, nameof(HrzValidationServerSummarySlot.SwapOob), swapOob);
+        builder.CloseComponent();
+    };
+}
+
+static RenderFragment BuildMixedLivePolicyCarrierFragment(
+    MixedValidationFormViewModel form,
+    HrzFieldPath fieldPath,
+    HrzLiveValidationPolicy policy,
+    bool swapOob)
+{
+    var carrierId = fieldPath.Equals(MixedValidationAuthoringForm.EnvironmentPath)
+        ? MixedValidationAuthoringForm.GetEnvironmentLivePolicyId(form.IdPrefix)
+        : fieldPath.Equals(MixedValidationAuthoringForm.RequiresApprovalPath)
+            ? MixedValidationAuthoringForm.GetRequiresApprovalLivePolicyId(form.IdPrefix)
+            : MixedValidationAuthoringForm.GetSeatCountLivePolicyId(form.IdPrefix);
+
+    return builder =>
+    {
+        builder.OpenComponent<HrzValidationLivePolicyCarrier>(0);
+        builder.AddAttribute(1, nameof(HrzValidationLivePolicyCarrier.Id), carrierId);
+        builder.AddAttribute(2, nameof(HrzValidationLivePolicyCarrier.Policy), policy);
+        builder.AddAttribute(3, nameof(HrzValidationLivePolicyCarrier.SummarySlotId), MixedValidationAuthoringForm.GetSummaryId(form.IdPrefix));
+        builder.AddAttribute(4, nameof(HrzValidationLivePolicyCarrier.SwapOob), swapOob);
         builder.CloseComponent();
     };
 }

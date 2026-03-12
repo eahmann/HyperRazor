@@ -64,9 +64,9 @@ That is acceptable for a spike. It is not acceptable as the framework’s steady
 
 Phase 6 introduces a small set of wrapper components:
 
-- `HrzInput`
-- `HrzTextArea`
-- `HrzSelect`
+- `HrzInputText`
+- `HrzInputTextArea`
+- `HrzInputSelect`
 
 Each wrapper owns the validation-related attributes on its control element.
 They should share one common base so the validation and HTMX wiring is implemented once.
@@ -135,12 +135,12 @@ internal abstract class HrzControlBase : ComponentBase
 
 This base should be framework implementation detail in the first pass, not a primary public extension point.
 
-### 4.2 `HrzInput`
+### 4.2 `HrzInputText`
 
 Initial shape:
 
 ```csharp
-public sealed partial class HrzInput : HrzControlBase
+public sealed partial class HrzInputText : HrzControlBase
 {
     [Parameter] public string Type { get; set; } = "text";
     [Parameter] public string? Value { get; set; }
@@ -160,7 +160,7 @@ Supported first-pass use:
 
 ### 4.3 Responsibilities
 
-`HrzInput` owns:
+`HrzInputText` owns:
 
 - `value="@HrzFormRendering.ValueOrAttempted(...)"`
 - `aria-invalid`
@@ -187,9 +187,9 @@ Callers own:
 - whether client validation is enabled
 - whether live validation is enabled
 
-### 4.4 `HrzTextArea`
+### 4.4 `HrzInputTextArea`
 
-`HrzTextArea` inherits the shared base and renders a `<textarea>`.
+`HrzInputTextArea` inherits the shared base and renders a `<textarea>`.
 
 It should own:
 
@@ -200,9 +200,9 @@ It should own:
 - live-validation `data-*` attributes
 - `hx-*` live-validation attributes when configured
 
-### 4.5 `HrzSelect`
+### 4.5 `HrzInputSelect`
 
-`HrzSelect` inherits the shared base and renders a `<select>`.
+`HrzInputSelect` inherits the shared base and renders a `<select>`.
 
 It should own:
 
@@ -253,7 +253,7 @@ It should own:
 ```razor
 <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, EmailPath) ? "validation-field--invalid" : null)">
     <label for="@EmailInputId">Email</label>
-    <HrzInput
+    <HrzInputText
         Id="@EmailInputId"
         Name="email"
         Type="email"
@@ -284,7 +284,7 @@ This is the target outcome for phase 6: the caller still controls layout, but no
 
 ### 6.1 Submit-time rules
 
-`HrzInput` must preserve the existing submit-time behavior:
+`HrzInputText` must preserve the existing submit-time behavior:
 
 - attempted values come from `HrzFormRendering.ValueOrAttempted(...)`
 - `aria-invalid` comes from `HrzFormRendering.HasErrors(...)`
@@ -323,7 +323,7 @@ When `EnableClientValidation` is `false`:
 
 ### 7.1 First pass
 
-Add `HrzInput`, `HrzTextArea`, and `HrzSelect` in `src/HyperRazor.Demo.Mvc/Components/Fragments/` and migrate the validation harness first.
+Add `HrzInputText`, `HrzInputTextArea`, and `HrzInputSelect` in `src/HyperRazor.Demo.Mvc/Components/Fragments/` and migrate the validation harness first.
 
 Initial targets:
 
@@ -370,8 +370,8 @@ Minimum first-pass coverage:
 - `type="text"`
 - `type="email"`
 - one non-text input type, likely `checkbox` or `number`
-- `HrzTextArea`
-- `HrzSelect`
+- `HrzInputTextArea`
+- `HrzInputSelect`
 
 Likely home:
 

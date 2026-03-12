@@ -1,7 +1,6 @@
 @using HyperRazor.Demo.Mvc.Models
 @using HyperRazor.Rendering
 @using Microsoft.AspNetCore.Http
-@using System.Text.Json
 
 <section
     id="@FormShellId"
@@ -21,81 +20,31 @@
         </p>
     }
 
-    <ValidationServerSummarySlot
-        Id="@SummaryId"
-        Errors="@(ValidationState?.SummaryErrors ?? Array.Empty<string>())" />
+    <HrzForm Model="Input"
+             FormName="@Form.RootId.Value"
+             IdPrefix="@Form.IdPrefix"
+             Action="@Form.Action"
+             HxPost="@ResolvedHxPost"
+             SubmitTarget="@($"#{FormShellId}")"
+             EnableClientValidation="@Form.EnableClientValidation"
+             LiveValidationPath="@Form.LiveValidationPath"
+             Class="validation-form">
+        <HrzValidationSummary />
 
-    <form
-        id="@FormId"
-        class="validation-form"
-        action="@Form.Action"
-        hx-post="@ResolvedHxPost"
-        hx-target="@($"#{FormShellId}")"
-        hx-swap="outerHTML focus-scroll:true"
-        hx-disabled-elt="find button"
-        novalidate>
-        <HrzAntiforgeryInput />
+        <HrzField For="() => Input.DisplayName">
+            <HrzLabel />
+            <HrzInputText />
+            <HrzValidationMessage />
+        </HrzField>
 
-        <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, DisplayNamePath) ? "validation-field--invalid" : null)">
-            <label for="@DisplayNameInputId">Display Name</label>
-            <input
-                id="@DisplayNameInputId"
-                name="displayName"
-                value="@HrzFormRendering.ValueOrAttempted(ValidationState, DisplayNamePath, Form.Input.DisplayName)"
-                aria-invalid="@HrzFormRendering.HasErrors(ValidationState, DisplayNamePath)"
-                aria-describedby="@($"{DisplayNameClientId} {DisplayNameServerId}")"
-                data-hrz-local-display-name="@(EnableClientValidation ? "true" : null)"
-                data-hrz-client-slot-id="@(EnableClientValidation ? DisplayNameClientId : null)"
-                data-hrz-server-slot-id="@(HasLiveValidation ? DisplayNameServerId : null)"
-                data-hrz-summary-slot-id="@(HasLiveValidation ? SummaryId : null)"
-                hx-post="@DisplayNameLiveValidationPath"
-                hx-trigger="@LiveValidationTrigger"
-                hx-target="@DisplayNameLiveValidationTarget"
-                hx-swap="@LiveValidationSwap"
-                hx-include="@LiveValidationInclude"
-                hx-vals="@DisplayNameLiveValidationValuesJson" />
-            <div
-                id="@DisplayNameClientId"
-                class="validation-slot validation-slot--client"
-                data-hrz-client-validation-for="@DisplayNamePath.Value"></div>
-            <ValidationServerFieldSlot
-                Id="@DisplayNameServerId"
-                FieldPath="@DisplayNamePath.Value"
-                Errors="@HrzFormRendering.ErrorsFor(ValidationState, DisplayNamePath)" />
-        </div>
-
-        <div class="validation-field @(HrzFormRendering.HasErrors(ValidationState, EmailPath) ? "validation-field--invalid" : null)">
-            <label for="@EmailInputId">Email</label>
-            <input
-                id="@EmailInputId"
-                name="email"
-                type="email"
-                value="@HrzFormRendering.ValueOrAttempted(ValidationState, EmailPath, Form.Input.Email)"
-                aria-invalid="@HrzFormRendering.HasErrors(ValidationState, EmailPath)"
-                aria-describedby="@($"{EmailClientId} {EmailServerId}")"
-                data-hrz-local-email="@(EnableClientValidation ? "true" : null)"
-                data-hrz-client-slot-id="@(EnableClientValidation ? EmailClientId : null)"
-                data-hrz-server-slot-id="@(HasLiveValidation ? EmailServerId : null)"
-                data-hrz-summary-slot-id="@(HasLiveValidation ? SummaryId : null)"
-                data-hrz-dependent-server-slot-ids="@(HasLiveValidation ? DisplayNameServerId : null)"
-                hx-post="@EmailLiveValidationPath"
-                hx-trigger="@LiveValidationTrigger"
-                hx-target="@EmailLiveValidationTarget"
-                hx-swap="@LiveValidationSwap"
-                hx-include="@LiveValidationInclude"
-                hx-vals="@EmailLiveValidationValuesJson" />
-            <div
-                id="@EmailClientId"
-                class="validation-slot validation-slot--client"
-                data-hrz-client-validation-for="@EmailPath.Value"></div>
-            <ValidationServerFieldSlot
-                Id="@EmailServerId"
-                FieldPath="@EmailPath.Value"
-                Errors="@HrzFormRendering.ErrorsFor(ValidationState, EmailPath)" />
-        </div>
+        <HrzField For="() => Input.Email">
+            <HrzLabel />
+            <HrzInputText Type="email" />
+            <HrzValidationMessage />
+        </HrzField>
 
         <button type="submit">@Form.ButtonText</button>
-    </form>
+    </HrzForm>
 </section>
 
 @code {
@@ -106,42 +55,24 @@
     [Parameter]
     public InviteValidationFormViewModel Form { get; set; } = UserInviteValidationDefinitions.MvcLocal();
 
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
-
-    private HrzSubmitValidationState? ValidationState =>
-        HttpContext?.GetSubmitValidationState(Form.RootId);
+    private InviteUserInput Input => Form.Input;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(Form.HxPost) ? Form.Action : Form.HxPost;
-    private bool EnableClientValidation => Form.EnableClientValidation;
-    private bool HasLiveValidation => !string.IsNullOrWhiteSpace(Form.LiveValidationPath);
-    private string? DisplayNameLiveValidationPath => HasLiveValidation ? Form.LiveValidationPath : null;
-    private string? EmailLiveValidationPath => HasLiveValidation ? Form.LiveValidationPath : null;
-    private string? LiveValidationTrigger => HasLiveValidation ? "input changed delay:400ms, blur" : null;
-    private string? DisplayNameLiveValidationTarget => HasLiveValidation ? $"#{DisplayNameServerId}" : null;
-    private string? EmailLiveValidationTarget => HasLiveValidation ? $"#{EmailServerId}" : null;
-    private string? LiveValidationSwap => HasLiveValidation ? "outerHTML" : null;
-    private string? LiveValidationInclude => HasLiveValidation ? "closest form" : null;
-    private string? DisplayNameLiveValidationValuesJson => BuildLiveValidationValuesJson(DisplayNamePath);
-    private string? EmailLiveValidationValuesJson => BuildLiveValidationValuesJson(EmailPath);
-    private string FormShellId => $"{Form.IdPrefix}-form-shell";
-    private string FormId => $"{Form.IdPrefix}-form";
-    private string SummaryId => $"{Form.IdPrefix}-server-summary";
-    private string DisplayNameInputId => $"{Form.IdPrefix}-display-name";
-    private string DisplayNameClientId => $"{Form.IdPrefix}-display-name-client";
-    private string DisplayNameServerId => $"{Form.IdPrefix}-display-name-server";
-    private string EmailInputId => $"{Form.IdPrefix}-email";
-    private string EmailClientId => $"{Form.IdPrefix}-email-client";
-    private string EmailServerId => $"{Form.IdPrefix}-email-server";
+    private string FormShellId => GetFormShellId(Form.IdPrefix);
 
-    private string? BuildLiveValidationValuesJson(HrzFieldPath fieldPath)
-    {
-        return HasLiveValidation
-            ? JsonSerializer.Serialize(new Dictionary<string, string>
-            {
-                ["__hrz_root"] = Form.RootId.Value,
-                ["__hrz_fields"] = fieldPath.Value
-            })
-            : null;
-    }
+    public static string GetFormShellId(string idPrefix) => $"{idPrefix}-form-shell";
+
+    public static string GetFormId(string idPrefix) => $"{idPrefix}-form";
+
+    public static string GetLivePolicyRegionId(string idPrefix) => $"{idPrefix}-live-policies";
+
+    public static string GetSummaryId(string idPrefix) => $"{idPrefix}-server-summary";
+
+    public static string GetDisplayNameServerId(string idPrefix) => $"{idPrefix}-display-name-server";
+
+    public static string GetDisplayNameLivePolicyId(string idPrefix) => $"{idPrefix}-display-name-live";
+
+    public static string GetEmailServerId(string idPrefix) => $"{idPrefix}-email-server";
+
+    public static string GetEmailLivePolicyId(string idPrefix) => $"{idPrefix}-email-live";
 }

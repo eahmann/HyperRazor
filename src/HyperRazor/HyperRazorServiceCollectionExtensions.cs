@@ -45,6 +45,8 @@ public static class HyperRazorServiceCollectionExtensions
         services.TryAddSingleton<IHrzFieldPathResolver>(serviceProvider =>
             serviceProvider.GetRequiredService<HrzFieldPathResolver>());
         services.TryAddSingleton<IHrzModelValidator, HrzDataAnnotationsModelValidator>();
+        services.TryAddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
         services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();

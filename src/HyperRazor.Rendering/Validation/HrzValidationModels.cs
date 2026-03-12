@@ -18,6 +18,14 @@ public sealed record HrzLiveValidationPatch(
     bool ReplaceSummary,
     IReadOnlyList<string> SummaryErrors);
 
+public sealed record HrzLiveValidationPolicy(
+    bool Enabled,
+    IReadOnlyList<HrzFieldPath> DependsOn,
+    IReadOnlyList<HrzFieldPath> AffectedFields,
+    IReadOnlyList<HrzFieldPath> ClearFields,
+    bool ReplaceSummaryWhenDisabled,
+    bool ImmediateRecheckWhenEnabled);
+
 public sealed record HrzValidationScope(
     HrzValidationRootId RootId,
     bool ValidateAll,

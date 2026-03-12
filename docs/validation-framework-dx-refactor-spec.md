@@ -1,179 +1,42 @@
-# HyperRazor Validation DX Refactor Spec
+# HyperRazor Authoring Surface DX Spec
 
-**Date:** 2026-03-09  
-**Status:** Draft proposal  
-**Audience:** framework design / refactor planning
+**Date:** 2026-03-10  
+**Status:** Draft replacement  
+**Scope:** Proposal D authoring surface on top of the current Proposal B runtime  
+**Primary audience:** framework design and implementation planning
 
-## 1. Problem Statement
+## 0. Summary
 
-HyperRazor already has most of the validation runtime primitives it needs:
+HyperRazor now has a working Proposal B runtime baseline:
 
-- submit-time validation state
-- attempted-value replay
-- MVC `ModelState` mapping
-- Minimal API bind-and-validate helpers
-- backend `ValidationProblemDetails` mapping
-- server live-validation patches
+- root-scoped submit validation state
+- targeted live validation patches
+- server-rendered live-validation policy
+- hidden policy carriers
+- a thin `htmx:configRequest` gate
+- MVC and Minimal API parity for the live pipeline
 
-The weak point is not the transport model. The weak point is developer experience.
+The weak point is now clearly authoring DX, not runtime mechanics.
 
-Today, application code still hand-wires too much of the validation contract:
+Current application code still hand-wires too much:
 
 - field paths
-- `name` values
+- `name` and `id` values
 - attempted-value replay
 - `aria-invalid`
 - `aria-describedby`
-- client-slot IDs
-- server-slot IDs
-- `hx-*` live-validation attributes
-- field-specific browser validation hooks
+- server slot ids
+- client slot ids
+- live policy ids
+- `hx-*` live validation attributes
+- client-validation metadata
 
-That is materially worse than native ASP.NET MVC tag helpers and worse than the `EditForm` + `ValidationMessage` mental model that Blazor developers already know.
+Proposal D should not redesign the runtime again. It should wrap the runtime that already exists.
 
-The refactor should therefore optimize for authoring DX first while preserving the full server-path matrix that HyperRazor already supports.
-
-## 2. Outcome
-
-HyperRazor validation should feel as close as possible to native ASP.NET:
-
-- validation rules are authored once on the model or validator
-- field components bind by expression, not by string path
-- the framework emits names, ids, validation metadata, HTMX hooks, and message regions automatically
-- MVC and Minimal API both converge on the same invalid-rerender pipeline
-- backend API validation remains a server-to-server concern and still rerenders HTML
-- local client validation and server live validation compose instead of competing
-
-The desired public feel is:
-
-1. model-first like ASP.NET validation attributes and validators
-2. expression-first like `asp-for`, `ValidationMessage`, and `EditForm`
-3. HTML-first like HyperRazor and Rizzy
-4. transport-agnostic for MVC, Minimal API, and backend-proxy flows
-
-## 3. Non-Negotiable Path Matrix
-
-The refactor must preserve all supported validation paths.
-
-| Path | Required | Browser contract | Notes |
-| --- | --- | --- | --- |
-| MVC local validation | yes | full HTML or fragment HTML | closest to native ASP.NET controller flow |
-| MVC -> backend API -> HTML rerender | yes | full HTML or fragment HTML | backend JSON remains server-to-server only |
-| Minimal API local validation | yes | full HTML or fragment HTML | no second-class runtime |
-| Minimal API -> backend API -> HTML rerender | yes | full HTML or fragment HTML | same HTML contract as MVC |
-| local client validation | yes | DOM updates only | immediate feedback, no network |
-| server live validation | yes | targeted field/summary HTML patches | partial patch only, no whole-form replacement |
-
-This proposal does not reduce the path matrix. It standardizes it.
-
-## 4. Core Position
-
-The current greenfield spec is correct about one major thing: the browser-facing contract should stay HTML-first.
-
-However, the public authoring posture should change.
-
-Current posture:
-
-- plain `<form>` is primary
-- low-level helpers are primary
-- validation authoring is explicit and manual
-
-Proposed posture:
-
-- a framework form/field authoring layer is primary
-- plain HTML remains an escape hatch
-- low-level transport types remain internal or advanced usage
-
-In short:
-
-`HrzSubmitValidationState` and friends should remain the engine.
-They should stop being the app authoring model.
-
-## 5. DX North Star
-
-### 5.1 What “native ASP.NET-like” means
-
-A consumer should be able to:
-
-- put validation rules on a model property or validator
-- bind a field with an expression
-- drop in a validation message component
-- get matching `name`, `id`, and validation metadata automatically
-- rerender invalid HTML without manually rebuilding the validation surface
-
-The framework should own the repetitive parts:
-
-- field path generation
-- attempted-value replay
-- accessibility attributes
-- client validation metadata
-- live-validation targeting
-- server message rendering
-
-### 5.2 What “Rizzy-like” means in practice
-
-Rizzy’s value is not that it invents a new validation system.
-Its value is that it keeps the app authoring story close to ASP.NET MVC and Razor Components while still embracing HTMX fragment rendering.
-
-HyperRazor should do the same:
-
-- keep controller and route-handler flows familiar
-- keep form authoring expression-based
-- keep HTML fragments as the response shape
-- make HTMX integration framework-owned instead of app-owned
-
-## 6. Architectural Recommendation
-
-The replacement stack should have four layers.
-
-### 6.1 Layer 1: Validation metadata
-
-This becomes the source of truth.
-
-Inputs:
-
-- `ValidationAttribute`
-- `IValidatableObject`
-- framework validator adapters
-- optional FluentValidation-style adapters later
-- optional remote-validation metadata
-
-Responsibilities:
-
-- define server validation rules
-- define client-emittable validation metadata
-- define cross-field dependencies
-- define remote/live-validation metadata
-
-Design rule:
-
-Do not invent a second HyperRazor-only rule DSL for basic validation.
-
-For the default path, HyperRazor should reuse the ASP.NET validation ecosystem and its metadata shape, especially the unobtrusive `data-val-*` contract and `IClientModelValidator` style adapters.
-
-### 6.2 Layer 2: Authoring surface
-
-This is the main refactor target.
-
-Add a framework-owned authoring surface with components similar in spirit to:
-
-- `HrzForm`
-- `HrzField`
-- `HrzLabel`
-- `HrzInputText`
-- `HrzInputNumber`
-- `HrzTextArea`
-- `HrzSelect`
-- `HrzCheckbox`
-- `HrzValidationMessage`
-- `HrzValidationSummary`
-
-The critical rule is that fields bind by expression, not by string field name.
-
-Example target shape:
+The intended public direction is:
 
 ```razor
-<HrzForm Model="Invite" Action="/users/invite" Enhance>
+<HrzForm Model="Invite" Action="/users/invite">
     <HrzValidationSummary />
 
     <HrzField For="() => Invite.DisplayName">
@@ -190,382 +53,575 @@ Example target shape:
 </HrzForm>
 ```
 
-The framework, not application code, should determine:
+This document defines a full authoring-surface spec that is grounded in the codebase as it exists today.
 
-- canonical field path
-- `name`
-- stable `id`
-- attempted value
-- invalid CSS class
-- `aria-invalid`
-- `aria-describedby`
-- message region ids
-- client validation metadata
-- live-validation HTMX hooks
+## 1. Current Baseline In Code
 
-Plain HTML inputs should still be supported, but they should be the escape hatch for unusual cases, not the recommended golden path.
+### 1.1 Runtime already implemented
 
-### 6.3 Layer 3: Request and render runtime
-
-Keep the existing runtime split:
-
-- full-root submit validation state
-- targeted live-validation patch state
-
-Recommended internal types to preserve:
+Current code already has these runtime pieces:
 
 - `HrzSubmitValidationState`
 - `HrzLiveValidationPatch`
-- `HrzFormPostState<TModel>`
-- attempted-value primitives
-- canonical field-path resolver
+- `HrzLiveValidationPolicy`
+- `IHrzLiveValidationPolicyResolver`
+- carrier-based live-policy rendering in the demo
+- `hyperrazor.validation.js` as the current generic client harness
+- server live-policy resolution and OOB carrier updates in the demo live endpoint
 
-These types are still necessary for MVC, Minimal API, and backend proxy flows.
-The change is that application authors should touch them rarely.
+### 1.2 Current pain point
 
-### 6.4 Layer 4: Endpoint adapters
+The current demo proves the runtime, but it also shows the DX problem clearly:
 
-Keep one semantic invalid-rendering pipeline, then expose it through:
+- the form component still resolves policy manually
+- fields still manually wire ids and slots
+- each field still manually renders `hx-post`, `hx-target`, `hx-vals`, and related metadata
+- client and server message surfaces are still conceptually first-class in the app markup instead of being framework-owned
 
-- MVC controller helpers
-- Minimal API route-handler helpers
-- backend problem-details mappers
+### 1.3 Design implication
 
-The adapter layer should hide transport differences instead of leaking them to application code.
+Proposal D should be treated as:
 
-## 7. Public API Direction
+- an authoring-layer replacement
+- a render-contract emitter
+- a reduction in application markup responsibility
 
-### 7.1 Form root
+Proposal D should not be treated as:
 
-Introduce a form root component that owns:
+- a new live-validation runtime
+- a new transport model
+- a new business-rule system
 
-- form identity
-- antiforgery
-- HTMX enhancement
-- validation summary region
-- root-level DOM metadata
-- invalid submit rerender integration
+## 2. Goals
 
-Recommendation:
+- make validation authoring expression-based
+- make `HrzForm` and `HrzField` the primary authoring posture
+- keep the browser contract HTML-first
+- keep MVC and Minimal API on the same validation runtime
+- preserve attempted-value replay and server rerender flows
+- keep local client validation and server live validation composable
+- hide low-level `data-hrz-*` and `hx-*` details from normal application markup
+- let Proposal D emit the current Proposal B contract instead of redefining it
 
-- use a stable `FormName` concept publicly
-- map it internally to `HrzValidationRootId`
-- allow explicit override
-- auto-generate only when stability is guaranteed
+## 3. Non-Goals
 
-Why:
+- do not replace the Proposal B runtime contract
+- do not replace `HrzSubmitValidationState`, `HrzLiveValidationPatch`, or `HrzLiveValidationPolicy`
+- do not switch the live path to JSON responses
+- do not implement endpoint-helper ergonomics in the same phase as the field authoring layer
+- do not add multiple client-validation libraries in the same pass
+- do not redesign the public surface again while hardening v1
+- do not make layout/grid ownership a framework concern
 
-- ASP.NET and Blazor already lean on named forms
-- multiple forms on one page are normal
-- root identity must remain explicit somewhere for server rerender paths
+## 4. Frozen Runtime Dependencies
 
-### 7.2 Field binding
+Proposal D must emit and respect the current runtime decisions from `docs/validation-framework-live-policy-spec.md`.
 
-Every field component should accept a `For` expression.
+That means the authoring surface must preserve:
 
-That expression should drive:
+- explicit validation roots
+- nearest-form live request snapshots by default
+- field-scoped live intent through `__hrz_fields`
+- separate client-owned and server-owned validation surfaces
+- hidden grouped live-policy carriers
+- thin client gating only
+- targeted field and summary updates only
+- policy resolution through `IHrzLiveValidationPolicyResolver`
 
-- path resolution
-- label text defaulting
-- id generation
-- validation message lookup
-- client metadata emission
-- dependency resolution
+Proposal D owns authoring DX.  
+Proposal B remains the runtime.
 
-This is the single biggest DX gain.
+## 5. Public API Direction
 
-### 7.3 Message components
+### 5.1 Target feel
 
-Add first-class message primitives:
+The long-term primary posture should be:
 
-- `HrzValidationMessage For="..."`
+```razor
+<HrzForm Model="Invite" Action="/users/invite" FormName="users-invite">
+    <HrzValidationSummary />
+
+    <HrzField For="() => Invite.DisplayName">
+        <HrzLabel />
+        <HrzInputText />
+        <HrzValidationMessage />
+    </HrzField>
+
+    <HrzField For="() => Invite.Email">
+        <HrzLabel />
+        <HrzInputText Type="email" />
+        <HrzValidationMessage />
+    </HrzField>
+</HrzForm>
+```
+
+For live validation, v1 will still need explicit configuration somewhere.  
+The most realistic shape based on current runtime is:
+
+```razor
+<HrzForm Model="Invite"
+         Action="/users/invite"
+         FormName="users-invite"
+         LiveValidationPath="/validation/live"
+         EnableClientValidation="true">
+    <HrzValidationSummary />
+
+    <HrzField For="() => Invite.DisplayName">
+        <HrzLabel />
+        <HrzInputText />
+        <HrzValidationMessage />
+    </HrzField>
+
+    <HrzField For="() => Invite.Email">
+        <HrzLabel />
+        <HrzInputText Type="email" />
+        <HrzValidationMessage />
+    </HrzField>
+</HrzForm>
+```
+
+Important interpretation:
+
+- form-level validation settings are defaults for the root
+- field-level settings should be able to override those defaults
+- the form should not be the only place where live/client behavior can be tuned
+
+### 5.2 Public component set for v1
+
+Proposal D v1 should define these primary components:
+
+- `HrzForm`
+- `HrzField<TValue>`
+- `HrzLabel`
+- `HrzInputText`
+- `HrzValidationMessage`
 - `HrzValidationSummary`
 
-These should render both:
+These are enough to prove the authoring model before expanding into:
 
-- submit-time server errors
-- live-validation server errors
-- client-side local errors
+- `HrzInputNumber`
+- `HrzInputTextArea`
+- `HrzInputSelect`
+- `HrzInputCheckbox`
+- richer custom-validator metadata
 
-The implementation may still keep separate internal slots for client vs server ownership, but the public API should not force application code to manage that split manually.
+Current implementation has already started that expansion with:
 
-### 7.4 Layout ownership
+- `HrzInputTextArea`
+- `HrzInputSelect`
+- `HrzInputCheckbox`
+- `HrzInputNumber`
 
-Do not make the framework own grid/layout markup.
+All `HrzInput*` components should follow the same naming convention as the built-in Blazor `Input*` components.
 
-Recommended split:
+## 6. Component Contracts
 
-- framework owns field semantics
-- app owns layout and styling
+### 6.1 `HrzForm`
 
-That preserves flexibility without leaving validation plumbing in app code.
+`HrzForm` is the root authoring component.
 
-## 8. Client Validation Strategy
+Responsibilities:
 
-### 8.1 Recommendation
+- own the model instance
+- own the validation root identity
+- emit the form tag
+- emit antiforgery
+- read current submit validation state
+- own summary identity
+- own form-level HTMX submit behavior
+- own grouped hidden live-policy rendering
+- provide cascading form context to descendant field components
 
-Replace the current field-specific demo script with a generic client-validation harness that consumes standard validation metadata.
+Suggested public parameters:
 
-Preferred contract:
+- `Model`
+- `Action`
+- `FormName` or `RootId`
+- `HxPost` optional override
+- `EnableClientValidation` default for fields, default `true`
+- `LiveValidationPath` default for fields
+- `LiveTrigger` default for fields, defaulting to the current runtime trigger
+- `LiveInclude` default for fields, defaulting to `closest form`
+- `LiveSync` default for fields, defaulting to `closest form:abort`
+- `AdditionalAttributes`
 
-- standard `data-val-*` emission for local rules
-- framework-specific attributes only for HTMX/live coordination
+Important v1 rule:
 
-Why:
+- `HrzForm` must remain explicit about root identity
+- implicit root generation is a later convenience, not a v1 requirement
+- form-level validation settings are defaults, not hard global rules
 
-- it aligns with native ASP.NET MVC
-- it avoids inventing rule names like `data-hrz-local-email`
-- it allows custom validators to plug in through familiar server-side metadata
-- it makes browser behavior more portable across MVC and component rendering
+### 6.2 `HrzField<TValue>`
 
-### 8.2 Default browser library
+`HrzField<TValue>` is the field-scoped authoring container.
 
-The best default direction is:
+Responsibilities:
 
-1. emit ASP.NET-style unobtrusive validation attributes
-2. use a no-jQuery client adapter by default
-3. let teams swap the client adapter later if needed
+- accept a typed `For` expression
+- resolve the canonical field path
+- derive field-specific ids and slot ids
+- determine current attempted value and server error state
+- provide cascading field context to label, input, and message components
+- register field live-participation with the form when live validation is enabled
+- render a stable field shell by default
 
-The practical reference point here is `aspnet-client-validation`:
+Suggested public parameters:
 
-- compatible with the `data-val-*` ecosystem
-- no jQuery dependency
-- supports custom providers
-- supports async validation
-- supports configurable events and debounce
+- `For`
+- `Class`
+- `EnableClientValidation` optional override
+- `Live` optional override
+- `LiveValidationPath` optional override
+- `LiveTrigger` optional override
+- `LiveInclude` optional override
+- `LiveSync` optional override
+- `Label` optional explicit text override
+- `AdditionalAttributes`
 
-That makes it a better fit than continuing the current bespoke field-specific script.
+Important v1 rule:
 
-### 8.3 Client/server split
+- `HrzField<TValue>` owns field semantics, not page layout
+- it may render a default wrapper, but it must not become a grid/layout system
+- `HrzField` should be able to opt out of live validation or override form-level defaults when needed
 
-Client validation should handle:
+### 6.3 `HrzLabel`
 
-- required
-- format
-- length
-- range
-- simple cross-field rules that can be expressed locally
+`HrzLabel` consumes `HrzField` context.
 
-Server live validation should handle:
+Responsibilities:
 
-- uniqueness
-- policy checks
-- backend-owned rules
-- rules needing database or service access
-- cross-field rules that the browser cannot evaluate reliably
+- render `for` pointing at the field input id
+- choose display text
+- default to display metadata or a split property name when explicit text is absent
 
-If local validation fails, server live validation should be blocked automatically.
+Suggested public parameters:
 
-## 9. Live Validation Strategy
+- `Text` optional override
+- `AdditionalAttributes`
 
-### 9.1 Recommendation
+### 6.4 `HrzInputText`
 
-Keep live validation as targeted HTML patching, not JSON-to-browser validation.
+`HrzInputText` consumes `HrzField` context and emits the current runtime contract.
 
-That part of the current design is correct and should remain.
+Responsibilities:
 
-### 9.2 Metadata source
+- render `name`
+- render stable `id`
+- render attempted or current value
+- render `aria-invalid`
+- render `aria-describedby`
+- render current local-validation metadata
+- render current live-validation metadata and `hx-*` attributes when live is enabled
+- remain compatible with the current client harness and hidden carrier model
 
-Live validation should be declared from validation metadata, not inline per-input HTMX wiring.
+Suggested public parameters:
 
-The design should support:
+- `Type` default `"text"`
+- `Placeholder`
+- `Autocomplete`
+- `InputMode`
+- `Class`
+- `AdditionalAttributes`
 
-- ASP.NET `RemoteAttribute` style semantics
-- additional dependent fields
-- remote endpoint selection
-- debounce and trigger options
+Important v1 rule:
 
-HyperRazor may need a custom attribute or adapter for SSR/HTMX-specific behavior, but it should feel like an extension of ASP.NET remote validation rather than a separate subsystem.
+- `HrzInputText` does not invent a second field contract
+- it emits the current Proposal B runtime metadata
 
-### 9.3 DOM behavior
+### 6.5 `HrzValidationMessage`
 
-Live validation must only patch:
+`HrzValidationMessage` is the singular public message component even though the runtime still separates client-owned and server-owned surfaces internally.
 
-- the affected field message region
-- dependent field message regions when necessary
-- the summary region when necessary
+Responsibilities:
 
-It must not rerender the whole form during typing.
+- consume field context
+- render the field message region for the current field
+- internally preserve separate client and server slots if needed
+- hide slot-id management from application code
 
-## 10. MVC and Minimal API Shape
+Suggested public parameters:
 
-### 10.1 MVC
+- no `For` required when inside `HrzField`
+- `For` optional only for standalone usage later
+- `Class`
+- `AdditionalAttributes`
 
-MVC should feel nearly native:
+Important v1 rule:
 
-```csharp
-[HttpPost("/users/invite")]
-public async Task<IResult> Invite([FromForm] InviteUserInput input, CancellationToken cancellationToken)
-{
-    if (!ModelState.IsValid)
-    {
-        return await this.HrzInvalid<UserInviteForm>(input, cancellationToken);
-    }
+- public API is one message component
+- internal DOM may still use two owned regions
 
-    // optional backend call here
-    return await this.HrzValid<UserInviteForm>(new InviteUserInput(), cancellationToken);
-}
-```
+### 6.6 `HrzValidationSummary`
 
-The important part is not the exact method name.
-The important part is that invalid rerendering should be one obvious helper call, not manual validation-state plumbing.
+`HrzValidationSummary` is the public summary component for the current form.
 
-### 10.2 Minimal API
+Responsibilities:
 
-Minimal APIs need equivalent ergonomics.
+- consume form context
+- render the server-owned summary region
+- hide summary id generation from application code
+- participate in live summary updates through the current Proposal B contract
 
-Target posture:
+Suggested public parameters:
 
-```csharp
-app.MapPost("/users/invite", async (
-    HrzPosted<InviteUserInput> post,
-    CancellationToken cancellationToken) =>
-{
-    if (!post.IsValid)
-    {
-        return await post.Invalid<UserInviteForm>(cancellationToken);
-    }
+- `Class`
+- `AdditionalAttributes`
 
-    return await post.Valid<UserInviteForm>(cancellationToken);
-});
-```
+## 7. Internal Authoring Model
 
-That may be implemented with:
+Proposal D needs internal context types even if they are not all public.
 
-- a custom binder type
-- endpoint filters
-- helper extensions
+### 7.1 `HrzFormContext`
 
-But the public goal is clear:
+This should carry at least:
 
-Minimal API should not feel like a second validation framework.
+- model instance
+- resolved root id
+- form id
+- form action and submit config
+- summary id
+- current submit validation state
+- client-validation enablement
+- live-validation enablement
+- live-validation path and trigger config
+- a registrar for live-participating fields
 
-### 10.3 Backend API proxy flows
+### 7.2 `HrzFieldContext`
 
-Both MVC and Minimal API must continue supporting:
+This should carry at least:
 
-1. local bind and validation first
-2. backend call only when local validation passes
-3. backend `ValidationProblemDetails` mapped back into HTML
-4. attempted values preserved
+- `For` expression
+- canonical field path
+- derived input `name`
+- derived input id
+- client slot id
+- server slot id
+- live policy id
+- current value or attempted value
+- current field errors
+- current invalid state
+- label text default
 
-This flow is mandatory because it is the cleanest way to keep backend JSON off the browser contract without losing the ability to proxy validation from the HTML edge.
+### 7.3 Field registration and carrier rendering
 
-## 11. Internal Contracts to Keep
+The form should own grouped policy-carrier rendering.
 
-The following concepts remain correct and should survive the refactor:
+That means:
 
-- canonical field paths
-- root-scoped validation
-- attempted-value preservation
-- full-root submit state vs targeted live patch split
-- backend problem-details mapping
-- HTML-first browser contract
+- fields register themselves with the form during render
+- the form resolves initial policy state for those fields
+- the form renders the grouped hidden policy region after the visible form body
+- individual fields do not manually render their own carriers
 
-The refactor is not a rejection of those ideas.
-It is a rejection of exposing those ideas too directly in app markup.
+This keeps the public field markup clean and keeps live-policy emission centralized.
 
-## 12. Stack Replacement Recommendation
+### 7.4 Transitional internal helpers
 
-If the current stack can be replaced completely, the best target stack is:
+It is valid for the framework to use internal field-binding helpers before the full component stack is complete.
 
-1. ASP.NET-compatible validation metadata as the primary rule source
-2. HyperRazor field/form components as the primary authoring surface
-3. shared HyperRazor submit/live runtime as the transport layer
-4. a generic client harness built on `data-val-*` plus HTMX coordination
-5. MVC and Minimal API adapter helpers that feel symmetrical
+That means:
 
-In practical terms, replace:
+- an internal expression-based field binding layer is acceptable
+- it is not itself the final public Proposal D API
+- it should be treated as infrastructure for `HrzField` and related components
 
-- manual field-path authoring
-- manual slot wiring
-- demo-specific `validation-live.js`
-- per-controller validation-state glue
+### 7.5 Shared input base
 
-Retain or evolve:
+The `HrzInput*` family should share an internal base/helper layer for common control-contract emission.
 
-- submit validation state
-- live patch state
-- attempted-value capture
-- `ValidationProblemDetails` mapping
-- field-path canonicalization
+That shared layer should own:
 
-## 13. Migration Plan
+- `name` and `id`
+- `aria-invalid`
+- `aria-describedby`
+- local validation `data-hrz-*` metadata
+- live validation `data-hrz-*` metadata
+- shared `hx-*` emission for live-enabled fields
+- merging of framework-owned attributes with caller-supplied attributes
 
-### Phase A: authoring layer first
+Element-specific components should only add what is unique to that element:
 
-Build the new field/form components on top of the current runtime.
+- `type`, `placeholder`, and input mode for `HrzInputText`
+- `rows` and inner content handling for `HrzInputTextArea`
+- option rendering for `HrzInputSelect`
+- `checked` and hidden `false` transport behavior for `HrzInputCheckbox`
+- min/max/step handling for `HrzInputNumber`
 
-Goal:
+## 8. Rendering Contract Emitted By The Authoring Surface
 
-- prove the new DX without rewriting the entire engine first
+Proposal D should hide the low-level runtime contract from the app, not change it.
 
-### Phase B: adapter simplification
+### 8.1 Form root contract
 
-Add first-class MVC and Minimal API invalid-rerender helpers.
+`HrzForm` should emit:
 
-Goal:
+- the `<form>` tag
+- submit `hx-post`/target/swap metadata when enhancement is enabled
+- antiforgery input
+- root-level DOM marker such as `data-hrz-validation-root`
 
-- remove manual `SetSubmitValidationState(...)` style controller code
+### 8.2 Field contract
 
-### Phase C: metadata-driven client validation
+`HrzField` plus `HrzInputText` should emit:
 
-Replace the demo-specific browser script with a generic `data-val-*` harness plus HTMX/live coordination.
+- field path metadata
+- input name
+- stable id
+- `aria-invalid`
+- `aria-describedby`
+- client slot linkage
+- server slot linkage
+- summary linkage
+- live policy linkage when live is enabled
 
-Goal:
+Application code should not write those directly in the golden path.
 
-- remove field-specific JavaScript
+### 8.3 Message contract
 
-### Phase D: deprecate low-level authoring
+`HrzValidationMessage` should emit the current runtime message structure:
 
-Mark the current attribute-heavy examples and helper-first docs as advanced or legacy.
+- client-owned region for local validation
+- server-owned region for live and submit validation
 
-Goal:
+But that split should stay internal to the framework-generated markup.
 
-- make the new field/form surface the documented default
+### 8.4 Policy region contract
 
-## 14. Explicit Rejections
+When live validation is enabled for the form:
 
-The refactor should not do any of the following:
+- `HrzForm` renders one hidden policy region for the root
+- one stable carrier is emitted per participating field
+- carrier ids remain stable
+- carrier markup remains compatible with the current thin gate
 
-- make JSON validation a browser-facing primary contract
-- force interactive Blazor just to get client validation
-- invent a second HyperRazor-only rule DSL for common rules
-- keep field-specific client validation hooks
-- require application code to wire server/client slots by hand
-- make Minimal API validation materially worse than MVC
+## 9. Validation Behavior In Proposal D
 
-## 15. Open Questions For The Next Spec Pass
+### 9.1 Submit validation
 
-These should be answered in the detailed API spec with code snippets.
+Submit behavior remains root-scoped:
 
-1. Should the primary public root concept be `FormName`, `RootId`, or both?
-2. Should the primary surface be `HrzField` + child controls, standalone `HrzInput* For=...`, or both?
-3. How much of ASP.NET `IClientModelValidator` infrastructure can be reused directly inside component rendering?
-4. Should remote/live validation use pure `RemoteAttribute`, a HyperRazor-specific derivative, or a separate adapter registration model?
-5. How should file inputs and repeated-value controls surface attempted-value replay ergonomically?
-6. What is the exact invalid-render helper shape for MVC and Minimal API?
-7. How much compatibility do we want with FluentValidation client adapters in v1 of the refactor?
+- endpoints still bind and validate the posted model
+- invalid submit rerenders still use `HrzSubmitValidationState`
+- the authoring surface reads that state and renders attempted values and server errors
 
-## 16. Recommendation Summary
+Proposal D does not change submit semantics.
 
-The right refactor is not “add a few wrappers around the current validation demo.”
+### 9.2 Local client validation
 
-The right refactor is:
+The current baseline now emits ASP.NET unobtrusive `data-val-*` metadata.
 
-- preserve the runtime primitives
-- replace the public authoring model
-- standardize on ASP.NET-style validation metadata
-- adopt a generic no-jQuery client harness
-- make MVC and Minimal API feel like the same framework
+That means:
 
-That gets HyperRazor closest to native ASP.NET DX while still staying true to SSR + HTMX and still preserving every required validation path.
+- application code no longer hand-wires client-validation attributes
+- `hyperrazor.validation.js` owns HTMX/live-policy coordination
+- local rule execution is delegated through a pluggable client-validation adapter
+- `aspnet-client-validation` is the default adapter today
 
-## 17. References
+Current extension posture:
 
-- ASP.NET Core Blazor forms overview: https://learn.microsoft.com/en-us/aspnet/core/blazor/forms/?view=aspnetcore-9.0
-- ASP.NET Core Blazor forms binding: https://learn.microsoft.com/en-us/aspnet/core/blazor/forms/binding?view=aspnetcore-10.0
-- Microsoft `RemoteAttribute` API: https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.remoteattribute?view=aspnetcore-10.0
-- Microsoft `RemoteAttributeBase.AdditionalFields`: https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.remoteattributebase.additionalfields?view=aspnetcore-10.0
-- `aspnet-client-validation` README: https://github.com/haacked/aspnet-client-validation
-- Rizzy docs overview: https://jalexsocial.github.io/rizzy.docs/
+- server-side client-validation metadata is emitted through `IHrzClientValidationMetadataProvider`
+- additional client-side validators can be registered through `window.hyperRazorValidation.registerClientValidator(...)`
+- alternate client-validation adapters can be supplied through `window.hyperRazorValidationConfig.createLocalValidationAdapter`
+- the framework should stay adapter-friendly instead of baking library-specific rule logic back into `hyperrazor.validation.js`
+
+### 9.3 Live validation
+
+Proposal D must emit the current live-validation transport contract:
+
+- live path when configured
+- `hx-trigger`
+- `hx-target`
+- `hx-swap`
+- `hx-include="closest form"` by default
+- `hx-sync="closest form:abort"` by default
+- `hx-vals` carrying `__hrz_root` and `__hrz_fields`
+- `hx-disinherit="*"` on live controls to avoid accidental inheritance from submit-only HTMX form settings
+
+Configuration rule:
+
+- `HrzForm` provides root-wide defaults for live validation
+- `HrzField` may override participation, endpoint, trigger, or include behavior
+- if a field has no effective live-validation path after defaults and overrides are applied, it does not participate in live validation
+
+### 9.4 Policy-aware live enablement
+
+Proposal D does not decide live policy in the browser.
+
+It still relies on:
+
+- `IHrzLiveValidationPolicyResolver`
+- server-rendered carriers
+- the existing thin client gate
+
+The authoring surface only makes that contract automatic.
+
+## 10. MVC And Minimal API Implications
+
+Proposal D authoring components should work regardless of whether the invalid HTML is rendered through:
+
+- MVC controllers
+- Minimal API handlers
+- backend problem-details mapping followed by HTML rerender
+
+That means:
+
+- the authoring surface must not be MVC-specific
+- the same rendered contract must work for both invalid submit rerenders and live updates
+- endpoint-helper ergonomics remain separate work from the component authoring layer
+
+## 11. Current Implementation Status
+
+The current implementation now includes:
+
+- `HrzForm`
+- `HrzField<TValue>`
+- `HrzLabel`
+- `HrzInputText`
+- `HrzInputTextArea`
+- `HrzInputSelect`
+- `HrzInputCheckbox`
+- `HrzInputNumber`
+- `HrzValidationMessage`
+- `HrzValidationSummary`
+- grouped hidden carrier emission through the form
+- form and field contexts internal to the authoring layer
+- ASP.NET unobtrusive client-validation metadata emission
+- a client-validation adapter seam in the browser harness
+- a server-side metadata adapter seam through `IHrzClientValidationMetadataProvider`
+
+The current implementation still assumes:
+
+- explicit root identity
+- explicit live-validation path when live validation is enabled
+- compatibility with the current Proposal B runtime
+
+## 12. Wrap-Up Scope
+
+The remaining wrap-up work is intentionally smaller than the original implementation effort:
+
+- harden the public API without redesigning it
+- document the current `data-val-*` plus adapter-based client-validation posture
+- prove custom validator extensibility through server metadata providers and browser-side adapter registration
+- broaden stabilization coverage around the mixed input surface
+
+## 13. Remaining Open Questions
+
+These are no longer blockers for the current implementation, but they still matter for the next round of polish:
+
+1. Should `LiveValidationPath` remain a simple parameter pair on `HrzForm` and `HrzField`, or should live settings be grouped into an options object?
+2. Should `HrzValidationMessage` outside `HrzField` be supported in a later release?
+3. Should `HrzField` always render a wrapper element, or should wrapper rendering become optional for advanced scenarios?
+4. How far should HyperRazor go in first-party client-validation metadata providers before leaning entirely on app-registered providers?
+5. Should `HrzInputSelect` eventually grow a richer item/value/label API in addition to manual child content and `Options`?
+
+## 14. Recommendation
+
+Treat the current authoring surface as the v1 baseline and finish stabilization around it:
+
+- keep Proposal B runtime semantics fixed
+- keep Proposal D as the authoring layer on top of that runtime
+- preserve `data-val-*` output and the adapter seam for local validation
+- use provider registration for custom validator metadata instead of hard-coding more rules in the field context
+- use browser-side validator registration instead of coupling HyperRazor to a single client-validation library forever
+
+This keeps the framework HTML-first, validation-library-friendly, and ready for broader rollout without reopening the runtime design again.

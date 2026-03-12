@@ -79,6 +79,19 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("data-hrz-validation-root=\"validation-mvc-proxy\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-local\"", body, StringComparison.Ordinal);
         Assert.Contains("data-hrz-validation-root=\"validation-minimal-proxy\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-validation-root=\"validation-mixed-authoring\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/mixed\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-mixed-authoring-live-policies\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-live-policies\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-email-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-policy-id=\"validation-minimal-proxy-email-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-disinherit=\"*\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-disabled-elt=\"find button\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("hx-disabled-elt=\"find button\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-immediate-recheck-when-enabled=\"true\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1032,6 +1045,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
         Assert.Contains("Email already exists in the upstream directory.", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"hx-debug-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("validation-live", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -1039,7 +1053,118 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task LiveValidation_WithMissingEmail_ReturnsNoContent()
+    public async Task MixedValidation_WithInvalidInput_RerendersMixedFormErrors()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/mixed");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["environment"] = "production",
+            ["seatCount"] = "0",
+            ["notes"] = "short"
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-mixed-authoring-form-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("Seat count must be between 1 and 50.", body, StringComparison.Ordinal);
+        Assert.Contains("Notes must be at least 10 characters.", body, StringComparison.Ordinal);
+        Assert.Contains("validation-mixed-invalid", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MixedValidation_SubmitPreservesLiveRuleErrorsAlongsideSubmitErrors()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/mixed");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["environment"] = "production",
+            ["seatCount"] = "18",
+            ["notes"] = "short"
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-mixed-authoring-form-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("Production rollouts above 10 seats require approval.", body, StringComparison.Ordinal);
+        Assert.Contains("Approval is required before a production rollout can exceed 10 seats.", body, StringComparison.Ordinal);
+        Assert.Contains("Notes must be at least 10 characters.", body, StringComparison.Ordinal);
+        Assert.Contains("validation-mixed-invalid", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Queued a <strong>production</strong> rollout", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task MixedLiveValidation_WithProductionOverage_ReturnsDependentSeatCountOob()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/mixed/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["environment"] = "production",
+            ["seatCount"] = "20",
+            ["notes"] = "Requesting production rollout for the release window.",
+            ["__hrz_root"] = UserInviteValidationRoots.MixedAuthoring.Value,
+            ["__hrz_fields"] = MixedValidationAuthoringForm.EnvironmentPath.Value
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-mixed-authoring-environment-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("Production rollouts above 10 seats require approval.", body, StringComparison.Ordinal);
+        Assert.Contains("Approval is required before a production rollout can exceed 10 seats.", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MixedLiveValidation_WithApprovalChecked_ClearsDependentSeatCount()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/mixed/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("environment", "production"),
+            new KeyValuePair<string, string>("requiresApproval", "true"),
+            new KeyValuePair<string, string>("requiresApproval", "false"),
+            new KeyValuePair<string, string>("seatCount", "20"),
+            new KeyValuePair<string, string>("notes", "Requesting production rollout for the release window."),
+            new KeyValuePair<string, string>("__hrz_root", UserInviteValidationRoots.MixedAuthoring.Value),
+            new KeyValuePair<string, string>("__hrz_fields", MixedValidationAuthoringForm.RequiresApprovalPath.Value)
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-mixed-authoring-requires-approval-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-mixed-authoring-seat-count-live\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Production rollouts above 10 seats require approval.", body, StringComparison.Ordinal);
+        Assert.Contains("validation-summary--empty", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LiveValidation_WithMissingEmail_ReturnsClearFragments()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
@@ -1055,8 +1180,13 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         });
 
         var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1081,6 +1211,8 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-immediate-recheck-when-enabled=\"true\"", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
         Assert.Contains("Shared mailbox invites need a team display name before the backend will accept them.", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
@@ -1088,7 +1220,7 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
-    public async Task LiveValidation_WithMissingDisplayNameDependency_ReturnsNoContent()
+    public async Task LiveValidation_WithMissingDisplayNameDependency_ReturnsCarrierUpdateAndClearFragments()
     {
         using var client = CreateClient();
         var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
@@ -1104,8 +1236,41 @@ public class DemoMvcIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         });
 
         var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-email-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"true\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shared mailbox invites must use a team display name.", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LiveValidation_DisplayNameScope_WhenPolicyIsDisabled_ReturnsClearsAndCarrierOob()
+    {
+        using var client = CreateClient();
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/validation/live");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["displayName"] = "Team Inbox",
+            ["email"] = "riley@example.com",
+            ["__hrz_root"] = UserInviteValidationRoots.MinimalProxy.Value,
+            ["__hrz_fields"] = UserInviteValidationForm.DisplayNamePath.Value
+        });
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-server\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-display-name-live\"", body, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-live-enabled=\"false\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"validation-minimal-proxy-server-summary\"", body, StringComparison.Ordinal);
+        Assert.Contains("validation-live-policy-disabled", body, StringComparison.Ordinal);
     }
 
     [Fact]

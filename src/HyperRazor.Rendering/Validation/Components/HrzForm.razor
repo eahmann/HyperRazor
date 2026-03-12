@@ -1,0 +1,140 @@
+@namespace HyperRazor.Components
+@typeparam TModel
+@using HyperRazor.Rendering
+@using Microsoft.AspNetCore.Http
+
+<CascadingValue Value="_formContext">
+    <form
+        id="@_formContext.FormId"
+        class="@Class"
+        action="@Action"
+        data-hrz-validation-root="@_formContext.RootId.Value"
+        data-hrz-validation-region
+        data-hrz-disabled-elt="@(Enhance ? DisabledElementSelector : null)"
+        hx-post="@(Enhance ? ResolvedHxPost : null)"
+        hx-target="@(Enhance ? SubmitTarget : null)"
+        hx-swap="@(Enhance ? SubmitSwap : null)"
+        novalidate
+        @attributes="AdditionalAttributes">
+        <HrzAntiforgeryInput />
+        @ChildContent
+    </form>
+
+    <HrzValidationLivePolicyRegion />
+</CascadingValue>
+
+@code {
+    [Parameter, EditorRequired]
+    public TModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? FormName { get; set; }
+
+    [Parameter]
+    public HrzValidationRootId? RootId { get; set; }
+
+    [Parameter]
+    public string? IdPrefix { get; set; }
+
+    [Parameter]
+    public string HxPost { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? SubmitTarget { get; set; }
+
+    [Parameter]
+    public string SubmitSwap { get; set; } = "outerHTML focus-scroll:true";
+
+    [Parameter]
+    public string DisabledElementSelector { get; set; } = "find button";
+
+    [Parameter]
+    public bool Enhance { get; set; } = true;
+
+    [Parameter]
+    public bool EnableClientValidation { get; set; } = true;
+
+    [Parameter]
+    public string? LiveValidationPath { get; set; }
+
+    [Parameter]
+    public string LiveTrigger { get; set; } = "input changed delay:400ms, blur";
+
+    [Parameter]
+    public string LiveInclude { get; set; } = "closest form";
+
+    [Parameter]
+    public string LiveSync { get; set; } = "closest form:abort";
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [Inject]
+    private IEnumerable<IHrzClientValidationMetadataProvider> ClientValidationMetadataProviders { get; set; } =
+        Array.Empty<IHrzClientValidationMetadataProvider>();
+
+    private readonly HrzValidationFormContext _formContext = new();
+    private bool _registrationRefreshPending;
+
+    private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
+
+    protected override void OnInitialized()
+    {
+        _formContext.RegistrationChanged = RequestRegistrationRefresh;
+    }
+
+    protected override void OnParametersSet()
+    {
+        ArgumentNullException.ThrowIfNull(Model);
+        ArgumentException.ThrowIfNullOrWhiteSpace(Action);
+
+        var resolvedRootId = RootId ?? ResolveRootId(FormName);
+        var idPrefix = string.IsNullOrWhiteSpace(IdPrefix)
+            ? resolvedRootId.Value
+            : IdPrefix;
+
+        _formContext.Model = Model!;
+        _formContext.RootId = resolvedRootId;
+        _formContext.IdPrefix = idPrefix;
+        _formContext.ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId);
+        _formContext.EnableClientValidation = EnableClientValidation;
+        _formContext.ClientValidationMetadataProviders = ClientValidationMetadataProviders.ToArray();
+        _formContext.LiveValidationPath = LiveValidationPath;
+        _formContext.LiveTrigger = LiveTrigger;
+        _formContext.LiveInclude = LiveInclude;
+        _formContext.LiveSync = LiveSync;
+    }
+
+    private static HrzValidationRootId ResolveRootId(string? formName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(formName);
+        return new HrzValidationRootId(formName);
+    }
+
+    private void RequestRegistrationRefresh()
+    {
+        if (_registrationRefreshPending)
+        {
+            return;
+        }
+
+        _registrationRefreshPending = true;
+        _ = InvokeAsync(() =>
+        {
+            _registrationRefreshPending = false;
+            StateHasChanged();
+        });
+    }
+}

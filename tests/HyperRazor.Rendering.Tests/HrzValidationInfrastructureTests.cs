@@ -110,6 +110,27 @@ public class HrzValidationInfrastructureTests
     }
 
     [Fact]
+    public async Task DefaultLiveValidationPolicyResolver_PreservesAlwaysArmedBehavior()
+    {
+        var services = CreateServices();
+        using var scope = services.CreateScope();
+        var resolver = scope.ServiceProvider.GetRequiredService<IHrzLiveValidationPolicyResolver>();
+
+        var policy = await resolver.ResolveAsync(
+            new InviteLikeFormModel(),
+            new HrzValidationRootId("invite-live"),
+            HrzFieldPaths.FromFieldName(nameof(InviteLikeFormModel.Email)),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>());
+
+        Assert.True(policy.Enabled);
+        Assert.Empty(policy.DependsOn);
+        Assert.Empty(policy.AffectedFields);
+        Assert.Empty(policy.ClearFields);
+        Assert.False(policy.ReplaceSummaryWhenDisabled);
+        Assert.False(policy.ImmediateRecheckWhenEnabled);
+    }
+
+    [Fact]
     public void AddHyperRazor_RegistersConfiguredSseDefaults()
     {
         using var services = CreateServices(configureSse: options =>

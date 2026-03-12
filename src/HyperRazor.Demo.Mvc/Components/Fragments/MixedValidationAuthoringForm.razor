@@ -1,0 +1,101 @@
+@using HyperRazor.Demo.Mvc.Models
+@using HyperRazor.Rendering
+
+<section
+    id="@FormShellId"
+    class="panel validation-form-shell"
+    data-hrz-validation-root="@Form.RootId.Value"
+    data-hrz-validation-region>
+    <h3>@Form.PanelTitle</h3>
+    <p class="empty">@Form.PanelDescription</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> @Form.Instructions
+    </div>
+
+    @if (Form.Success)
+    {
+        <p class="validation-success">
+            Queued a <strong>@Input.Environment</strong> rollout for <strong>@Input.SeatCount</strong> seats.
+        </p>
+    }
+
+    <HrzForm Model="Input"
+             FormName="@Form.RootId.Value"
+             IdPrefix="@Form.IdPrefix"
+             Action="@Form.Action"
+             HxPost="@ResolvedHxPost"
+             SubmitTarget="@($"#{FormShellId}")"
+             EnableClientValidation="@Form.EnableClientValidation"
+             LiveValidationPath="@Form.LiveValidationPath"
+             Class="validation-form">
+        <HrzValidationSummary />
+
+        <HrzField For="() => Input.Environment"
+                  LiveTrigger="change">
+            <HrzLabel />
+            <HrzInputSelect Options="@EnvironmentOptions" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.RequiresApproval"
+                  LiveTrigger="change">
+            <div class="validation-checkbox-row">
+                <HrzInputCheckbox />
+                <HrzLabel />
+            </div>
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.SeatCount">
+            <HrzLabel />
+            <HrzInputNumber Min="1" Max="50" Step="1" InputMode="numeric" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Notes"
+                  Live="false">
+            <HrzLabel />
+            <HrzInputTextArea Rows="4" Placeholder="Explain the rollout plan." />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <button type="submit">@Form.ButtonText</button>
+    </HrzForm>
+</section>
+
+@code {
+    private static readonly IReadOnlyList<HrzInputSelectOption> EnvironmentOptions =
+    [
+        new("sandbox", "Sandbox"),
+        new("staging", "Staging"),
+        new("production", "Production")
+    ];
+
+    public static HrzFieldPath EnvironmentPath { get; } = HrzFieldPaths.FromFieldName(nameof(MixedValidationInput.Environment));
+    public static HrzFieldPath RequiresApprovalPath { get; } = HrzFieldPaths.FromFieldName(nameof(MixedValidationInput.RequiresApproval));
+    public static HrzFieldPath SeatCountPath { get; } = HrzFieldPaths.FromFieldName(nameof(MixedValidationInput.SeatCount));
+
+    [Parameter]
+    public MixedValidationFormViewModel Form { get; set; } = MixedValidationDefinitions.Authoring();
+
+    private MixedValidationInput Input => Form.Input;
+
+    private string ResolvedHxPost => string.IsNullOrWhiteSpace(Form.HxPost) ? Form.Action : Form.HxPost;
+    private string FormShellId => GetFormShellId(Form.IdPrefix);
+
+    public static string GetFormShellId(string idPrefix) => $"{idPrefix}-form-shell";
+
+    public static string GetSummaryId(string idPrefix) => $"{idPrefix}-server-summary";
+
+    public static string GetEnvironmentServerId(string idPrefix) => $"{idPrefix}-environment-server";
+
+    public static string GetEnvironmentLivePolicyId(string idPrefix) => $"{idPrefix}-environment-live";
+
+    public static string GetRequiresApprovalServerId(string idPrefix) => $"{idPrefix}-requires-approval-server";
+
+    public static string GetRequiresApprovalLivePolicyId(string idPrefix) => $"{idPrefix}-requires-approval-live";
+
+    public static string GetSeatCountServerId(string idPrefix) => $"{idPrefix}-seat-count-server";
+
+    public static string GetSeatCountLivePolicyId(string idPrefix) => $"{idPrefix}-seat-count-live";
+}

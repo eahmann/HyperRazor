@@ -11,8 +11,8 @@ public sealed class DemoValidationLivePolicyResolver : IHrzLiveValidationPolicyR
     private static readonly HrzFieldPath RequiresApprovalPath = HrzFieldPaths.FromFieldName(nameof(MixedValidationInput.RequiresApproval));
     private static readonly HrzFieldPath SeatCountPath = HrzFieldPaths.FromFieldName(nameof(MixedValidationInput.SeatCount));
 
-    public Task<HrzLiveValidationPolicy> ResolveAsync<TModel>(
-        TModel model,
+    public Task<HrzLiveValidationPolicy> ResolveAsync(
+        object model,
         HrzValidationRootId rootId,
         HrzFieldPath fieldPath,
         IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,

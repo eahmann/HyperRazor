@@ -189,8 +189,8 @@ Suggested shape:
 ```csharp
 public interface IHrzLiveValidationPolicyResolver
 {
-    Task<HrzLiveValidationPolicy> ResolveAsync<TModel>(
-        TModel model,
+    Task<HrzLiveValidationPolicy> ResolveAsync(
+        object model,
         HrzValidationRootId rootId,
         HrzFieldPath fieldPath,
         IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,

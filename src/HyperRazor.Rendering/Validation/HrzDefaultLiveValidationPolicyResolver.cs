@@ -6,8 +6,8 @@ namespace HyperRazor.Rendering;
 /// </summary>
 public sealed class HrzDefaultLiveValidationPolicyResolver : IHrzLiveValidationPolicyResolver
 {
-    public Task<HrzLiveValidationPolicy> ResolveAsync<TModel>(
-        TModel model,
+    public Task<HrzLiveValidationPolicy> ResolveAsync(
+        object model,
         HrzValidationRootId rootId,
         HrzFieldPath fieldPath,
         IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> attemptedValues,

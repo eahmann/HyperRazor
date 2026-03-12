@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HyperRazor.Demo.Mvc.Tests;
 
-public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase, IClassFixture<WebApplicationFactory<Program>>
+[Collection("DemoMvcWebAppFactoryCollection")]
+public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
 {
     public DemoMvcUsersAndShellTests(WebApplicationFactory<Program> factory)
         : base(factory)

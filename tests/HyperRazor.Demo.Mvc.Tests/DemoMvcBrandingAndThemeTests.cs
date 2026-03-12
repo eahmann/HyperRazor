@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HyperRazor.Demo.Mvc.Tests;
 
-public class DemoMvcBrandingAndThemeTests : DemoMvcIntegrationTestBase, IClassFixture<WebApplicationFactory<Program>>
+[Collection("DemoMvcWebAppFactoryCollection")]
+public class DemoMvcBrandingAndThemeTests : DemoMvcIntegrationTestBase
 {
     public DemoMvcBrandingAndThemeTests(WebApplicationFactory<Program> factory)
         : base(factory)

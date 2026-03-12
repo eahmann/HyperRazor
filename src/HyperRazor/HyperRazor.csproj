@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="buildTransitive/HyperRazor.props" Pack="true" PackagePath="buildTransitive/HyperRazor.props" />
+    <None Include="buildTransitive/HyperRazor.props" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
 </Project>

@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="buildTransitive/HyperRazor.Htmx.props" Pack="true" PackagePath="buildTransitive/HyperRazor.Htmx.props" />
+    <None Include="buildTransitive/HyperRazor.Htmx.props" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
 </Project>

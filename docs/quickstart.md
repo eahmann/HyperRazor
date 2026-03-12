@@ -9,7 +9,7 @@ This is the current golden path for a server-rendered ASP.NET Core app that uses
 
 `HyperRazor` is the public golden path. It brings in the MVC and HTMX layers transitively.
 
-The primary packages also add the common HyperRazor namespace imports for the happy path. If you reference lower-level packages directly, add the specific namespaces you need yourself.
+The primary packages also add a small set of MVC/rendering-related HyperRazor namespace imports (via build-transitive global usings) for the happy path; they do not make every HyperRazor namespace implicit. If you reference lower-level packages directly, add any additional namespaces you need yourself.
 
 ## Service registration
 

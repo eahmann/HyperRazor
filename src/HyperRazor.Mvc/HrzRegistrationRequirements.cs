@@ -25,7 +25,7 @@ internal static class HrzRegistrationRequirements
 
         List<string>? missingRegistrations = null;
 
-        if (services.GetService<IOptions<HrzOptions>>() is null)
+        if (services.GetService<IHrzComponentViewService>() is null)
         {
             missingRegistrations = [HyperRazorRegistration];
         }

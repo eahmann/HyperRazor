@@ -3,7 +3,6 @@ using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-
 namespace HyperRazor;
 
 public static class HyperRazorApplicationBuilderExtensions
@@ -26,7 +25,7 @@ public static class HyperRazorApplicationBuilderExtensions
     {
         List<string>? missingRegistrations = null;
 
-        if (services.GetService<IHrzComponentViewService>() is null)
+        if (services.GetService<IHyperRazorRegistrationMarker>() is null)
         {
             missingRegistrations = ["AddHyperRazor()"];
         }

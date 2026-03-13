@@ -45,12 +45,12 @@ public class HyperRazorOnrampSurfaceTests
     }
 
     [Fact]
-    public void UseHyperRazor_WithoutAddHtmx_ThrowsClearMessage()
+    public async Task UseHyperRazor_WithoutAddHtmx_ThrowsClearMessage()
     {
         var builder = WebApplication.CreateBuilder();
         builder.Services.AddHyperRazor();
 
-        var app = builder.Build();
+        await using var app = builder.Build();
         var exception = Assert.Throws<InvalidOperationException>(() => app.UseHyperRazor());
 
         Assert.Contains("UseHyperRazor()", exception.Message, StringComparison.Ordinal);
@@ -58,7 +58,7 @@ public class HyperRazorOnrampSurfaceTests
     }
 
     [Fact]
-    public void UseHyperRazor_WithManualHtmxConfigButWithoutAddHtmx_StillThrowsClearMessage()
+    public async Task UseHyperRazor_WithManualHtmxConfigButWithoutAddHtmx_StillThrowsClearMessage()
     {
         var builder = WebApplication.CreateBuilder();
         builder.Services.AddHyperRazor();
@@ -67,7 +67,7 @@ public class HyperRazorOnrampSurfaceTests
             SelfRequestsOnly = false
         });
 
-        var app = builder.Build();
+        await using var app = builder.Build();
         var exception = Assert.Throws<InvalidOperationException>(() => app.UseHyperRazor());
 
         Assert.Contains("UseHyperRazor()", exception.Message, StringComparison.Ordinal);
@@ -77,7 +77,7 @@ public class HyperRazorOnrampSurfaceTests
     [Fact]
     public async Task HrzResultsPage_WithoutAddHtmx_ThrowsClearMessage()
     {
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging()
             .AddHyperRazor()
             .BuildServiceProvider();
@@ -95,7 +95,7 @@ public class HyperRazorOnrampSurfaceTests
     [Fact]
     public async Task HrControllerPage_WithoutAddHtmx_ThrowsClearMessage()
     {
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging()
             .AddHyperRazor()
             .BuildServiceProvider();

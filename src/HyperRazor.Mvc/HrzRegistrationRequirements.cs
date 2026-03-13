@@ -41,7 +41,11 @@ internal static class HrzRegistrationRequirements
             return;
         }
 
+        string registrationGuidance = missingRegistrations.Count == 1
+            ? $"Call services.{missingRegistrations[0]} during startup."
+            : $"Call services.{missingRegistrations[0]} and services.{missingRegistrations[1]} during startup.";
+
         throw new InvalidOperationException(
-            $"{operation} requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call services.{HyperRazorRegistration} and services.{HtmxRegistration} during startup.");
+            $"{operation} requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. {registrationGuidance}");
     }
 }

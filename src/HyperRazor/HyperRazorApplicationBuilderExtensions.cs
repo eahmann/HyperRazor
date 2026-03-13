@@ -42,7 +42,14 @@ public static class HyperRazorApplicationBuilderExtensions
             return;
         }
 
+        var callToAction = missingRegistrations.Count switch
+        {
+            1 => missingRegistrations[0],
+            2 => $"{missingRegistrations[0]} and {missingRegistrations[1]}",
+            _ => string.Join(" and ", missingRegistrations),
+        };
+
         throw new InvalidOperationException(
-            $"UseHyperRazor() requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call AddHyperRazor() and AddHtmx() on your IServiceCollection during startup (for example, services.AddHyperRazor(); services.AddHtmx(); or builder.Services.AddHyperRazor(); builder.Services.AddHtmx()).");
+            $"UseHyperRazor() requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call {callToAction} on your IServiceCollection during startup (for example, services.AddHyperRazor(); services.AddHtmx(); or builder.Services.AddHyperRazor(); builder.Services.AddHtmx()).");
     }
 }

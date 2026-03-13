@@ -185,7 +185,7 @@ The request should include the entire current form snapshot so the server can re
 
 For HTMX requests:
 
-- return `PartialView<ValidationDemoForm>(...)`
+- return `Partial<ValidationDemoForm>(...)`
 - status code `200`
 
 For non-HTMX requests:
@@ -347,7 +347,7 @@ public Task<IResult> EmailLive([FromForm] CreateUserInput input, CancellationTok
 
     var liveEmailStatus = _emailRules.GetLiveStatus(input.Email);
 
-    return PartialView<ValidationDemoForm>(
+    return Partial<ValidationDemoForm>(
         new
         {
             Input = input,

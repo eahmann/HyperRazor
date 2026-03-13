@@ -146,14 +146,14 @@ public Task<IResult> Create([FromForm] CreateUserInput input, CancellationToken 
 {
     if (!ModelState.IsValid)
     {
-        return View<CreateUserPage>(new
+        return Page<CreateUserPage>(new
         {
             Input = input
         }, cancellationToken);
     }
 
     // Save and redirect or rerender success state.
-    return View<CreateUserPage>(new
+    return Page<CreateUserPage>(new
     {
         Input = new CreateUserInput(),
         SuccessMessage = "User created."
@@ -175,16 +175,16 @@ public Task<IResult> Create([FromForm] CreateUserInput input, CancellationToken 
                 new { Input = input },
                 statusCode: StatusCodes.Status422UnprocessableEntity,
                 cancellationToken: cancellationToken)
-            : View<CreateUserPage>(new { Input = input }, cancellationToken);
+            : Page<CreateUserPage>(new { Input = input }, cancellationToken);
     }
 
     return HttpContext.HtmxRequest().IsPartialRequest
-        ? PartialView<CreateUserForm>(new
+        ? Partial<CreateUserForm>(new
         {
             Input = new CreateUserInput(),
             SuccessMessage = "User created."
         }, cancellationToken)
-        : View<CreateUserPage>(new
+        : Page<CreateUserPage>(new
         {
             Input = new CreateUserInput(),
             SuccessMessage = "User created."
@@ -253,18 +253,18 @@ public async Task<IResult> Create([FromForm] CreateUserInput input, Cancellation
                 new { Input = input },
                 statusCode: StatusCodes.Status422UnprocessableEntity,
                 cancellationToken: cancellationToken)
-            : await View<CreateUserPage>(new { Input = input }, cancellationToken);
+            : await Page<CreateUserPage>(new { Input = input }, cancellationToken);
     }
 
     response.EnsureSuccessStatusCode();
 
     return HttpContext.HtmxRequest().IsPartialRequest
-        ? await PartialView<CreateUserForm>(new
+        ? await Partial<CreateUserForm>(new
         {
             Input = new CreateUserInput(),
             SuccessMessage = "User created."
         }, cancellationToken)
-        : await View<CreateUserPage>(new
+        : await Page<CreateUserPage>(new
         {
             Input = new CreateUserInput(),
             SuccessMessage = "User created."
@@ -559,7 +559,7 @@ public Task<IResult> LiveValidate(
 
     HttpContext.SetValidationState(state);
 
-    return PartialView<CreateUserValidationRegions>(new
+    return Partial<CreateUserValidationRegions>(new
     {
         Input = input
     }, cancellationToken);

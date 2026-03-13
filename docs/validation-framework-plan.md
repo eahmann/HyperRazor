@@ -236,7 +236,7 @@ MVC should:
 
 ### MVC responsibilities
 
-- `HrController.View<TComponent>` and `PartialView<TComponent>` should capture both raw `ModelState` and adapted `HrzValidationState`
+- `HrController.Page<TComponent>` and `Partial<TComponent>` should capture both raw `ModelState` and adapted `HrzValidationState`
 - MVC form posts should keep normal DataAnnotations behavior
 - custom server-only rules should be addable through either `ModelState.AddModelError(...)` or a builder helper that feeds the same transport
 

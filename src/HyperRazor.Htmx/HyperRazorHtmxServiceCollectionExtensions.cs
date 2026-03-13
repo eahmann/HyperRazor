@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace HyperRazor.Htmx;
 
@@ -29,10 +31,17 @@ public static class HyperRazorHtmxServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var config = new HtmxConfig();
-        configure?.Invoke(config);
+        services.AddOptions<HtmxConfig>();
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
 
-        services.AddSingleton(config);
+        services.RemoveAll<HtmxConfig>();
+        services.AddSingleton(serviceProvider =>
+            serviceProvider.GetRequiredService<IOptions<HtmxConfig>>().Value);
+        services.TryAddSingleton<IHtmxRegistrationMarker, HtmxRegistrationMarker>();
+
         return services;
     }
 }

@@ -8,7 +8,7 @@ namespace HyperRazor.Mvc;
 
 public abstract class HrController : ControllerBase
 {
-    protected Task<IResult> View<TComponent>(
+    protected Task<IResult> Page<TComponent>(
         object? data = null,
         CancellationToken cancellationToken = default,
         HrzValidationRootId? validationRootId = null)
@@ -18,7 +18,7 @@ public abstract class HrController : ControllerBase
         return ViewService.View<TComponent>(data, cancellationToken);
     }
 
-    protected Task<IResult> View<TComponent>(
+    protected Task<IResult> Page<TComponent>(
         IReadOnlyDictionary<string, object?> data,
         CancellationToken cancellationToken = default,
         HrzValidationRootId? validationRootId = null)
@@ -30,7 +30,7 @@ public abstract class HrController : ControllerBase
         return ViewService.View<TComponent>(data, cancellationToken);
     }
 
-    protected Task<IResult> PartialView<TComponent>(
+    protected Task<IResult> Partial<TComponent>(
         object? data = null,
         CancellationToken cancellationToken = default,
         HrzValidationRootId? validationRootId = null)
@@ -40,7 +40,7 @@ public abstract class HrController : ControllerBase
         return ViewService.PartialView<TComponent>(data, cancellationToken);
     }
 
-    protected Task<IResult> PartialView<TComponent>(
+    protected Task<IResult> Partial<TComponent>(
         IReadOnlyDictionary<string, object?> data,
         CancellationToken cancellationToken = default,
         HrzValidationRootId? validationRootId = null)
@@ -52,7 +52,7 @@ public abstract class HrController : ControllerBase
         return ViewService.PartialView<TComponent>(data, cancellationToken);
     }
 
-    protected Task<IResult> PartialView(CancellationToken cancellationToken = default, params RenderFragment[] fragments)
+    protected Task<IResult> Partial(CancellationToken cancellationToken = default, params RenderFragment[] fragments)
     {
         ArgumentNullException.ThrowIfNull(fragments);
 
@@ -61,7 +61,7 @@ public abstract class HrController : ControllerBase
     }
 
     private IHrzComponentViewService ViewService =>
-        HttpContext.RequestServices.GetRequiredService<IHrzComponentViewService>();
+        HrzRegistrationRequirements.ResolveViewService(HttpContext.RequestServices);
 
     private void CaptureValidationState(HrzValidationRootId? validationRootId)
     {

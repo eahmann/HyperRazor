@@ -25,28 +25,14 @@ public static class DemoServiceCollectionExtensions
         services.AddHyperRazor(options =>
         {
             options.RootComponent = typeof(HrzApp<AppLayout>);
-            options.UseMinimalLayoutForHtmx = true;
             options.LayoutBoundary.Enabled = true;
-            options.LayoutBoundary.OnlyBoostedRequests = true;
-            options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
-            options.LayoutBoundary.LayoutFamilyHeaderName = HtmxHeaderNames.LayoutFamily;
             options.LayoutBoundary.DefaultLayoutFamily = "admin";
-            options.LayoutBoundary.ShellTargetSelector = "#hrz-app-shell";
-            options.LayoutBoundary.ShellSwapStyle = "outerHTML";
-            options.LayoutBoundary.ShellReselectSelector = "#hrz-app-shell";
-            options.LayoutBoundary.AddVaryHeader = true;
         });
         services.AddScoped<IHrzSseReplayStrategy, DemoSseReplayStrategy>();
         services.AddHtmx(htmx =>
         {
-            htmx.ClientProfile = HtmxClientProfile.Htmx2Defaults;
-            htmx.SelfRequestsOnly = true;
-            htmx.HistoryRestoreAsHxRequest = false;
             htmx.AllowNestedOobSwaps = false;
-            htmx.DefaultSwapStyle = "outerHTML";
             htmx.EnableHeadSupport = true;
-            htmx.AntiforgeryMetaName = "hrz-antiforgery";
-            htmx.AntiforgeryHeaderName = "RequestVerificationToken";
             htmx.ResponseHandling =
             [
                 new HtmxResponseHandlingRule

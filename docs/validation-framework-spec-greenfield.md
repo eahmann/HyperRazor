@@ -339,11 +339,11 @@ Required behavior:
 ```csharp
 public abstract class HrController : ControllerBase
 {
-    protected Task<IResult> View<TComponent>(
+    protected Task<IResult> Page<TComponent>(
         object? data = null,
         HrzValidationRootId? validationRootId = null,
         CancellationToken cancellationToken = default);
-    protected Task<IResult> PartialView<TComponent>(
+    protected Task<IResult> Partial<TComponent>(
         object? data = null,
         HrzValidationRootId? validationRootId = null,
         CancellationToken cancellationToken = default);
@@ -519,16 +519,16 @@ public sealed class UsersController : HrController
         {
             return HttpContext.HtmxRequest().IsPartialRequest
                 ? Validation<CreateUserForm>(rootId, new { Input = input }, cancellationToken: cancellationToken)
-                : View<CreateUserPage>(new { Input = input }, validationRootId: rootId, cancellationToken);
+                : Page<CreateUserPage>(new { Input = input }, validationRootId: rootId, cancellationToken);
         }
 
         return HttpContext.HtmxRequest().IsPartialRequest
-            ? PartialView<CreateUserForm>(new
+            ? Partial<CreateUserForm>(new
             {
                 Input = new CreateUserInput(),
                 SuccessMessage = "User created."
             }, cancellationToken)
-            : View<CreateUserPage>(new
+            : Page<CreateUserPage>(new
             {
                 Input = new CreateUserInput(),
                 SuccessMessage = "User created."
@@ -605,7 +605,7 @@ public async Task<IResult> Create([FromForm] CreateUserInput input, Cancellation
     {
         return HttpContext.HtmxRequest().IsPartialRequest
             ? await Validation<CreateUserForm>(rootId, new { Input = input }, cancellationToken: cancellationToken)
-            : await View<CreateUserPage>(new { Input = input }, validationRootId: rootId, cancellationToken);
+            : await Page<CreateUserPage>(new { Input = input }, validationRootId: rootId, cancellationToken);
     }
 
     var attemptedValues = HrzAttemptedValues.FromRequest(Request);
@@ -624,18 +624,18 @@ public async Task<IResult> Create([FromForm] CreateUserInput input, Cancellation
                 HttpContext,
                 new { Input = input },
                 cancellationToken: cancellationToken)
-            : await View<CreateUserPage>(new { Input = input }, cancellationToken);
+            : await Page<CreateUserPage>(new { Input = input }, cancellationToken);
     }
 
     response.EnsureSuccessStatusCode();
 
     return HttpContext.HtmxRequest().IsPartialRequest
-        ? await PartialView<CreateUserForm>(new
+        ? await Partial<CreateUserForm>(new
         {
             Input = new CreateUserInput(),
             SuccessMessage = "User created."
         }, cancellationToken)
-        : await View<CreateUserPage>(new
+        : await Page<CreateUserPage>(new
         {
             Input = new CreateUserInput(),
             SuccessMessage = "User created."
@@ -938,7 +938,7 @@ public async Task<IResult> LiveValidate(
     var scope = await HttpContext.BindLiveValidationScopeAsync(cancellationToken);
     var patch = await _validator.ValidateLiveAsync(input, scope, attemptedValues, cancellationToken);
 
-    return PartialView<CreateUserLiveValidationUpdate>(new { Patch = patch }, cancellationToken);
+    return Partial<CreateUserLiveValidationUpdate>(new { Patch = patch }, cancellationToken);
 }
 ```
 

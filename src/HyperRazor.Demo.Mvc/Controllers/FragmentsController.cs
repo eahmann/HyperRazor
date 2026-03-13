@@ -60,7 +60,7 @@ public sealed class FragmentsController : HrController
             action: "search-users",
             details: $"query=\"{normalizedQuery ?? "*"}\", sort={normalizedSort}, page={safePage}, pageSize={safePageSize}");
 
-        return PartialView<UserSearchResults>(new
+        return Partial<UserSearchResults>(new
         {
             Query = normalizedQuery,
             Sort = normalizedSort,
@@ -83,7 +83,7 @@ public sealed class FragmentsController : HrController
             action: "dashboard-sync-check",
             details: "Emitted an HX-Trigger workflow event from the dashboard health check.");
 
-        return PartialView<DashboardCheckResult>(new
+        return Partial<DashboardCheckResult>(new
         {
             Title = "Sync check completed",
             Message = "Saved successfully.",
@@ -101,7 +101,7 @@ public sealed class FragmentsController : HrController
             action: "dashboard-banner-check",
             details: "Trigger is configured via [HtmxResponse] for a dashboard broadcast event.");
 
-        return PartialView<DashboardCheckResult>(new
+        return Partial<DashboardCheckResult>(new
         {
             Title = "Broadcast banner queued",
             Message = "Saved successfully (attribute trigger).",
@@ -220,7 +220,7 @@ public sealed class FragmentsController : HrController
             action: "settings-branding",
             details: $"Queued title/meta/style/script via IHrzHeadService. Title=\"{normalizedTitle}\", accent={accentPreset.Name}.");
 
-        return PartialView<HeadUpdateResult>(new
+        return Partial<HeadUpdateResult>(new
         {
             Title = normalizedTitle,
             Description = normalizedDescription,
@@ -249,7 +249,7 @@ public sealed class FragmentsController : HrController
             action: "users-provision",
             details: $"Created {normalizedName} (#{count}).");
 
-        return PartialView<UserCreateResult>(new { DisplayName = normalizedName, Count = count }, cancellationToken);
+        return Partial<UserCreateResult>(new { DisplayName = normalizedName, Count = count }, cancellationToken);
     }
 
     [HttpPost("users/provision-rendered")]
@@ -277,7 +277,7 @@ public sealed class FragmentsController : HrController
         var oobMarkup = await _swapService.RenderToString(clear: true, cancellationToken);
         var preview = BuildRenderToStringPreview(oobMarkup);
 
-        return await PartialView(
+        return await Partial(
             cancellationToken,
             builder =>
             {
@@ -309,7 +309,7 @@ public sealed class FragmentsController : HrController
                 action: "review-access-request",
                 details: $"Request #{requestId} failed validation with {errors.Count} error(s).");
 
-            return PartialView<AccessRequestReviewResult>(new
+            return Partial<AccessRequestReviewResult>(new
             {
                 Errors = errors
             }, cancellationToken);

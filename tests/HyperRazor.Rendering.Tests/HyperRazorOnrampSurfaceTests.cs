@@ -30,9 +30,9 @@ public class HyperRazorOnrampSurfaceTests
     }
 
     [Fact]
-    public async Task MapPartial_RendersFragmentWithoutShell_WithZeroArgumentRegistration()
+    public async Task MapFragment_RendersFragmentWithoutShell_WithZeroArgumentRegistration()
     {
-        await using var app = await BuildAppAsync(endpoints => endpoints.MapPartial<TestPartial>("/partial"));
+        await using var app = await BuildAppAsync(endpoints => endpoints.MapFragment<TestPartial>("/partial"));
 
         var client = app.GetTestClient();
         var response = await client.GetAsync("/partial");
@@ -88,7 +88,7 @@ public class HyperRazorOnrampSurfaceTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => HrzResults.Page<TestPage>(context));
 
-        Assert.Contains("Rendering a HyperRazor page or partial", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Rendering a HyperRazor page or fragment", exception.Message, StringComparison.Ordinal);
         Assert.Contains("AddHtmx()", exception.Message, StringComparison.Ordinal);
     }
 
@@ -113,7 +113,7 @@ public class HyperRazorOnrampSurfaceTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.RenderPage());
 
-        Assert.Contains("Rendering a HyperRazor page or partial", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Rendering a HyperRazor page or fragment", exception.Message, StringComparison.Ordinal);
         Assert.Contains("AddHtmx()", exception.Message, StringComparison.Ordinal);
     }
 

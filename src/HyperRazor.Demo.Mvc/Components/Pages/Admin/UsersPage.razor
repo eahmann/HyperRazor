@@ -43,12 +43,15 @@
     <section class="panel">
         <h3>Provision Account</h3>
         <p>One HTMX request updates the latest-created user, count badge, activity feed, toast stack, and inspector.</p>
-        <p>Users: <span id="user-count-shell" class="count-badge">5</span></p>
+        <p>
+            Users:
+            <HrzRegion Name="@UserCountRegion" TagName="span" class="count-badge">5</HrzRegion>
+        </p>
         <form
             action="/fragments/users/provision"
             hx-post="/fragments/users/provision"
             hx-target="#users-list"
-            hx-swap="outerHTML focus-scroll:true"
+            hx-swap="innerHTML focus-scroll:true"
             hx-disabled-elt="find button">
             <HrzAntiforgeryInput />
 
@@ -71,17 +74,17 @@
             <button type="submit">Provision Via RenderToString</button>
         </form>
 
-        <section id="users-list" class="panel">
+        <HrzRegion Name="@UsersListRegion" TagName="section" class="panel">
             <h3>Latest Provisioned User</h3>
             <p>No users provisioned in this session.</p>
-        </section>
+        </HrzRegion>
 
         <section id="render-to-string-demo-result" class="panel">
             <h3>Server-rendered OOB Result</h3>
             <p class="empty">Submit the second form to inspect the <code>RenderToString()</code> payload preview.</p>
         </section>
 
-        <div id="toast-stack" class="toast-stack"></div>
+        <HrzRegion Name="@ToastStackRegion" class="toast-stack" />
     </section>
 
     <section class="panel">
@@ -90,12 +93,17 @@
         <section class="panel">
             <h3>Provisioning Activity</h3>
             <p class="empty">Each provision request appends a new feed item.</p>
-            <div id="activity-feed" class="activity-feed"></div>
+            <HrzRegion Name="@ActivityFeedRegion" class="activity-feed" />
         </section>
     </section>
 </section>
 
 @code {
+    public const string UsersListRegion = "users-list";
+    public const string UserCountRegion = "user-count-shell";
+    public const string ToastStackRegion = "toast-stack";
+    public const string ActivityFeedRegion = "activity-feed";
+
     [Parameter]
     public InviteValidationFormViewModel MvcInviteForm { get; set; } = UserInviteValidationDefinitions.MvcLocal();
 }

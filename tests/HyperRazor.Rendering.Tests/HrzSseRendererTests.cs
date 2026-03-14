@@ -51,7 +51,7 @@ public sealed class HrzSseRendererTests
         Assert.Contains("id=\"queued-status\"", item.Data, StringComparison.Ordinal);
         Assert.DoesNotContain("Queued title", item.Data, StringComparison.Ordinal);
         Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzHeadService>().ContentAvailable);
-        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzSwapService>().ContentAvailable);
+        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<HrzSwapService>().HasBufferedContent);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class HrzSseRendererTests
             fixture.SseRenderer.RenderComponent<ThrowingQueuedContentComponent>());
 
         Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzHeadService>().ContentAvailable);
-        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzSwapService>().ContentAvailable);
+        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<HrzSwapService>().HasBufferedContent);
     }
 
     [Fact]
@@ -165,11 +165,11 @@ public sealed class HrzSseRendererTests
         {
             options.RootComponent = typeof(HrzApp<HrzAppLayout>);
         });
-        services.AddOptions<HrzSwapOptions>();
         services.AddSingleton<IHrzLayoutTypeResolver, HrzLayoutTypeResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
-        services.AddScoped<IHrzSwapService, HrzSwapService>();
+        services.AddScoped<HrzSwapService>();
+        services.AddScoped<IHrzSwapService>(serviceProvider => serviceProvider.GetRequiredService<HrzSwapService>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();
 
@@ -265,9 +265,9 @@ public sealed class HrzSseRendererTests
         protected override void OnInitialized()
         {
             HeadService.SetTitle("Queued title");
-            SwapService.QueueHtml(
-                targetId: "queued-status",
-                html: "<div id=\"queued-status\">Queued status</div>");
+            SwapService.Replace(
+                "queued-status",
+                builder => builder.AddMarkupContent(0, "<div id=\"queued-status\">Queued status</div>"));
         }
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
@@ -289,9 +289,9 @@ public sealed class HrzSseRendererTests
         protected override void OnInitialized()
         {
             HeadService.SetTitle("Exploding title");
-            SwapService.QueueHtml(
-                targetId: "queued-status",
-                html: "<div id=\"queued-status\">Queued status</div>");
+            SwapService.Replace(
+                "queued-status",
+                builder => builder.AddMarkupContent(0, "<div id=\"queued-status\">Queued status</div>"));
             throw new InvalidOperationException("Boom");
         }
     }

@@ -80,15 +80,15 @@ HyperRazor should present the same mental model regardless of endpoint style.
 
 For controllers:
 
-- use `Page<TComponent>()` and `Partial<TComponent>()` on `HrController`
+- use `Page<TComponent>()`, `Fragment<TComponent>()`, and `RootSwap<TComponent>()` on `HrController`
 - remove `View<TComponent>()` and `PartialView<TComponent>()` from the first-use controller surface
 
 For Minimal APIs:
 
-- add route-builder extensions such as `MapPage<TComponent>(pattern)` and `MapPartial<TComponent>(pattern)`
-- keep `HrzResults.Page<TComponent>()` and `HrzResults.Partial<TComponent>()` for advanced cases, custom response configuration, and direct composition
+- add route-builder extensions such as `MapPage<TComponent>(pattern)` and `MapFragment<TComponent>(pattern)`
+- keep `HrzResults.Page<TComponent>()`, `HrzResults.Fragment<TComponent>()`, and `HrzResults.RootSwap<TComponent>()` for advanced cases, custom response configuration, and direct composition
 
-The goal is to teach "pages" and "partials" everywhere, then let deeper APIs exist underneath that surface.
+The goal is to teach "pages" and "fragments" everywhere, then let deeper APIs exist underneath that surface.
 
 ### 4. Demote advanced features out of the onboarding path
 

@@ -122,7 +122,7 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"app-chrome-toolbar\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"app-chrome-sidebar\"", body, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", body, StringComparison.Ordinal);
         Assert.Contains("<code>/users</code>", body, StringComparison.Ordinal);
         Assert.Contains("<span class=\"sidebar-mode-value\">admin</span>", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/users\" aria-current=\"page\"", body, StringComparison.Ordinal);

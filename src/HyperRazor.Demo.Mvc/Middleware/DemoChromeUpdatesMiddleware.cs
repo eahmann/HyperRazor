@@ -1,5 +1,6 @@
 using HyperRazor.Components.Services;
 using HyperRazor.Demo.Mvc.Components;
+using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Htmx;
 
@@ -24,24 +25,22 @@ public sealed class DemoChromeUpdatesMiddleware
         {
             var chromeState = DemoChromeState.Create(context);
 
-            swapService.QueueComponent<DemoChromeToolbar>(
-                targetId: "app-chrome-toolbar",
-                parameters: new
+            swapService.Replace<DemoChromeToolbar>(
+                AppLayout.ChromeToolbarRegion,
+                new
                 {
                     chromeState.RouteLabel,
                     chromeState.LayoutName,
                     chromeState.Theme
-                },
-                swapStyle: SwapStyle.OuterHtml);
+                });
 
-            swapService.QueueComponent<DemoChromeSidebar>(
-                targetId: "app-chrome-sidebar",
-                parameters: new
+            swapService.Replace<DemoChromeSidebar>(
+                AppLayout.ChromeSidebarRegion,
+                new
                 {
                     chromeState.ActiveSection,
                     chromeState.LayoutName
-                },
-                swapStyle: SwapStyle.OuterHtml);
+                });
         }
 
         await _next(context);

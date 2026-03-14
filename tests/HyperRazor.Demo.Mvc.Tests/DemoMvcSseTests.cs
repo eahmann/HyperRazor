@@ -97,19 +97,19 @@ public class DemoMvcSseTests : DemoMvcIntegrationTestBase
         var firstEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: sse-demo-1", firstEvent, StringComparison.Ordinal);
         Assert.Contains("Connection established", firstEvent, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", firstEvent, StringComparison.Ordinal);
         Assert.Contains("No resume header was supplied on this connection.", firstEvent, StringComparison.Ordinal);
 
         var secondEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: sse-demo-2", secondEvent, StringComparison.Ordinal);
         Assert.Contains("Out-of-band update applied", secondEvent, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", secondEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", secondEvent, StringComparison.Ordinal);
         Assert.Contains("Secondary target updated", secondEvent, StringComparison.Ordinal);
 
         var thirdEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: sse-demo-3", thirdEvent, StringComparison.Ordinal);
         Assert.Contains("Closed cleanly", thirdEvent, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", thirdEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", thirdEvent, StringComparison.Ordinal);
 
         var doneEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("event: done", doneEvent, StringComparison.Ordinal);
@@ -133,7 +133,7 @@ public class DemoMvcSseTests : DemoMvcIntegrationTestBase
         var firstEvent = await ReadEventBlockAsync(reader);
         Assert.Contains("id: replay-demo-01", firstEvent, StringComparison.Ordinal);
         Assert.Contains("Live stream opened", firstEvent, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", firstEvent, StringComparison.Ordinal);
         Assert.Contains("Awaiting reconnect", firstEvent, StringComparison.Ordinal);
 
         var secondEvent = await ReadEventBlockAsync(reader);
@@ -303,12 +303,12 @@ public class DemoMvcSseTests : DemoMvcIntegrationTestBase
 
         Assert.Contains("id: notif-01", firstEvent, StringComparison.Ordinal);
         Assert.Contains("New comment on deployment review", firstEvent, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", firstEvent, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", firstEvent, StringComparison.Ordinal);
         Assert.Contains("id=\"notifications-unread-indicator\"", firstEvent, StringComparison.Ordinal);
         Assert.Contains("notifications-unread-badge\">1</span>", firstEvent, StringComparison.Ordinal);
         Assert.Contains("Connected from the beginning of the demo stream.", firstEvent, StringComparison.Ordinal);
 
-        Assert.All(events, static item => Assert.Contains("hx-swap-oob=\"outerHTML\"", item, StringComparison.Ordinal));
+        Assert.All(events, static item => Assert.Contains("hx-swap-oob=\"innerHTML\"", item, StringComparison.Ordinal));
         Assert.Contains("id: notif-09", events[8], StringComparison.Ordinal);
         Assert.Contains("P1 incident declared for EU auth", events[8], StringComparison.Ordinal);
         Assert.Contains("notification-card--urgent", events[8], StringComparison.Ordinal);

@@ -21,7 +21,7 @@ using System.Linq.Expressions;
 
 namespace HyperRazor.Rendering.Tests;
 
-public class HrzComponentViewServiceTests
+public class HrzRenderServiceTests
 {
     [Fact]
     public async Task View_WithoutHtmxRequest_RendersFullShell()
@@ -29,7 +29,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
@@ -49,7 +49,7 @@ public class HrzComponentViewServiceTests
         });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
@@ -67,7 +67,7 @@ public class HrzComponentViewServiceTests
         });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
@@ -82,7 +82,7 @@ public class HrzComponentViewServiceTests
         });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Fragment<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
@@ -109,10 +109,10 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var anonymousResult = await fixture.ViewService.View<GreetingComponent>(new { Name = "Anonymous" });
+        var anonymousResult = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Anonymous" });
         var anonymousHtml = await ExecuteResultAsync(anonymousResult, fixture.HttpContext);
 
-        var dictionaryResult = await fixture.ViewService.View<GreetingComponent>(
+        var dictionaryResult = await fixture.RenderService.Page<GreetingComponent>(
             new Dictionary<string, object?> { ["Name"] = "Dictionary" });
         var dictionaryHtml = await ExecuteResultAsync(dictionaryResult, fixture.HttpContext);
 
@@ -126,7 +126,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<AsyncGreetingComponent>();
+        var result = await fixture.RenderService.Page<AsyncGreetingComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Loaded", html, StringComparison.Ordinal);
@@ -147,7 +147,7 @@ public class HrzComponentViewServiceTests
         fixture.SetCurrentContext();
         fixture.HttpContext.Request.Path = "/side/detail";
 
-        var result = await fixture.ViewService.View<SideGreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
@@ -176,7 +176,7 @@ public class HrzComponentViewServiceTests
         fixture.SetCurrentContext();
         fixture.HttpContext.Request.Path = "/side/detail";
 
-        var result = await fixture.ViewService.View<SideGreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
@@ -207,7 +207,7 @@ public class HrzComponentViewServiceTests
         fixture.SetCurrentContext();
         fixture.HttpContext.Request.Path = "/side/detail";
 
-        var result = await fixture.ViewService.View<SideGreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Equal(string.Empty, html);
@@ -231,7 +231,7 @@ public class HrzComponentViewServiceTests
         fixture.SetCurrentContext();
         fixture.HttpContext.Request.Path = "/side/detail";
 
-        var result = await fixture.ViewService.View<SideGreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Equal(string.Empty, html);
@@ -252,7 +252,7 @@ public class HrzComponentViewServiceTests
             }));
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<AttemptedValueComponent>();
+        var result = await fixture.RenderService.Fragment<AttemptedValueComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("value=\"typed@example.com\"", html, StringComparison.Ordinal);
@@ -272,7 +272,7 @@ public class HrzComponentViewServiceTests
             new Dictionary<HrzFieldPath, HrzAttemptedValue>()));
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<EditFormBridgeComponent>();
+        var result = await fixture.RenderService.Fragment<EditFormBridgeComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Form summary error.", html, StringComparison.Ordinal);
@@ -285,7 +285,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationAuthoringSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationAuthoringSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"users-invite-form\"", html, StringComparison.Ordinal);
@@ -326,7 +326,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationAuthoringOverridesComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationAuthoringOverridesComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"override-form\"", html, StringComparison.Ordinal);
@@ -361,7 +361,7 @@ public class HrzComponentViewServiceTests
             }));
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationExpandedInputSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationExpandedInputSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"expanded-notes\"", html, StringComparison.Ordinal);
@@ -395,7 +395,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationPlaceholderSelectSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationPlaceholderSelectSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"placeholder-select-role\"", html, StringComparison.Ordinal);
@@ -414,7 +414,7 @@ public class HrzComponentViewServiceTests
             });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationCustomMetadataSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationCustomMetadataSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("data-val-rolloutplan=", html, StringComparison.Ordinal);
@@ -428,7 +428,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationManualSelectSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationManualSelectSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("<optgroup label=\"Operators\">", html, StringComparison.Ordinal);
@@ -461,15 +461,15 @@ public class HrzComponentViewServiceTests
             options.RootComponent = typeof(HrzApp<HrzAppLayout>);
             configureOptions?.Invoke(options);
         });
-        services.AddOptions<HrzSwapOptions>();
         services.AddSingleton<IHrzLayoutTypeResolver, HrzLayoutTypeResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
         services.AddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
-        services.AddScoped<IHrzSwapService, HrzSwapService>();
+        services.AddScoped<HrzSwapService>();
+        services.AddScoped<IHrzSwapService>(serviceProvider => serviceProvider.GetRequiredService<HrzSwapService>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
-        services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        services.AddScoped<IHrzRenderService, HrzRenderService>();
         configureServices?.Invoke(services);
 
         var provider = services.BuildServiceProvider();
@@ -483,11 +483,11 @@ public class HrzComponentViewServiceTests
 
         httpContextAccessor.HttpContext = httpContext;
 
-        var viewService = scope.ServiceProvider.GetRequiredService<IHrzComponentViewService>();
+        var renderService = scope.ServiceProvider.GetRequiredService<IHrzRenderService>();
 
         await Task.Yield();
 
-        return new TestFixture(provider, scope, httpContextAccessor, httpContext, viewService);
+        return new TestFixture(provider, scope, httpContextAccessor, httpContext, renderService);
     }
 
     private static async Task<string> ExecuteResultAsync(IResult result, HttpContext context)
@@ -508,13 +508,13 @@ public class HrzComponentViewServiceTests
             IServiceScope scope,
             IHttpContextAccessor httpContextAccessor,
             HttpContext httpContext,
-            IHrzComponentViewService viewService)
+            IHrzRenderService renderService)
         {
             Provider = provider;
             Scope = scope;
             HttpContextAccessor = httpContextAccessor;
             HttpContext = httpContext;
-            ViewService = viewService;
+            RenderService = renderService;
         }
 
         public ServiceProvider Provider { get; }
@@ -525,7 +525,7 @@ public class HrzComponentViewServiceTests
 
         public HttpContext HttpContext { get; }
 
-        public IHrzComponentViewService ViewService { get; }
+        public IHrzRenderService RenderService { get; }
 
         public void SetCurrentContext()
         {

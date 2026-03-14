@@ -37,5 +37,9 @@
         <p>Choose a drill to load a server-generated incident response fragment.</p>
     </section>
 
-    <div id="toast-stack" class="toast-stack"></div>
+    <HrzRegion Name="@ToastStackRegion" class="toast-stack" />
 </section>
+
+@code {
+    public const string ToastStackRegion = "toast-stack";
+}

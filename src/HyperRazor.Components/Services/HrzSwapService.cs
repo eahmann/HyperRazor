@@ -3,7 +3,6 @@ using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
@@ -18,167 +17,119 @@ public sealed class HrzSwapService : IHrzSwapService
 
     private readonly List<HrzSwapItem> _items = [];
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly HrzSwapOptions _options;
     private readonly IServiceProvider? _services;
     private readonly ILoggerFactory? _loggerFactory;
 
-    public HrzSwapService(IHttpContextAccessor httpContextAccessor, IOptions<HrzSwapOptions> options)
+    public HrzSwapService(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-        _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
         _services = null;
         _loggerFactory = null;
     }
 
     public HrzSwapService(
         IHttpContextAccessor httpContextAccessor,
-        IOptions<HrzSwapOptions> options,
         IServiceProvider services,
         ILoggerFactory loggerFactory)
-        : this(httpContextAccessor, options)
+        : this(httpContextAccessor)
     {
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
     }
 
-    public event EventHandler? ContentItemsUpdated;
+    internal event EventHandler? BufferedContentChanged;
 
-    public bool ContentAvailable => _items.Count > 0;
+    internal bool HasBufferedContent => _items.Count > 0;
 
-    public void QueueComponent<TComponent>(
-        string targetId,
-        IReadOnlyDictionary<string, object?>? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
-        where TComponent : IComponent
-    {
-        AddSwappableComponent<TComponent>(targetId, parameters, swapStyle, selector);
-    }
-
-    public void QueueComponent<TComponent>(
-        string targetId,
+    public void Replace<TComponent>(
+        string target,
         object? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+        HrzSwapOptions? options = null)
         where TComponent : IComponent
     {
-        AddSwappableComponent<TComponent>(targetId, parameters, swapStyle, selector);
+        Replace(
+            target,
+            BuildComponentFragment<TComponent>(CreateParameterDictionary(parameters)),
+            options);
     }
 
-    public void QueueFragment(
-        string targetId,
+    public void Replace(
+        string target,
         RenderFragment fragment,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+        HrzSwapOptions? options = null)
     {
-        AddSwappableFragment(targetId, fragment, swapStyle, selector);
+        QueueSwap(
+            target,
+            targetIdFactory: _ => ResolveReplaceTargetId(target, options),
+            swapDescriptorFactory: resolvedTargetId => BuildSwapDescriptor(HrzSwapOperation.Replace, target, resolvedTargetId, options),
+            fragment,
+            options,
+            itemId: null);
     }
 
-    public void QueueHtml(
-        string targetId,
-        string html,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
-    {
-        AddSwappableContent(targetId, html, swapStyle, selector);
-    }
-
-    public void AddSwappableComponent<TComponent>(
-        string targetId,
-        IReadOnlyDictionary<string, object?>? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
-        where TComponent : IComponent
-    {
-        EnsureTargetId(targetId);
-
-        var normalizedParameters = parameters ?? EmptyParameters;
-        var fragment = BuildComponentFragment<TComponent>(normalizedParameters);
-        _items.Add(new HrzSwapItem(
-            Type: HrzSwapItemType.Swappable,
-            TargetId: targetId,
-            SwapStyle: swapStyle,
-            Selector: NormalizeSelector(selector),
-            Fragment: fragment,
-            RawHtml: null));
-        NotifyContentItemsUpdated();
-    }
-
-    public void AddSwappableComponent<TComponent>(
-        string targetId,
+    public void Append<TComponent>(
+        string target,
+        string itemId,
         object? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+        HrzSwapOptions? options = null)
         where TComponent : IComponent
     {
-        AddSwappableComponent<TComponent>(
-            targetId,
-            CreateParameterDictionary(parameters),
-            swapStyle,
-            selector);
+        Append(
+            target,
+            itemId,
+            BuildComponentFragment<TComponent>(CreateParameterDictionary(parameters)),
+            options);
     }
 
-    public void AddSwappableFragment(
-        string targetId,
+    public void Append(
+        string target,
+        string itemId,
         RenderFragment fragment,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+        HrzSwapOptions? options = null)
     {
-        EnsureTargetId(targetId);
-        ArgumentNullException.ThrowIfNull(fragment);
-
-        _items.Add(new HrzSwapItem(
-            Type: HrzSwapItemType.Swappable,
-            TargetId: targetId,
-            SwapStyle: swapStyle,
-            Selector: NormalizeSelector(selector),
-            Fragment: fragment,
-            RawHtml: null));
-        NotifyContentItemsUpdated();
+        QueueSwap(
+            target,
+            targetIdFactory: resolvedItemId => resolvedItemId,
+            swapDescriptorFactory: resolvedItemId => BuildSwapDescriptor(HrzSwapOperation.Append, target, resolvedItemId, options),
+            fragment,
+            options,
+            itemId);
     }
 
-    public void AddSwappableContent(
-        string targetId,
-        string html,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+    public void Prepend<TComponent>(
+        string target,
+        string itemId,
+        object? parameters = null,
+        HrzSwapOptions? options = null)
+        where TComponent : IComponent
     {
-        EnsureTargetId(targetId);
-
-        var content = html ?? string.Empty;
-        RenderFragment fragment = builder => builder.AddMarkupContent(0, content);
-
-        _items.Add(new HrzSwapItem(
-            Type: HrzSwapItemType.Swappable,
-            TargetId: targetId,
-            SwapStyle: swapStyle,
-            Selector: NormalizeSelector(selector),
-            Fragment: fragment,
-            RawHtml: null));
-        NotifyContentItemsUpdated();
+        Prepend(
+            target,
+            itemId,
+            BuildComponentFragment<TComponent>(CreateParameterDictionary(parameters)),
+            options);
     }
 
-    public void AddRawContent(string html)
+    public void Prepend(
+        string target,
+        string itemId,
+        RenderFragment fragment,
+        HrzSwapOptions? options = null)
     {
-        _items.Add(new HrzSwapItem(
-            Type: HrzSwapItemType.RawHtml,
-            TargetId: string.Empty,
-            SwapStyle: SwapStyle.None,
-            Selector: null,
-            Fragment: null,
-            RawHtml: html ?? string.Empty));
-        NotifyContentItemsUpdated();
+        QueueSwap(
+            target,
+            targetIdFactory: resolvedItemId => resolvedItemId,
+            swapDescriptorFactory: resolvedItemId => BuildSwapDescriptor(HrzSwapOperation.Prepend, target, resolvedItemId, options),
+            fragment,
+            options,
+            itemId);
     }
 
-    public RenderFragment RenderToFragment(bool clear = false)
+    internal RenderFragment RenderBufferedFragment(bool clear = false)
     {
         var request = GetCurrentRequest();
         var includeSwappables = ShouldForceSwapRendering() || (request.IsHtmx && !request.IsHistoryRestoreRequest);
-        var includeRaw = includeSwappables || _options.AllowRawContentOnNonHtmx;
-
-        var snapshot = _items
-            .Where(item => item.Type == HrzSwapItemType.Swappable ? includeSwappables : includeRaw)
-            .ToArray();
+        var snapshot = includeSwappables ? _items.ToArray() : [];
 
         if (clear)
         {
@@ -191,21 +142,9 @@ public sealed class HrzSwapService : IHrzSwapService
 
             foreach (var item in snapshot)
             {
-                if (item.Type == HrzSwapItemType.RawHtml)
-                {
-                    builder.AddMarkupContent(sequence++, item.RawHtml ?? string.Empty);
-                    continue;
-                }
-
                 builder.OpenComponent<HrzSwappable>(sequence++);
                 builder.AddAttribute(sequence++, nameof(HrzSwappable.TargetId), item.TargetId);
-                builder.AddAttribute(sequence++, nameof(HrzSwappable.SwapStyle), item.SwapStyle);
-
-                if (!string.IsNullOrWhiteSpace(item.Selector))
-                {
-                    builder.AddAttribute(sequence++, nameof(HrzSwappable.Selector), item.Selector);
-                }
-
+                builder.AddAttribute(sequence++, nameof(HrzSwappable.SwapDescriptor), item.SwapDescriptor);
                 builder.AddAttribute(sequence++, nameof(HrzSwappable.ChildContent), item.Fragment);
                 builder.CloseComponent();
             }
@@ -232,7 +171,7 @@ public sealed class HrzSwapService : IHrzSwapService
                 $"{nameof(RenderToString)} requires {nameof(IServiceProvider)} and {nameof(ILoggerFactory)} to be available.");
         }
 
-        var fragment = RenderToFragment(clear: clear);
+        var fragment = RenderBufferedFragment(clear: clear);
 
         var parameters = new Dictionary<string, object?>
         {
@@ -253,6 +192,30 @@ public sealed class HrzSwapService : IHrzSwapService
     public void Clear()
     {
         ClearInternal(notify: true);
+    }
+
+    private void QueueSwap(
+        string target,
+        Func<string, string> targetIdFactory,
+        Func<string, string> swapDescriptorFactory,
+        RenderFragment fragment,
+        HrzSwapOptions? options,
+        string? itemId)
+    {
+        EnsureTarget(target);
+        ArgumentNullException.ThrowIfNull(fragment);
+
+        var normalizedOptions = options ?? new HrzSwapOptions();
+        var resolvedItemId = normalizedOptions.TargetKind == HrzSwapTargetKind.Region
+            ? NormalizeTargetId(itemId ?? target)
+            : NormalizeTargetId(itemId ?? normalizedOptions.TargetId);
+        var targetId = targetIdFactory(resolvedItemId);
+
+        _items.Add(new HrzSwapItem(
+            TargetId: targetId,
+            SwapDescriptor: swapDescriptorFactory(resolvedItemId),
+            Fragment: fragment));
+        NotifyBufferedContentChanged();
     }
 
     private HtmxRequest GetCurrentRequest()
@@ -330,22 +293,63 @@ public sealed class HrzSwapService : IHrzSwapService
         return result;
     }
 
-    private static void EnsureTargetId(string targetId)
+    private static void EnsureTarget(string target)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(target));
+        }
+    }
+
+    private static string ResolveReplaceTargetId(string target, HrzSwapOptions? options)
+    {
+        var normalizedOptions = options ?? new HrzSwapOptions();
+        return normalizedOptions.TargetKind == HrzSwapTargetKind.Region
+            ? NormalizeTargetId(target)
+            : NormalizeTargetId(normalizedOptions.TargetId);
+    }
+
+    private static string NormalizeTargetId(string? targetId)
     {
         if (string.IsNullOrWhiteSpace(targetId))
         {
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(targetId));
         }
+
+        return targetId.Trim();
     }
 
-    private static string? NormalizeSelector(string? selector)
+    private static string NormalizeSelector(string target)
     {
-        return string.IsNullOrWhiteSpace(selector) ? null : selector.Trim();
+        return string.IsNullOrWhiteSpace(target)
+            ? throw new ArgumentException("Value cannot be null or whitespace.", nameof(target))
+            : target.Trim();
     }
 
-    private void NotifyContentItemsUpdated()
+    private static string BuildSwapDescriptor(
+        HrzSwapOperation operation,
+        string target,
+        string _,
+        HrzSwapOptions? options)
     {
-        ContentItemsUpdated?.Invoke(this, EventArgs.Empty);
+        var normalizedOptions = options ?? new HrzSwapOptions();
+        var selector = normalizedOptions.TargetKind == HrzSwapTargetKind.Region
+            ? $"#{NormalizeTargetId(target)}"
+            : NormalizeSelector(target);
+
+        return operation switch
+        {
+            HrzSwapOperation.Replace when normalizedOptions.TargetKind == HrzSwapTargetKind.Region => "innerHTML",
+            HrzSwapOperation.Replace => $"outerHTML:{selector}",
+            HrzSwapOperation.Append => $"beforeend:{selector}",
+            HrzSwapOperation.Prepend => $"afterbegin:{selector}",
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
+        };
+    }
+
+    private void NotifyBufferedContentChanged()
+    {
+        BufferedContentChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void ClearInternal(bool notify)
@@ -358,7 +362,7 @@ public sealed class HrzSwapService : IHrzSwapService
         _items.Clear();
         if (notify)
         {
-            NotifyContentItemsUpdated();
+            NotifyBufferedContentChanged();
         }
     }
 }

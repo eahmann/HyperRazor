@@ -37,12 +37,12 @@
                         </div>
                     </div>
 
-                    <div id="app-chrome-toolbar">
+                    <HrzRegion Name="@ChromeToolbarRegion">
                         <DemoChromeToolbar
                             RouteLabel="@ChromeState.RouteLabel"
                             LayoutName="@ChromeState.LayoutName"
                             Theme="@ChromeState.Theme" />
-                    </div>
+                    </HrzRegion>
                 </div>
             </div>
         </header>
@@ -50,11 +50,11 @@
         <div class="container-fluid app-workspace px-3 px-xxl-4 py-3 py-xl-4">
             <div class="row g-3 g-xxl-4 align-items-start">
                 <aside class="col-12 col-xl-2">
-                    <div id="app-chrome-sidebar">
+                    <HrzRegion Name="@ChromeSidebarRegion">
                         <DemoChromeSidebar
                             ActiveSection="@ChromeState.ActiveSection"
                             LayoutName="@ChromeState.LayoutName" />
-                    </div>
+                    </HrzRegion>
                 </aside>
 
                 <main id="hrz-main-layout" class="layout col-12 col-xl-7 col-xxl-7">
@@ -63,13 +63,13 @@
 
                 <aside class="col-12 col-xl-3">
                     <section id="hrz-inspector-shell" class="panel panel--inspector sticky-shell">
-                        <div id="hx-debug-shell">
+                        <HrzRegion Name="@InspectorRegion">
                             <h3>HX Request/Response Inspector</h3>
                             <p class="empty">Run any workflow action to inspect the latest request and response headers.</p>
                             <div class="demo-note" role="note">
                                 <strong>Inspector Note:</strong> this region is updated out-of-band after each HTMX interaction so the visible workflow and transport-level HX behavior stay tied together.
                             </div>
-                        </div>
+                        </HrzRegion>
                     </section>
                 </aside>
             </div>
@@ -79,6 +79,10 @@
 </html>
 
 @code {
+    public const string ChromeToolbarRegion = "app-chrome-toolbar";
+    public const string ChromeSidebarRegion = "app-chrome-sidebar";
+    public const string InspectorRegion = "hx-debug-shell";
+
     [CascadingParameter]
     public HttpContext? HttpContext { get; set; }
 

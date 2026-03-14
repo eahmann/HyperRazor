@@ -69,7 +69,7 @@ public static class DemoSseEndpoints
             return TypedResults.NotFound();
         }
 
-        return await HrzResults.Partial<SseControlEventPanel>(
+        return await HrzResults.Fragment<SseControlEventPanel>(
             context,
             new
             {
@@ -122,9 +122,9 @@ public static class DemoSseEndpoints
 
         foreach (var step in steps)
         {
-            swapService.QueueComponent<SseDemoStatusCard>(
-                targetId: "sse-stream-status",
-                parameters: new
+            swapService.Replace<SseDemoStatusCard>(
+                HyperRazor.Demo.Mvc.Components.Pages.Admin.SsePage.StreamStatusRegion,
+                new
                 {
                     Label = "connection",
                     Title = step.StatusTitle,
@@ -132,9 +132,9 @@ public static class DemoSseEndpoints
                     Tone = step.EventId == "sse-demo-3" ? "success" : "progress"
                 });
 
-            swapService.QueueComponent<SseDemoStatusCard>(
-                targetId: "sse-last-event-id",
-                parameters: new
+            swapService.Replace<SseDemoStatusCard>(
+                HyperRazor.Demo.Mvc.Components.Pages.Admin.SsePage.LastEventIdRegion,
+                new
                 {
                     Label = "last-event-id",
                     Title = resumeTitle,
@@ -193,16 +193,16 @@ public static class DemoSseEndpoints
             var notification = notifications[index];
             var count = index + 1;
 
-            swapService.QueueComponent<NotificationsUnreadIndicator>(
-                targetId: "notifications-unread-indicator",
-                parameters: new
+            swapService.Replace<NotificationsUnreadIndicator>(
+                HyperRazor.Demo.Mvc.Components.Pages.Admin.NotificationsPage.UnreadIndicatorRegion,
+                new
                 {
                     Count = count
                 });
 
-            swapService.QueueComponent<NotificationsStreamStateCard>(
-                targetId: "notifications-stream-state",
-                parameters: new
+            swapService.Replace<NotificationsStreamStateCard>(
+                HyperRazor.Demo.Mvc.Components.Pages.Admin.NotificationsPage.StreamStateRegion,
+                new
                 {
                     EventId = notification.EventId,
                     Position = $"{count} / {notifications.Length}",

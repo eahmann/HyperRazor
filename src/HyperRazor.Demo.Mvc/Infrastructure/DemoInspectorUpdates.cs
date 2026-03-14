@@ -1,5 +1,6 @@
 using HyperRazor.Components.Services;
 using HyperRazor.Demo.Mvc.Components.Fragments;
+using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,10 +16,9 @@ public static class DemoInspectorUpdates
         ArgumentException.ThrowIfNullOrWhiteSpace(details);
 
         var swapService = context.RequestServices.GetRequiredService<IHrzSwapService>();
-        swapService.QueueComponent<HxRequestResponseInspector>(
-            targetId: "hx-debug-shell",
-            parameters: BuildParameters(context, action, details),
-            swapStyle: SwapStyle.OuterHtml);
+        swapService.Replace<HxRequestResponseInspector>(
+            AppLayout.InspectorRegion,
+            BuildParameters(context, action, details));
     }
 
     private static IReadOnlyDictionary<string, object?> BuildParameters(

@@ -9,7 +9,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace HyperRazor.Rendering;
 
-public sealed class HrzComponentViewService : IHrzComponentViewService
+public sealed class HrzRenderService : IHrzRenderService
 {
     private const string HtmlContentType = "text/html; charset=utf-8";
     private const string AppShellSelector = "#hrz-app-shell";
@@ -19,7 +19,7 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
     private readonly IHrzLayoutTypeResolver _layoutTypeResolver;
     private readonly HrzOptions _options;
 
-    public HrzComponentViewService(
+    public HrzRenderService(
         IHrzHtmlRendererAdapter renderer,
         IHttpContextAccessor httpContextAccessor,
         IServiceProvider services,
@@ -32,14 +32,64 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
     }
 
-    public Task<IResult> View<TComponent>(object? data = null, CancellationToken cancellationToken = default)
+    public Task<IResult> Page<TComponent>(object? data = null, CancellationToken cancellationToken = default)
         where TComponent : IComponent
     {
-        return View<TComponent>(HrzParameterDictionaryFactory.Create(data), cancellationToken);
+        return RenderPageAsync<TComponent>(
+            HrzParameterDictionaryFactory.Create(data),
+            rootSwapOverride: false,
+            cancellationToken);
     }
 
-    public async Task<IResult> View<TComponent>(
+    public Task<IResult> RootSwap<TComponent>(object? data = null, CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        return RenderPageAsync<TComponent>(
+            HrzParameterDictionaryFactory.Create(data),
+            rootSwapOverride: true,
+            cancellationToken);
+    }
+
+    public Task<IResult> Fragment<TComponent>(object? data = null, CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        return RenderFragmentAsync<TComponent>(
+            HrzParameterDictionaryFactory.Create(data),
+            cancellationToken);
+    }
+
+    public async Task<IResult> Fragment(CancellationToken cancellationToken = default, params RenderFragment[] fragments)
+    {
+        ArgumentNullException.ThrowIfNull(fragments);
+
+        var context = GetHttpContext();
+        var request = context.HtmxRequest();
+        var modelState = ResolveModelState(context);
+        EnsureFragmentVaryForHtmxBranching(context.Response.Headers);
+
+        var html = await RenderHostAsync(
+            componentType: typeof(HrzFragmentGroup),
+            componentParameters: new Dictionary<string, object?>
+            {
+                [nameof(HrzFragmentGroup.Fragments)] = fragments
+            },
+            layoutType: null,
+            currentLayoutKey: null,
+            context: context,
+            modelState: modelState,
+            isPartial: true,
+            isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
+            isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
+            renderHeadContent: null,
+            renderSwapContent: null,
+            cancellationToken: cancellationToken);
+
+        return Results.Content(html, HtmlContentType);
+    }
+
+    private async Task<IResult> RenderPageAsync<TComponent>(
         IReadOnlyDictionary<string, object?> data,
+        bool rootSwapOverride,
         CancellationToken cancellationToken = default)
         where TComponent : IComponent
     {
@@ -55,7 +105,9 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         var currentLayoutKey = TryReadCurrentLayoutKey(context.Request.Headers, out var layoutKey)
             ? layoutKey
             : null;
-        var navigationMode = ResolveNavigationMode(request, currentLayoutKey, targetLayoutKey);
+        var navigationMode = rootSwapOverride
+            ? ResolveRootSwapMode(request)
+            : ResolvePageNavigationMode(request, currentLayoutKey, targetLayoutKey);
         StorePageNavigationDiagnostics(
             context,
             request,
@@ -107,13 +159,7 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         return Results.Content(html, HtmlContentType);
     }
 
-    public Task<IResult> PartialView<TComponent>(object? data = null, CancellationToken cancellationToken = default)
-        where TComponent : IComponent
-    {
-        return PartialView<TComponent>(HrzParameterDictionaryFactory.Create(data), cancellationToken);
-    }
-
-    public async Task<IResult> PartialView<TComponent>(
+    private async Task<IResult> RenderFragmentAsync<TComponent>(
         IReadOnlyDictionary<string, object?> data,
         CancellationToken cancellationToken = default)
         where TComponent : IComponent
@@ -129,35 +175,6 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
             componentType: typeof(TComponent),
             componentParameters: data,
             layoutType: ResolveLayoutType(typeof(TComponent)),
-            currentLayoutKey: null,
-            context: context,
-            modelState: modelState,
-            isPartial: true,
-            isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
-            isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
-            renderHeadContent: null,
-            renderSwapContent: null,
-            cancellationToken: cancellationToken);
-
-        return Results.Content(html, HtmlContentType);
-    }
-
-    public async Task<IResult> PartialView(CancellationToken cancellationToken = default, params RenderFragment[] fragments)
-    {
-        ArgumentNullException.ThrowIfNull(fragments);
-
-        var context = GetHttpContext();
-        var request = context.HtmxRequest();
-        var modelState = ResolveModelState(context);
-        EnsureFragmentVaryForHtmxBranching(context.Response.Headers);
-
-        var html = await RenderHostAsync(
-            componentType: typeof(HrzFragmentGroup),
-            componentParameters: new Dictionary<string, object?>
-            {
-                [nameof(HrzFragmentGroup.Fragments)] = fragments
-            },
-            layoutType: null,
             currentLayoutKey: null,
             context: context,
             modelState: modelState,
@@ -275,7 +292,7 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         return HrzLayoutKey.TryNormalize(values.ToString(), out layoutKey);
     }
 
-    private static HrzPageNavigationResponseMode ResolveNavigationMode(
+    private static HrzPageNavigationResponseMode ResolvePageNavigationMode(
         HtmxRequest request,
         string? currentLayoutKey,
         string targetLayoutKey)
@@ -298,6 +315,16 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         return string.Equals(currentLayoutKey, targetLayoutKey, StringComparison.Ordinal)
             ? HrzPageNavigationResponseMode.PageFragment
             : HrzPageNavigationResponseMode.RootSwap;
+    }
+
+    private static HrzPageNavigationResponseMode ResolveRootSwapMode(HtmxRequest request)
+    {
+        if (request.RequestType != HtmxRequestType.Partial || request.IsHistoryRestoreRequest)
+        {
+            return HrzPageNavigationResponseMode.FullPage;
+        }
+
+        return HrzPageNavigationResponseMode.RootSwap;
     }
 
     private static void StorePageNavigationDiagnostics(

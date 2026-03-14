@@ -35,11 +35,6 @@ public static class HyperRazorServiceCollectionExtensions
         {
             services.Configure<HrzSseOptions>(configureSse);
         }
-        services.AddOptions<HrzSwapOptions>()
-            .Configure<IOptions<HrzOptions>>((swapOptions, hrzOptions) =>
-            {
-                swapOptions.AllowRawContentOnNonHtmx = hrzOptions.Value.AllowRawContentOnNonHtmx;
-            });
         services.TryAddSingleton<IHyperRazorRegistrationMarker, HyperRazorRegistrationMarker>();
 
         services.TryAddSingleton<HrzFieldPathResolver>();
@@ -49,12 +44,13 @@ public static class HyperRazorServiceCollectionExtensions
         services.TryAddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
-        services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        services.AddScoped<IHrzRenderService, HrzRenderService>();
         services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();
         services.TryAddScoped<IHrzSseReplayStrategy, HrzDefaultSseReplayStrategy>();
         services.AddSingleton<IHrzLayoutTypeResolver, HrzLayoutTypeResolver>();
         services.AddScoped<IHrzHeadService, HrzHeadService>();
-        services.AddScoped<IHrzSwapService, HrzSwapService>();
+        services.AddScoped<HrzSwapService>();
+        services.AddScoped<IHrzSwapService>(serviceProvider => serviceProvider.GetRequiredService<HrzSwapService>());
 
         return services;
     }

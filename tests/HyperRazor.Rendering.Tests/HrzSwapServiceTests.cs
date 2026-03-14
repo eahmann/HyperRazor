@@ -10,7 +10,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 
 namespace HyperRazor.Rendering.Tests;
@@ -20,97 +19,59 @@ namespace HyperRazor.Rendering.Tests;
 public class HrzSwapServiceTests
 {
     [Fact]
-    public void SwapStyle_ToHtmxString_UsesExpectedFormats()
-    {
-        Assert.Equal("outerHTML", SwapStyle.OuterHtml.ToHtmxString());
-        Assert.Equal("beforeend:#toast-stack", BuildOobValue(SwapStyle.BeforeEnd, "#toast-stack"));
-    }
-
-    [Fact]
-    public void RenderToFragment_WithoutHtmxRequest_ExcludesSwappables()
+    public void RenderBufferedFragment_WithoutHtmxRequest_ExcludesQueuedSwaps()
     {
         var service = CreateService(isHtmx: false);
-        service.AddSwappableContent("toast-item", "Created");
+        service.Replace("toast-stack", builder => builder.AddMarkupContent(0, "<div>Created</div>"));
 
-        var fragment = service.RenderToFragment();
+        var fragment = service.RenderBufferedFragment();
         var frames = RenderFrames(fragment);
 
         Assert.Equal(0, frames.Count);
-        Assert.True(service.ContentAvailable);
+        Assert.True(service.HasBufferedContent);
     }
 
     [Fact]
-    public void RenderToFragment_WithHtmxRequest_IncludesSwappables()
+    public void RenderBufferedFragment_WithHtmxRequest_IncludesQueuedSwaps()
     {
         var service = CreateService(isHtmx: true);
-        service.AddSwappableContent("toast-item", "Created");
+        service.Replace("toast-stack", builder => builder.AddMarkupContent(0, "<div>Created</div>"));
 
-        var fragment = service.RenderToFragment();
+        var fragment = service.RenderBufferedFragment();
         var frames = RenderFrames(fragment);
 
         Assert.True(frames.Count > 0);
     }
 
     [Fact]
-    public void AddRawContent_WithoutOptIn_DoesNotRenderForNonHtmx()
-    {
-        var service = CreateService(isHtmx: false, allowRawContentOnNonHtmx: false);
-        service.AddRawContent("<p id=\"raw-content\">Raw</p>");
-
-        var fragment = service.RenderToFragment();
-        var frames = RenderFrames(fragment);
-
-        Assert.Equal(0, frames.Count);
-    }
-
-    [Fact]
-    public void AddRawContent_WithOptIn_RendersForNonHtmx()
-    {
-        var service = CreateService(isHtmx: false, allowRawContentOnNonHtmx: true);
-        service.AddRawContent("<p id=\"raw-content\">Raw</p>");
-
-        var fragment = service.RenderToFragment();
-        var frames = RenderFrames(fragment);
-
-        Assert.True(frames.Count > 0);
-    }
-
-    [Fact]
-    public void RenderToFragment_ClearTrue_DrainsQueuedItems()
+    public void RenderBufferedFragment_ClearTrue_DrainsQueuedItems()
     {
         var service = CreateService(isHtmx: true);
-        service.AddSwappableComponent<TestBadgeComponent>("badge-item", new { Message = "Hello" });
+        service.Replace<TestBadgeComponent>("badge-shell", new { Message = "Hello" });
 
-        _ = service.RenderToFragment(clear: true);
+        _ = service.RenderBufferedFragment(clear: true);
 
-        Assert.False(service.ContentAvailable);
+        Assert.False(service.HasBufferedContent);
     }
 
     [Fact]
-    public void ContentItemsUpdated_RaisesOnAddAndClear()
+    public void BufferedContentChanged_RaisesOnAddAndClear()
     {
         var service = CreateService(isHtmx: true);
         var updates = 0;
-        service.ContentItemsUpdated += (_, _) => updates++;
+        service.BufferedContentChanged += (_, _) => updates++;
 
-        service.AddSwappableContent("toast-item", "Created");
-        service.AddRawContent("<p>Raw</p>");
+        service.Replace("badge-shell", builder => builder.AddContent(0, "Created"));
+        service.Append("toast-stack", "toast-1", builder => builder.AddContent(0, "Toast"));
         service.Clear();
 
         Assert.Equal(3, updates);
     }
 
     [Fact]
-    public async Task RenderToString_QueueAliases_PreserveOrderingAndSelectorBehavior()
+    public async Task RenderToString_PreservesOrdering_AndEncodesRegionAndSelectorTargets()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
-        var environment = new TestWebHostEnvironment();
-        services.AddSingleton<IWebHostEnvironment>(environment);
-        services.AddSingleton<IHostEnvironment>(environment);
-        services.AddRazorComponents();
-        using var provider = services.BuildServiceProvider();
+        using var provider = BuildRendererProvider();
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
 
         var service = CreateService(
@@ -118,54 +79,51 @@ public class HrzSwapServiceTests
             serviceProvider: provider,
             loggerFactory: loggerFactory);
 
-        service.QueueHtml(
+        service.Append(
+            "toast-stack",
             "toast-first",
-            "<div class=\"toast\">First</div>",
-            swapStyle: SwapStyle.BeforeEnd,
-            selector: "#toast-stack");
-        service.QueueFragment(
-            "activity-fragment",
-            builder => builder.AddMarkupContent(0, "<article>Second</article>"),
-            swapStyle: SwapStyle.OuterHtml);
-        service.QueueComponent<TestBadgeComponent>(
-            "badge-item",
+            builder => builder.AddMarkupContent(0, "<div class=\"toast\">First</div>"));
+        service.Replace(
+            "status-shell",
+            builder => builder.AddMarkupContent(0, "<article>Second</article>"));
+        service.Replace<TestBadgeComponent>(
+            "#legacy-shell",
             new { Message = "Third" },
-            swapStyle: SwapStyle.InnerHtml);
+            new HrzSwapOptions
+            {
+                TargetKind = HrzSwapTargetKind.Selector,
+                TargetId = "legacy-shell"
+            });
 
         var html = await service.RenderToString();
 
         Assert.Contains("hx-swap-oob=\"beforeend:#toast-stack\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"outerHTML:#legacy-shell\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"toast-first\"", html, StringComparison.Ordinal);
-        Assert.Contains("id=\"activity-fragment\"", html, StringComparison.Ordinal);
-        Assert.Contains("id=\"badge-item\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"status-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"legacy-shell\"", html, StringComparison.Ordinal);
 
-        Assert.True(IndexOf(html, "id=\"toast-first\"") < IndexOf(html, "id=\"activity-fragment\""));
-        Assert.True(IndexOf(html, "id=\"activity-fragment\"") < IndexOf(html, "id=\"badge-item\""));
+        Assert.True(IndexOf(html, "id=\"toast-first\"") < IndexOf(html, "id=\"status-shell\""));
+        Assert.True(IndexOf(html, "id=\"status-shell\"") < IndexOf(html, "id=\"legacy-shell\""));
     }
 
     [Fact]
     public async Task RenderToString_WithHtmxRequest_IncludesSwappableMarkup()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
-        var environment = new TestWebHostEnvironment();
-        services.AddSingleton<IWebHostEnvironment>(environment);
-        services.AddSingleton<IHostEnvironment>(environment);
-        services.AddRazorComponents();
-        using var provider = services.BuildServiceProvider();
+        using var provider = BuildRendererProvider();
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
 
         var service = CreateService(
             isHtmx: true,
             serviceProvider: provider,
             loggerFactory: loggerFactory);
-        service.AddSwappableContent("toast-item", "Created");
+        service.Replace("toast-shell", builder => builder.AddContent(0, "Created"));
 
         var html = await service.RenderToString();
 
         Assert.Contains("hx-swap-oob=", html, StringComparison.Ordinal);
-        Assert.Contains("id=\"toast-item\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"toast-shell\"", html, StringComparison.Ordinal);
         Assert.Contains("Created", html, StringComparison.Ordinal);
     }
 
@@ -173,14 +131,28 @@ public class HrzSwapServiceTests
     public async Task RenderToString_WithoutRendererDependencies_Throws()
     {
         var service = CreateService(isHtmx: true);
-        service.AddSwappableContent("toast-item", "Created");
+        service.Replace("toast-shell", builder => builder.AddContent(0, "Created"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.RenderToString());
     }
 
+    [Fact]
+    public void Replace_WithSelectorTarget_RequiresTargetId()
+    {
+        var service = CreateService(isHtmx: true);
+
+        Assert.Throws<ArgumentException>(() =>
+            service.Replace<TestBadgeComponent>(
+                "#legacy-shell",
+                new { Message = "Oops" },
+                new HrzSwapOptions
+                {
+                    TargetKind = HrzSwapTargetKind.Selector
+                }));
+    }
+
     private static HrzSwapService CreateService(
         bool isHtmx,
-        bool allowRawContentOnNonHtmx = false,
         IServiceProvider? serviceProvider = null,
         ILoggerFactory? loggerFactory = null)
     {
@@ -195,17 +167,24 @@ public class HrzSwapServiceTests
             HttpContext = context
         };
 
-        var options = Options.Create(new HrzSwapOptions
-        {
-            AllowRawContentOnNonHtmx = allowRawContentOnNonHtmx
-        });
-
         if (serviceProvider is not null && loggerFactory is not null)
         {
-            return new HrzSwapService(accessor, options, serviceProvider, loggerFactory);
+            return new HrzSwapService(accessor, serviceProvider, loggerFactory);
         }
 
-        return new HrzSwapService(accessor, options);
+        return new HrzSwapService(accessor);
+    }
+
+    private static ServiceProvider BuildRendererProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        var environment = new TestWebHostEnvironment();
+        services.AddSingleton<IWebHostEnvironment>(environment);
+        services.AddSingleton<IHostEnvironment>(environment);
+        services.AddRazorComponents();
+        return services.BuildServiceProvider();
     }
 
     private static ArrayRange<RenderTreeFrame> RenderFrames(RenderFragment fragment)
@@ -213,11 +192,6 @@ public class HrzSwapServiceTests
         var builder = new RenderTreeBuilder();
         fragment(builder);
         return builder.GetFrames();
-    }
-
-    private static string BuildOobValue(SwapStyle style, string selector)
-    {
-        return $"{style.ToHtmxString()}:{selector}";
     }
 
     private static int IndexOf(string html, string value)

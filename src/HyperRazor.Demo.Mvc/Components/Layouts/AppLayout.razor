@@ -25,7 +25,7 @@
     data-hrz-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
     data-hrz-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
     hx-ext="@(HtmxConfig.EnableHeadSupport ? "head-support" : null)">
-    <div id="hrz-app-shell" class="app-shell" data-hrz-layout-family="@ChromeState.LayoutFamily">
+    <div id="hrz-app-shell" class="app-shell">
         <header id="app-shell">
             <div class="container-fluid app-shell-frame px-3 px-xxl-4">
                 <div class="app-bar d-flex flex-wrap align-items-center justify-content-between gap-3 py-2">
@@ -40,7 +40,7 @@
                     <div id="app-chrome-toolbar">
                         <DemoChromeToolbar
                             RouteLabel="@ChromeState.RouteLabel"
-                            LayoutFamily="@ChromeState.LayoutFamily"
+                            LayoutName="@ChromeState.LayoutName"
                             Theme="@ChromeState.Theme" />
                     </div>
                 </div>
@@ -53,7 +53,7 @@
                     <div id="app-chrome-sidebar">
                         <DemoChromeSidebar
                             ActiveSection="@ChromeState.ActiveSection"
-                            LayoutFamily="@ChromeState.LayoutFamily" />
+                            LayoutName="@ChromeState.LayoutName" />
                     </div>
                 </aside>
 
@@ -80,10 +80,7 @@
 
 @code {
     [CascadingParameter]
-    public HrzShellContext? ShellContext { get; set; }
-
-    [CascadingParameter]
     public HttpContext? HttpContext { get; set; }
 
-    private DemoChromeState ChromeState => DemoChromeState.Create(HttpContext, ShellContext?.LayoutFamily);
+    private DemoChromeState ChromeState => DemoChromeState.Create(HttpContext);
 }

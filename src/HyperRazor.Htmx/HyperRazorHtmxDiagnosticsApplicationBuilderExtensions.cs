@@ -40,18 +40,18 @@ public static class HyperRazorHtmxDiagnosticsApplicationBuilderExtensions
 
             await next();
 
-            if (context.Items.TryGetValue(typeof(HtmxLayoutPromotionDiagnostics), out var diagnosticsValue)
-                && diagnosticsValue is HtmxLayoutPromotionDiagnostics promotionDiagnostics)
+            if (context.Items.TryGetValue(typeof(HtmxPageNavigationDiagnostics), out var diagnosticsValue)
+                && diagnosticsValue is HtmxPageNavigationDiagnostics navigationDiagnostics)
             {
                 logger.LogInformation(
-                    "HTMX request processed: {Method} {Path} => {StatusCode}; clientLayoutFamily={ClientLayoutFamily}; routeLayoutFamily={RouteLayoutFamily}; promotionMode={PromotionMode}; promotionApplied={PromotionApplied}",
+                    "HTMX request processed: {Method} {Path} => {StatusCode}; currentUrl={CurrentUrl}; sourceLayout={SourceLayout}; targetLayout={TargetLayout}; mode={Mode}",
                     context.Request.Method,
                     context.Request.Path,
                     context.Response.StatusCode,
-                    Display(promotionDiagnostics.ClientLayoutFamily),
-                    Display(promotionDiagnostics.RouteLayoutFamily),
-                    promotionDiagnostics.PromotionMode,
-                    promotionDiagnostics.PromotionApplied);
+                    Display(navigationDiagnostics.CurrentUrl),
+                    Display(navigationDiagnostics.SourceLayout),
+                    Display(navigationDiagnostics.TargetLayout),
+                    navigationDiagnostics.Mode);
                 return;
             }
 

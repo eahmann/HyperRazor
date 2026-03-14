@@ -108,7 +108,7 @@ The bundled client script reads the antiforgery meta tag and adds the configured
 
 Advanced features remain available, but they are not part of the first working app:
 
-- layout-boundary promotion
+- layout-aware page navigation
 - custom HTMX response handling
 - SSE replay customization
 - validation policy overrides

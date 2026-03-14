@@ -13,15 +13,19 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
 {
     private readonly IHrzHtmlRendererAdapter _renderer;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHrzLayoutTypeResolver _layoutTypeResolver;
     private readonly HrzOptions _options;
 
     public HrzSseRenderer(
         IHrzHtmlRendererAdapter renderer,
         IHttpContextAccessor httpContextAccessor,
+        IServiceProvider services,
         IOptions<HrzOptions> options)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        ArgumentNullException.ThrowIfNull(services);
+        _layoutTypeResolver = services.GetRequiredService<IHrzLayoutTypeResolver>();
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
     }
 
@@ -147,14 +151,13 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
             {
                 [nameof(HrzComponentHost.ComponentType)] = componentType,
                 [nameof(HrzComponentHost.ComponentParameters)] = componentParameters,
+                [nameof(HrzComponentHost.LayoutType)] = _layoutTypeResolver.ResolveForComponent(componentType),
                 [nameof(HrzComponentHost.RootComponentType)] = _options.RootComponent,
                 [nameof(HrzComponentHost.IsPartial)] = true,
                 [nameof(HrzComponentHost.IsHtmxRequest)] = false,
                 [nameof(HrzComponentHost.IsHistoryRestoreRequest)] = false,
-                [nameof(HrzComponentHost.UseMinimalLayoutForHtmx)] = _options.UseMinimalLayoutForHtmx,
                 [nameof(HrzComponentHost.HttpContext)] = context,
                 [nameof(HrzComponentHost.ModelState)] = ResolveModelState(context),
-                [nameof(HrzComponentHost.ShellContext)] = null,
                 [nameof(HrzComponentHost.RenderHeadContent)] = false,
                 [nameof(HrzComponentHost.RenderSwapContent)] = true
             };

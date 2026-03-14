@@ -3,9 +3,9 @@
         <span class="chrome-chip-label">route</span>
         <code>@RouteLabel</code>
     </span>
-    <span class="chrome-chip" title="Current shell layout family">
-        <span class="chrome-chip-label">shell</span>
-        <code>@LayoutFamily</code>
+    <span class="chrome-chip" title="Current page layout">
+        <span class="chrome-chip-label">layout</span>
+        <code>@LayoutName</code>
     </span>
     <div class="chrome-theme-switch" role="group" aria-label="Theme selector">
         @foreach (var option in ThemeOptions)
@@ -40,7 +40,7 @@
     public string RouteLabel { get; set; } = "/";
 
     [Parameter]
-    public string LayoutFamily { get; set; } = "admin";
+    public string LayoutName { get; set; } = "admin";
 
     [Parameter]
     public string Theme { get; set; } = "dark";

@@ -3,12 +3,12 @@
     <div class="sidebar-heading-block">
         <p class="sidebar-kicker">Operations</p>
         <h2>Navigation</h2>
-        <p class="sidebar-caption">Server-owned chrome. Boosted page requests keep this rail aligned through OOB swaps.</p>
+        <p class="sidebar-caption">Server-owned chrome. Same-layout boosted requests keep this rail aligned through OOB swaps.</p>
     </div>
 
     <div class="sidebar-mode-block" role="status" aria-live="polite">
-        <span class="sidebar-mode-label">Active shell</span>
-        <span class="sidebar-mode-value">@LayoutFamily</span>
+        <span class="sidebar-mode-label">Active layout</span>
+        <span class="sidebar-mode-value">@LayoutName</span>
     </div>
 
     <DemoNavLinks ActiveSection="@ActiveSection" />
@@ -20,5 +20,5 @@
     public string ActiveSection { get; set; } = "/";
 
     [Parameter]
-    public string LayoutFamily { get; set; } = "admin";
+    public string LayoutName { get; set; } = "admin";
 }

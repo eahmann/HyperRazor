@@ -1,6 +1,6 @@
 @typeparam TLayout where TLayout : IComponent
 
-<HrzLayout TLayout="TLayout" IsHtmxRequest="IsHtmxRequest" UseMinimalLayoutForHtmx="UseMinimalLayoutForHtmx">
+<HrzLayout TLayout="TLayout" IsHtmxRequest="IsHtmxRequest">
     @Body
 </HrzLayout>
 
@@ -10,7 +10,4 @@
 
     [Parameter]
     public bool IsHtmxRequest { get; set; }
-
-    [Parameter]
-    public bool UseMinimalLayoutForHtmx { get; set; } = true;
 }

@@ -19,11 +19,7 @@ public sealed class HrzOptions
         }
     }
 
-    public bool UseMinimalLayoutForHtmx { get; set; } = true;
-
     public bool AllowRawContentOnNonHtmx { get; set; }
-
-    public HrzLayoutBoundaryOptions LayoutBoundary { get; set; } = new();
 
     private static void EnsureComponentType(Type type, string argumentName)
     {

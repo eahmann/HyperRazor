@@ -5,7 +5,7 @@ namespace HyperRazor.Demo.Mvc.Infrastructure;
 public sealed record DemoChromeState(
     string RouteLabel,
     string ActiveSection,
-    string LayoutFamily,
+    string LayoutName,
     string Theme)
 {
     public const string ThemeCookieName = "hrz-demo-theme";
@@ -14,15 +14,14 @@ public sealed record DemoChromeState(
 
     public string ThemeHref => GetThemeHref(Theme);
 
-    public static DemoChromeState Create(HttpContext? context, string? layoutFamily = null)
+    public static DemoChromeState Create(HttpContext? context)
     {
         var path = context?.Request.Path ?? "/";
-        var resolvedLayoutFamily = NormalizeLayoutFamily(layoutFamily) ?? ResolveLayoutFamily(path);
 
         return new DemoChromeState(
             RouteLabel: BuildRouteLabel(context),
             ActiveSection: ResolveActiveSection(path),
-            LayoutFamily: resolvedLayoutFamily,
+            LayoutName: ResolveLayoutName(path),
             Theme: GetTheme(context));
     }
 
@@ -150,7 +149,7 @@ public sealed record DemoChromeState(
         return value == "/users" ? "/users" : "/";
     }
 
-    private static string ResolveLayoutFamily(PathString path)
+    private static string ResolveLayoutName(PathString path)
     {
         var value = NormalizePath(path);
 
@@ -169,13 +168,6 @@ public sealed record DemoChromeState(
         }
 
         return "admin";
-    }
-
-    private static string? NormalizeLayoutFamily(string? layoutFamily)
-    {
-        return string.IsNullOrWhiteSpace(layoutFamily)
-            ? null
-            : layoutFamily.Trim().ToLowerInvariant();
     }
 
     private static string NormalizePath(PathString path)

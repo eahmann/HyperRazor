@@ -35,6 +35,7 @@ public sealed class HrzSseRendererTests
         Assert.Equal(TimeSpan.FromSeconds(3), item.ReconnectionInterval);
         Assert.Contains("Hello Ava", item.Data, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"hrz-app-shell\"", item.Data, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-hrz-current-layout=", item.Data, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -163,10 +164,9 @@ public sealed class HrzSseRendererTests
         services.Configure<HrzOptions>(options =>
         {
             options.RootComponent = typeof(HrzApp<HrzAppLayout>);
-            options.UseMinimalLayoutForHtmx = true;
         });
         services.AddOptions<HrzSwapOptions>();
-        services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
+        services.AddSingleton<IHrzLayoutTypeResolver, HrzLayoutTypeResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<IHrzSwapService, HrzSwapService>();

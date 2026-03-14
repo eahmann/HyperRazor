@@ -3,34 +3,32 @@
 @using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.Mvc.ModelBinding
 
-<CascadingValue Value="ShellContext" IsFixed="true">
-    <CascadingValue Value="HttpContext" IsFixed="true">
-        <CascadingValue Value="ModelState" IsFixed="true">
-            @if (IsPartial)
+<CascadingValue Value="HttpContext" IsFixed="true">
+    <CascadingValue Value="ModelState" IsFixed="true">
+        @if (IsPartial)
+        {
+            @_componentContent
+            @if (ShouldRenderHeadContent)
             {
-                @_componentContent
-                @if (ShouldRenderHeadContent)
-                {
-                    <HrzHeadContent />
-                }
-                @if (ShouldRenderSwapContent)
-                {
-                    <HrzSwapContent />
-                }
+                <HrzHeadContent />
             }
-            else
+            @if (ShouldRenderSwapContent)
             {
-                <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
-                @if (ShouldRenderHeadContent)
-                {
-                    <HrzHeadContent />
-                }
-                @if (ShouldRenderSwapContent)
-                {
-                    <HrzSwapContent />
-                }
+                <HrzSwapContent />
             }
-        </CascadingValue>
+        }
+        else
+        {
+            <DynamicComponent Type="_resolvedRootComponentType" Parameters="_rootParameters" />
+            @if (ShouldRenderHeadContent)
+            {
+                <HrzHeadContent />
+            }
+            @if (ShouldRenderSwapContent)
+            {
+                <HrzSwapContent />
+            }
+        }
     </CascadingValue>
 </CascadingValue>
 
@@ -40,6 +38,12 @@
 
     [Parameter]
     public IReadOnlyDictionary<string, object?>? ComponentParameters { get; set; }
+
+    [Parameter]
+    public Type? LayoutType { get; set; }
+
+    [Parameter]
+    public string? CurrentLayoutKey { get; set; }
 
     [Parameter]
     public bool IsPartial { get; set; }
@@ -54,16 +58,10 @@
     public bool IsHistoryRestoreRequest { get; set; }
 
     [Parameter]
-    public bool UseMinimalLayoutForHtmx { get; set; } = true;
-
-    [Parameter]
     public HttpContext? HttpContext { get; set; }
 
     [Parameter]
     public ModelStateDictionary? ModelState { get; set; }
-
-    [Parameter]
-    public HrzShellContext? ShellContext { get; set; }
 
     [Parameter]
     public bool? RenderHeadContent { get; set; }
@@ -74,6 +72,7 @@
     private Type _resolvedRootComponentType = typeof(HrzApp<HrzAppLayout>);
     private Dictionary<string, object?> _rootParameters = new();
     private RenderFragment _componentContent = _ => { };
+    private RenderFragment _pageContent = _ => { };
     private bool ShouldRenderHeadContent => RenderHeadContent ?? (IsHtmxRequest && !IsHistoryRestoreRequest);
     private bool ShouldRenderSwapContent => RenderSwapContent ?? (IsHtmxRequest && !IsHistoryRestoreRequest);
 
@@ -81,12 +80,12 @@
     {
         _resolvedRootComponentType = RootComponentType ?? typeof(HrzApp<HrzAppLayout>);
         _componentContent = BuildComponentTree();
+        _pageContent = BuildPageContent();
 
         _rootParameters = new Dictionary<string, object?>
         {
-            ["Body"] = _componentContent,
-            ["IsHtmxRequest"] = IsHtmxRequest,
-            ["UseMinimalLayoutForHtmx"] = UseMinimalLayoutForHtmx
+            ["Body"] = _pageContent,
+            ["IsHtmxRequest"] = IsHtmxRequest
         };
     }
 
@@ -94,21 +93,31 @@
     {
         return builder =>
         {
-            RenderComponentWithOptionalLayout(builder, ComponentType, ComponentParameters);
+            RenderComponentWithOptionalLayout(builder, ComponentType, LayoutType, ComponentParameters);
+        };
+    }
+
+    private RenderFragment BuildPageContent()
+    {
+        return builder =>
+        {
+            if (!IsPartial && !string.IsNullOrWhiteSpace(CurrentLayoutKey))
+            {
+                builder.OpenElement(0, "template");
+                builder.AddAttribute(1, "data-hrz-current-layout", CurrentLayoutKey);
+                builder.CloseElement();
+            }
+
+            builder.AddContent(10, _componentContent);
         };
     }
 
     private static void RenderComponentWithOptionalLayout(
         RenderTreeBuilder builder,
         Type componentType,
+        Type? layoutType,
         IReadOnlyDictionary<string, object?>? parameters)
     {
-        var layoutAttribute = (LayoutAttribute?)Attribute.GetCustomAttribute(
-            componentType,
-            typeof(LayoutAttribute),
-            inherit: true);
-        var layoutType = layoutAttribute?.LayoutType;
-
         if (layoutType is null)
         {
             RenderComponent(builder, componentType, parameters);

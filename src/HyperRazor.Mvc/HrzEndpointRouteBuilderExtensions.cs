@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-
 namespace HyperRazor.Mvc;
 
 public static class HrzEndpointRouteBuilderExtensions
@@ -16,8 +15,9 @@ public static class HrzEndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
 
-        return endpoints.MapGet(pattern, (HttpContext context, CancellationToken cancellationToken) =>
-            HrzResults.Page<TComponent>(context, cancellationToken: cancellationToken));
+        return endpoints
+            .MapGet(pattern, (HttpContext context, CancellationToken cancellationToken) =>
+                HrzResults.Page<TComponent>(context, cancellationToken: cancellationToken));
     }
 
     /// <summary>

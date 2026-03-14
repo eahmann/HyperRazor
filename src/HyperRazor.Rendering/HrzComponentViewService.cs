@@ -3,6 +3,7 @@ using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 
@@ -11,21 +12,23 @@ namespace HyperRazor.Rendering;
 public sealed class HrzComponentViewService : IHrzComponentViewService
 {
     private const string HtmlContentType = "text/html; charset=utf-8";
+    private const string AppShellSelector = "#hrz-app-shell";
 
     private readonly IHrzHtmlRendererAdapter _renderer;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IHrzLayoutFamilyResolver _layoutFamilyResolver;
+    private readonly IHrzLayoutTypeResolver _layoutTypeResolver;
     private readonly HrzOptions _options;
 
     public HrzComponentViewService(
         IHrzHtmlRendererAdapter renderer,
         IHttpContextAccessor httpContextAccessor,
-        IHrzLayoutFamilyResolver layoutFamilyResolver,
+        IServiceProvider services,
         IOptions<HrzOptions> options)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-        _layoutFamilyResolver = layoutFamilyResolver ?? throw new ArgumentNullException(nameof(layoutFamilyResolver));
+        ArgumentNullException.ThrowIfNull(services);
+        _layoutTypeResolver = services.GetRequiredService<IHrzLayoutTypeResolver>();
         _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
     }
 
@@ -44,54 +47,61 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
 
         var context = GetHttpContext();
         var request = context.HtmxRequest();
-        var isHtmxRequest = request.RequestType == HtmxRequestType.Partial;
-        var routeLayoutFamily = _layoutFamilyResolver.ResolveForPageComponent(typeof(TComponent));
-        var shellContext = new HrzShellContext(routeLayoutFamily);
+        var layoutType = ResolveLayoutType(typeof(TComponent));
+        var targetLayoutKey = HrzLayoutKey.Create(layoutType);
         var modelState = ResolveModelState(context);
-        EnsureVaryForHtmxBranching(context.Response.Headers);
-        var clientLayoutFamily = ResolveClientLayoutFamily(
-            request,
+        EnsurePageVaryForHtmxBranching(context.Response.Headers);
+
+        var currentLayoutKey = TryReadCurrentLayoutKey(context.Request.Headers, out var layoutKey)
+            ? layoutKey
+            : null;
+        var navigationMode = ResolveNavigationMode(request, currentLayoutKey, targetLayoutKey);
+        StorePageNavigationDiagnostics(
             context,
-            routeLayoutFamily,
-            _options.LayoutBoundary.LayoutFamilyHeaderName);
+            request,
+            currentLayoutKey,
+            targetLayoutKey,
+            navigationMode);
 
-        var promotionMode = ResolvePromotionMode(
-            request: request,
-            routeLayoutFamily: routeLayoutFamily,
-            clientLayoutFamily: clientLayoutFamily);
-        StoreLayoutPromotionDiagnostics(context, clientLayoutFamily, routeLayoutFamily, promotionMode);
-
-        if (promotionMode == HrzLayoutBoundaryPromotionMode.Redirect)
-        {
-            context.HtmxResponse().Redirect(GetRequestPathAndQuery(context.Request));
-            return Results.Content(string.Empty, HtmlContentType);
-        }
-
-        if (promotionMode == HrzLayoutBoundaryPromotionMode.Refresh)
-        {
-            context.HtmxResponse().Refresh();
-            return Results.Content(string.Empty, HtmlContentType);
-        }
-
-        var shouldRenderShellForPromotion = promotionMode == HrzLayoutBoundaryPromotionMode.ShellSwap;
-        if (shouldRenderShellForPromotion)
+        if (navigationMode == HrzPageNavigationResponseMode.HxLocation)
         {
             context.HtmxResponse()
-                .Retarget(_options.LayoutBoundary.ShellTargetSelector)
-                .Reswap(_options.LayoutBoundary.ShellSwapStyle)
-                .Reselect(_options.LayoutBoundary.ShellReselectSelector);
-            isHtmxRequest = false;
+                .Location(new
+                {
+                    path = GetRequestPathAndQuery(context.Request),
+                    target = AppShellSelector,
+                    swap = "outerHTML",
+                    select = AppShellSelector,
+                    headers = new Dictionary<string, string>
+                    {
+                        [HtmxHeaderNames.RequestType] = "full"
+                    }
+                });
+
+            return Results.Content(string.Empty, HtmlContentType);
+        }
+
+        if (navigationMode == HrzPageNavigationResponseMode.RootSwap)
+        {
+            context.HtmxResponse()
+                .Retarget(AppShellSelector)
+                .Reswap("outerHTML")
+                .Reselect(AppShellSelector)
+                .PushUrl(pushUrl: true);
         }
 
         var html = await RenderHostAsync(
             componentType: typeof(TComponent),
             componentParameters: data,
+            layoutType: layoutType,
+            currentLayoutKey: targetLayoutKey,
             context: context,
             modelState: modelState,
             isPartial: false,
-            isHtmxRequest: isHtmxRequest,
+            isHtmxRequest: navigationMode == HrzPageNavigationResponseMode.PageFragment,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
-            shellContext: shellContext,
+            renderHeadContent: navigationMode == HrzPageNavigationResponseMode.RootSwap ? true : null,
+            renderSwapContent: navigationMode == HrzPageNavigationResponseMode.RootSwap ? true : null,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -113,17 +123,20 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         var context = GetHttpContext();
         var request = context.HtmxRequest();
         var modelState = ResolveModelState(context);
-        EnsureVaryForHtmxBranching(context.Response.Headers);
+        EnsureFragmentVaryForHtmxBranching(context.Response.Headers);
 
         var html = await RenderHostAsync(
             componentType: typeof(TComponent),
             componentParameters: data,
+            layoutType: ResolveLayoutType(typeof(TComponent)),
+            currentLayoutKey: null,
             context: context,
             modelState: modelState,
             isPartial: true,
             isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
-            shellContext: null,
+            renderHeadContent: null,
+            renderSwapContent: null,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -136,7 +149,7 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         var context = GetHttpContext();
         var request = context.HtmxRequest();
         var modelState = ResolveModelState(context);
-        EnsureVaryForHtmxBranching(context.Response.Headers);
+        EnsureFragmentVaryForHtmxBranching(context.Response.Headers);
 
         var html = await RenderHostAsync(
             componentType: typeof(HrzFragmentGroup),
@@ -144,12 +157,15 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
             {
                 [nameof(HrzFragmentGroup.Fragments)] = fragments
             },
+            layoutType: null,
+            currentLayoutKey: null,
             context: context,
             modelState: modelState,
             isPartial: true,
             isHtmxRequest: request.RequestType == HtmxRequestType.Partial,
             isHistoryRestoreRequest: request.IsHistoryRestoreRequest,
-            shellContext: null,
+            renderHeadContent: null,
+            renderSwapContent: null,
             cancellationToken: cancellationToken);
 
         return Results.Content(html, HtmlContentType);
@@ -158,26 +174,31 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
     private Task<string> RenderHostAsync(
         Type componentType,
         IReadOnlyDictionary<string, object?> componentParameters,
+        Type? layoutType,
+        string? currentLayoutKey,
         HttpContext context,
         ModelStateDictionary modelState,
         bool isPartial,
         bool isHtmxRequest,
         bool isHistoryRestoreRequest,
-        HrzShellContext? shellContext,
+        bool? renderHeadContent,
+        bool? renderSwapContent,
         CancellationToken cancellationToken)
     {
         var hostParameters = new Dictionary<string, object?>
         {
             [nameof(HrzComponentHost.ComponentType)] = componentType,
             [nameof(HrzComponentHost.ComponentParameters)] = componentParameters,
+            [nameof(HrzComponentHost.LayoutType)] = layoutType,
+            [nameof(HrzComponentHost.CurrentLayoutKey)] = currentLayoutKey,
             [nameof(HrzComponentHost.RootComponentType)] = _options.RootComponent,
             [nameof(HrzComponentHost.IsPartial)] = isPartial,
             [nameof(HrzComponentHost.IsHtmxRequest)] = isHtmxRequest,
             [nameof(HrzComponentHost.IsHistoryRestoreRequest)] = isHistoryRestoreRequest,
-            [nameof(HrzComponentHost.UseMinimalLayoutForHtmx)] = _options.UseMinimalLayoutForHtmx,
             [nameof(HrzComponentHost.HttpContext)] = context,
             [nameof(HrzComponentHost.ModelState)] = modelState,
-            [nameof(HrzComponentHost.ShellContext)] = shellContext
+            [nameof(HrzComponentHost.RenderHeadContent)] = renderHeadContent,
+            [nameof(HrzComponentHost.RenderSwapContent)] = renderSwapContent
         };
 
         return _renderer.RenderAsync(typeof(HrzComponentHost), hostParameters, cancellationToken);
@@ -189,20 +210,20 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
             ?? throw new InvalidOperationException("No active HttpContext is available for HyperRazor rendering.");
     }
 
-    private void EnsureVaryForHtmxBranching(IHeaderDictionary headers)
+    private static void EnsurePageVaryForHtmxBranching(IHeaderDictionary headers)
     {
         EnsureVaryBy(headers, HtmxHeaderNames.Request);
         EnsureVaryBy(headers, HtmxHeaderNames.RequestType);
         EnsureVaryBy(headers, HtmxHeaderNames.HistoryRestoreRequest);
-
-        var layoutBoundaryOptions = _options.LayoutBoundary;
-        if (!layoutBoundaryOptions.Enabled || !layoutBoundaryOptions.AddVaryHeader)
-        {
-            return;
-        }
-
-        EnsureVaryBy(headers, layoutBoundaryOptions.LayoutFamilyHeaderName);
         EnsureVaryBy(headers, HtmxHeaderNames.Boosted);
+        EnsureVaryBy(headers, HrzInternalHeaderNames.CurrentLayout);
+    }
+
+    private static void EnsureFragmentVaryForHtmxBranching(IHeaderDictionary headers)
+    {
+        EnsureVaryBy(headers, HtmxHeaderNames.Request);
+        EnsureVaryBy(headers, HtmxHeaderNames.RequestType);
+        EnsureVaryBy(headers, HtmxHeaderNames.HistoryRestoreRequest);
     }
 
     private static void EnsureVaryBy(IHeaderDictionary headers, string varyHeader)
@@ -237,70 +258,60 @@ public sealed class HrzComponentViewService : IHrzComponentViewService
         return new ModelStateDictionary();
     }
 
-    private HrzLayoutBoundaryPromotionMode ResolvePromotionMode(
-        HtmxRequest request,
-        string routeLayoutFamily,
-        string? clientLayoutFamily)
+    private Type? ResolveLayoutType(Type componentType)
     {
-        var options = _options.LayoutBoundary;
-        if (!options.Enabled || options.PromotionMode == HrzLayoutBoundaryPromotionMode.Off)
-        {
-            return HrzLayoutBoundaryPromotionMode.Off;
-        }
-
-        if (!request.IsPartialRequest || request.IsHistoryRestoreRequest)
-        {
-            return HrzLayoutBoundaryPromotionMode.Off;
-        }
-
-        if (options.OnlyBoostedRequests && !request.IsBoosted)
-        {
-            return HrzLayoutBoundaryPromotionMode.Off;
-        }
-
-        if (string.IsNullOrWhiteSpace(clientLayoutFamily))
-        {
-            return options.PromotionMode;
-        }
-
-        return string.Equals(clientLayoutFamily, routeLayoutFamily, StringComparison.OrdinalIgnoreCase)
-            ? HrzLayoutBoundaryPromotionMode.Off
-            : options.PromotionMode;
+        return _layoutTypeResolver.ResolveForComponent(componentType);
     }
 
-    private static string? ResolveClientLayoutFamily(
-        HtmxRequest request,
-        HttpContext context,
-        string routeLayoutFamily,
-        string requestHeaderName)
+    private static bool TryReadCurrentLayoutKey(IHeaderDictionary headers, out string layoutKey)
     {
-        if (context.Request.Headers.TryGetValue(requestHeaderName, out var headerValue)
-            && !string.IsNullOrWhiteSpace(headerValue.ToString()))
+        layoutKey = string.Empty;
+
+        if (!headers.TryGetValue(HrzInternalHeaderNames.CurrentLayout, out var values))
         {
-            return headerValue.ToString().Trim();
+            return false;
         }
 
-        // Fallback when current URL matches requested URL and the client header is unavailable.
-        if (request.CurrentUrl is not null
-            && request.CurrentUrl.AbsolutePath.Equals(context.Request.Path.Value, StringComparison.OrdinalIgnoreCase))
-        {
-            return routeLayoutFamily;
-        }
-
-        return null;
+        return HrzLayoutKey.TryNormalize(values.ToString(), out layoutKey);
     }
 
-    private static void StoreLayoutPromotionDiagnostics(
-        HttpContext context,
-        string? clientLayoutFamily,
-        string routeLayoutFamily,
-        HrzLayoutBoundaryPromotionMode promotionMode)
+    private static HrzPageNavigationResponseMode ResolveNavigationMode(
+        HtmxRequest request,
+        string? currentLayoutKey,
+        string targetLayoutKey)
     {
-        context.Items[typeof(HtmxLayoutPromotionDiagnostics)] = new HtmxLayoutPromotionDiagnostics(
-            ClientLayoutFamily: clientLayoutFamily,
-            RouteLayoutFamily: routeLayoutFamily,
-            PromotionMode: promotionMode.ToString(),
-            PromotionApplied: promotionMode != HrzLayoutBoundaryPromotionMode.Off);
+        if (request.RequestType != HtmxRequestType.Partial || request.IsHistoryRestoreRequest)
+        {
+            return HrzPageNavigationResponseMode.FullPage;
+        }
+
+        if (!request.IsBoosted)
+        {
+            return HrzPageNavigationResponseMode.PageFragment;
+        }
+
+        if (string.IsNullOrWhiteSpace(currentLayoutKey))
+        {
+            return HrzPageNavigationResponseMode.HxLocation;
+        }
+
+        return string.Equals(currentLayoutKey, targetLayoutKey, StringComparison.Ordinal)
+            ? HrzPageNavigationResponseMode.PageFragment
+            : HrzPageNavigationResponseMode.RootSwap;
+    }
+
+    private static void StorePageNavigationDiagnostics(
+        HttpContext context,
+        HtmxRequest request,
+        string? sourceLayout,
+        string targetLayout,
+        HrzPageNavigationResponseMode mode)
+    {
+        context.Items[typeof(HtmxPageNavigationDiagnostics)] = new HtmxPageNavigationDiagnostics(
+            CurrentUrl: request.CurrentUrl?.ToString(),
+            SourceLayout: sourceLayout,
+            TargetLayout: targetLayout,
+            Mode: mode.ToString());
     }
 
     private static string GetRequestPathAndQuery(HttpRequest request)

@@ -1,4 +1,5 @@
 using System.Net;
+using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -7,6 +8,8 @@ namespace HyperRazor.Demo.Mvc.Tests;
 [Collection("DemoMvcWebAppFactoryCollection")]
 public class DemoMvcWorkbenchTests : DemoMvcIntegrationTestBase
 {
+    private const string CurrentLayoutHeader = "X-Hrz-Current-Layout";
+
     public DemoMvcWorkbenchTests(WebApplicationFactory<Program> factory)
         : base(factory)
     {
@@ -85,63 +88,73 @@ public class DemoMvcWorkbenchTests : DemoMvcIntegrationTestBase
     }
 
     [Fact]
-    public async Task AccessRequests_WithBoostedRequestAndAdminFamily_PromotesToShellSwap()
+    public async Task AccessRequests_WithBoostedCrossLayoutRequest_ReturnsRootSwap()
     {
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/access-requests");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add(HtmxHeaderNames.Boosted, "true");
-        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "admin");
+        request.Headers.Add(CurrentLayoutHeader, typeof(AdminLayout).FullName!);
 
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("id=\"hrz-app-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("<h2>Access Requests</h2>", body, StringComparison.Ordinal);
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Location));
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Retarget, out var retargetValues));
         Assert.Equal("#hrz-app-shell", retargetValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reswap, out var reswapValues));
         Assert.Equal("outerHTML", reswapValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
         Assert.Equal("#hrz-app-shell", reselectValues.Single());
-        Assert.Contains("<header id=\"app-shell\"", body, StringComparison.Ordinal);
-        Assert.Contains("data-hrz-layout-family=\"workbench\"", body, StringComparison.Ordinal);
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.PushUrl, out var pushUrlValues));
+        Assert.Equal("true", pushUrlValues.Single());
     }
 
     [Fact]
-    public async Task ReviewAccessRequest_WithBoostedRequestAndWorkbenchFamily_PromotesToShellSwap()
+    public async Task ReviewAccessRequest_WithBoostedCrossLayoutRequest_ReturnsRootSwap()
     {
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/access-requests/104/review");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add(HtmxHeaderNames.Boosted, "true");
-        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "workbench");
+        request.Headers.Add(CurrentLayoutHeader, typeof(WorkbenchLayout).FullName!);
 
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.True(response.Headers.Contains(HtmxHeaderNames.Retarget));
-        Assert.True(response.Headers.Contains(HtmxHeaderNames.Reswap));
-        Assert.True(response.Headers.Contains(HtmxHeaderNames.Reselect));
-        Assert.Contains("data-hrz-layout-family=\"task\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"hrz-app-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("<h3>Access Review</h3>", body, StringComparison.Ordinal);
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Location));
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Retarget, out var retargetValues));
+        Assert.Equal("#hrz-app-shell", retargetValues.Single());
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reswap, out var reswapValues));
+        Assert.Equal("outerHTML", reswapValues.Single());
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
+        Assert.Equal("#hrz-app-shell", reselectValues.Single());
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.PushUrl, out var pushUrlValues));
+        Assert.Equal("true", pushUrlValues.Single());
     }
 
     [Fact]
-    public async Task AccessRequests_WithNonBoostedRequest_DoesNotPromoteLayoutBoundary()
+    public async Task Incidents_WithBoostedSameLayoutRequest_RemainsFragmentFirst()
     {
         using var client = CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/access-requests");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/incidents");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
-        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "admin");
+        request.Headers.Add(HtmxHeaderNames.Boosted, "true");
+        request.Headers.Add(CurrentLayoutHeader, typeof(WorkbenchLayout).FullName!);
 
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.False(response.Headers.Contains(HtmxHeaderNames.Retarget));
-        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reswap));
-        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reselect));
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Location));
         Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
+        Assert.Contains("<h2>Incidents</h2>", body, StringComparison.Ordinal);
         Assert.Contains("id=\"workbench-layout-shell\"", body, StringComparison.Ordinal);
     }
 

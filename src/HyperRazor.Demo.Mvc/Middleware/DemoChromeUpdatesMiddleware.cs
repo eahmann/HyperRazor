@@ -29,7 +29,7 @@ public sealed class DemoChromeUpdatesMiddleware
                 parameters: new
                 {
                     chromeState.RouteLabel,
-                    chromeState.LayoutFamily,
+                    chromeState.LayoutName,
                     chromeState.Theme
                 },
                 swapStyle: SwapStyle.OuterHtml);
@@ -39,7 +39,7 @@ public sealed class DemoChromeUpdatesMiddleware
                 parameters: new
                 {
                     chromeState.ActiveSection,
-                    chromeState.LayoutFamily
+                    chromeState.LayoutName
                 },
                 swapStyle: SwapStyle.OuterHtml);
         }

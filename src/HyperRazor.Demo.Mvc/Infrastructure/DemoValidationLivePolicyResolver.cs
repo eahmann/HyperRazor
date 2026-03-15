@@ -1,5 +1,5 @@
 using HyperRazor.Demo.Mvc.Models;
-using HyperRazor.Rendering;
+using HyperRazor.Components.Validation;
 
 namespace HyperRazor.Demo.Mvc.Infrastructure;
 

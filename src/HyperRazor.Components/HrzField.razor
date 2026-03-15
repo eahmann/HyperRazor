@@ -1,0 +1,112 @@
+@typeparam TValue
+@using System.Linq.Expressions
+
+<div class="@FieldClass">
+    <CascadingValue Value="_fieldContext">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@implements IDisposable
+
+@code {
+    [Parameter, EditorRequired]
+    public Expression<Func<TValue>> For { get; set; } = default!;
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public bool? EnableClientValidation { get; set; }
+
+    [Parameter]
+    public bool? Live { get; set; }
+
+    [Parameter]
+    public string? LiveValidationPath { get; set; }
+
+    [Parameter]
+    public string? LiveTrigger { get; set; }
+
+    [Parameter]
+    public string? LiveInclude { get; set; }
+
+    [Parameter]
+    public string? LiveSync { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private HrzValidationFormContext? FormContext { get; set; }
+
+    private HrzValidationFieldContext _fieldContext = default!;
+    private HrzFieldPath? _registeredFieldPath;
+    private Expression<Func<TValue>>? _cachedFor;
+    private Func<TValue>? _compiledAccessor;
+
+    private string FieldClass => string.Join(
+        " ",
+        new[]
+        {
+            "validation-field",
+            _fieldContext.HasErrors ? "validation-field--invalid" : null,
+            Class
+        }.Where(static value => !string.IsNullOrWhiteSpace(value)));
+
+    protected override void OnParametersSet()
+    {
+        if (FormContext is null)
+        {
+            throw new InvalidOperationException($"{nameof(HrzField<object>)} requires a cascading {nameof(HrzForm<object>)}.");
+        }
+
+        var compiledAccessor = _compiledAccessor;
+        if (!ReferenceEquals(For, _cachedFor) || compiledAccessor is null)
+        {
+            compiledAccessor = For.Compile();
+            _compiledAccessor = compiledAccessor;
+            _cachedFor = For;
+        }
+
+        _fieldContext = HrzValidationFieldContext.Create(
+            FormContext,
+            For,
+            compiledAccessor,
+            Label,
+            EnableClientValidation,
+            Live,
+            LiveValidationPath,
+            LiveTrigger,
+            LiveInclude,
+            LiveSync);
+
+        if (_registeredFieldPath is not null && !_registeredFieldPath.Equals(_fieldContext.FieldPath))
+        {
+            FormContext.UnregisterField(_registeredFieldPath);
+        }
+
+        if (_fieldContext.HasLiveValidation)
+        {
+            FormContext.RegisterField(_fieldContext);
+            _registeredFieldPath = _fieldContext.FieldPath;
+        }
+        else if (_registeredFieldPath is not null)
+        {
+            FormContext.UnregisterField(_registeredFieldPath);
+            _registeredFieldPath = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (FormContext is not null && _registeredFieldPath is not null)
+        {
+            FormContext.UnregisterField(_registeredFieldPath);
+            _registeredFieldPath = null;
+        }
+    }
+}

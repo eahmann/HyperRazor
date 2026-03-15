@@ -128,4 +128,6 @@ Advanced but supported composition features remain available, but they are not p
 - SSE replay customization
 - validation policy overrides
 
+If you adopt the advanced validation surface later, import shared validation contracts from `HyperRazor.Components.Validation`. Validation authoring components stay in `HyperRazor.Components`, and `HyperRazor.Rendering` remains the implementation layer.
+
 For CI and package/versioning expectations, see [release-policy.md](release-policy.md).

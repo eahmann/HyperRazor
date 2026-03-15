@@ -1,7 +1,7 @@
 using HyperRazor.Components;
+using HyperRazor.Components.Validation;
 using HyperRazor.Demo.Mvc.Components.Fragments;
 using HyperRazor.Demo.Mvc.Models;
-using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Components;
 
 namespace HyperRazor.Demo.Mvc.Endpoints;

@@ -43,12 +43,20 @@ Internal-only projects:
 - Advanced packages remain supported and versioned, but they are composition building blocks, not the default onboarding story.
 - Demo and test projects are not part of the shipped package surface.
 
-## Explicit Follow-Up
+## Advanced Validation Migration
 
-The current validation/component ownership mismatch remains follow-up work after the package story is stable.
+Package Story Phase 2 resolves the old validation ownership mismatch without introducing a new package.
 
-- No file moves out of `Rendering`
-- No namespace renames
-- No attempt to resolve the `HyperRazor.Components`-from-`Rendering` mismatch in this phase
+- `HyperRazor.Components` now owns the validation authoring surface.
+- `HyperRazor.Components.Validation` is the shared validation contract namespace.
+- `HyperRazor.Rendering` remains public for rendering primitives and validation implementations, but no longer owns the shared validation contract surface.
+- `HyperRazor.Mvc` now carries a direct dependency on `HyperRazor.Components` because its public validation helpers expose `HyperRazor.Components.Validation` types.
 
-The validation component files currently live under `src/HyperRazor.Rendering/Validation/Components`, even though they publish `HyperRazor.Components` types. Moving them into `src/HyperRazor.Components` would currently introduce a project-cycle problem because `HyperRazor.Rendering` already depends on `HyperRazor.Components`.
+Migration guidance:
+
+```csharp
+using HyperRazor.Components;
+using HyperRazor.Components.Validation;
+```
+
+Replace old validation-type imports from `HyperRazor.Rendering` when a file only needs shared validation contracts such as `HrzValidationRootId`, `HrzFieldPath`, `HrzSubmitValidationState`, `IHrzFieldPathResolver`, or `IHrzLiveValidationPolicyResolver`.

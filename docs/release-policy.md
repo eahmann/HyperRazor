@@ -38,6 +38,8 @@ Use one shared semantic version across all published HyperRazor packages.
 - `MINOR`: additive public API, new features, or opt-in behavior that remains backward compatible
 - `PATCH`: bug fixes, diagnostics, test-only changes, doc fixes, and internal refactors with no intended public surface change
 
+Example `MAJOR` changes include advanced namespace moves such as validation contracts moving from `HyperRazor.Rendering` to `HyperRazor.Components.Validation`.
+
 Use prerelease suffixes for staged releases:
 
 - `-preview.N` for early public validation

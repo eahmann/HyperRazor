@@ -1,5 +1,6 @@
 using HyperRazor;
 using HyperRazor.Components;
+using HyperRazor.Components.Validation;
 using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Htmx;

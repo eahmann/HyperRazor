@@ -1,4 +1,4 @@
-using HyperRazor.Rendering;
+using HyperRazor.Components.Validation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HyperRazor.Mvc;

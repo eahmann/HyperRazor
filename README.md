@@ -28,6 +28,8 @@ Internal-only projects:
 - `HyperRazor.Demo.Mvc`
 - `tests/*`
 
+Advanced validation authoring stays in `HyperRazor.Components`, and shared validation contracts import from `HyperRazor.Components.Validation`. `HyperRazor.Rendering` remains the implementation layer for rendering and validation engines.
+
 Docs:
 - [Quickstart](docs/quickstart.md)
 - [Adopting HyperRazor](docs/adopting-hyperrazor.md)

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\HyperRazor.Components\HyperRazor.Components.csproj" />
     <ProjectReference Include="..\HyperRazor.Htmx\HyperRazor.Htmx.csproj" />
     <ProjectReference Include="..\HyperRazor.Rendering\HyperRazor.Rendering.csproj" />
   </ItemGroup>

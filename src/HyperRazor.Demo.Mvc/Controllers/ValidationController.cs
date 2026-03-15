@@ -3,7 +3,7 @@ using HyperRazor.Demo.Mvc.Infrastructure;
 using HyperRazor.Demo.Mvc.Models;
 using HyperRazor.Htmx;
 using HyperRazor.Mvc;
-using HyperRazor.Rendering;
+using HyperRazor.Components.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 

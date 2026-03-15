@@ -30,6 +30,8 @@ Internal-only projects:
 
 The primary packages also provide the common HyperRazor namespace imports used by the first-stop setup path. The lower-level packages remain supported and versioned, but they are advanced composition building blocks rather than the default onboarding path.
 
+Advanced validation authoring stays in `HyperRazor.Components`, and shared validation contracts import from `HyperRazor.Components.Validation`. `HyperRazor.Rendering` remains the implementation layer for rendering and validation engines.
+
 Docs:
 
 - `docs/quickstart.md`

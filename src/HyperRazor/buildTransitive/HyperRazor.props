@@ -3,6 +3,7 @@
     <Using Include="HyperRazor.Components" />
     <Using Include="HyperRazor.Components.Layouts" />
     <Using Include="HyperRazor.Components.Services" />
+    <Using Include="HyperRazor.Components.Validation" />
     <Using Include="HyperRazor.Mvc" />
     <Using Include="HyperRazor.Rendering" />
   </ItemGroup>

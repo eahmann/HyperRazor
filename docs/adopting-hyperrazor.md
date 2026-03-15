@@ -48,3 +48,19 @@ Use the same page/fragment terms everywhere:
 ## Demo vs. onboarding
 
 The demo app still uses internal composition helpers because they help organize showcase code. That demo composition is not part of the default onboarding path and should not be treated as required ceremony for a real app.
+
+## Advanced Validation Migration
+
+Package Story Phase 2 is a breaking advanced-surface cleanup for validation ownership.
+
+- Shared validation contracts now live in `HyperRazor.Components.Validation`.
+- Validation authoring components such as `HrzForm`, `HrzField`, `HrzValidationSummary`, and `HrzValidationMessage` stay in `HyperRazor.Components`.
+- `HyperRazor.Rendering` remains the implementation layer for `HrzFieldPathResolver`, `HrzDataAnnotationsModelValidator`, `HrzDefaultLiveValidationPolicyResolver`, and `HrzValidationBridge`.
+
+Update validation-only imports like this:
+
+```csharp
+using HyperRazor.Components.Validation;
+```
+
+Replace old validation-type imports from `HyperRazor.Rendering` when the file only needs shared validation contracts such as `HrzValidationRootId`, `HrzFieldPath`, `HrzSubmitValidationState`, `IHrzFieldPathResolver`, or `IHrzLiveValidationPolicyResolver`.

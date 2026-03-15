@@ -1,43 +1,23 @@
 using System.Collections;
 using System.Linq.Expressions;
+using HyperRazor.Components.Validation;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace HyperRazor.Rendering;
 
 public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
 {
-    internal static HrzFieldPathResolver Default { get; } = new();
-
     public HrzFieldPath FromExpression<TValue>(Expression<Func<TValue>> accessor)
-    {
-        ArgumentNullException.ThrowIfNull(accessor);
-
-        var raw = BuildPath(Unwrap(accessor.Body));
-        return FromFieldName(raw);
-    }
+        => HrzFieldPathOperations.FromExpression(accessor);
 
     public HrzFieldPath FromFieldName(string value)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value);
-
-        var normalized = Normalize(value);
-        return new HrzFieldPath(normalized);
-    }
+        => HrzFieldPathOperations.FromFieldName(value);
 
     public HrzFieldPath Append(HrzFieldPath parent, string propertyName)
-    {
-        ArgumentNullException.ThrowIfNull(parent);
-        ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
-
-        return FromFieldName($"{parent.Value}.{propertyName}");
-    }
+        => HrzFieldPathOperations.Append(parent, propertyName);
 
     public HrzFieldPath Index(HrzFieldPath collection, int index)
-    {
-        ArgumentNullException.ThrowIfNull(collection);
-
-        return FromFieldName($"{collection.Value}[{index}]");
-    }
+        => HrzFieldPathOperations.Index(collection, index);
 
     public string Format(HrzFieldPath path)
     {
@@ -82,92 +62,6 @@ public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
         var property = FindProperty(current!.GetType(), finalSegment.PropertyName, path.Value);
         return new FieldIdentifier(current, property.Name);
     }
-
-    private static Expression Unwrap(Expression expression)
-    {
-        while (expression is UnaryExpression unary
-            && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
-        {
-            expression = unary.Operand;
-        }
-
-        return expression;
-    }
-
-    private static string BuildPath(Expression expression)
-    {
-        return expression switch
-        {
-            MemberExpression member => BuildMemberPath(member),
-            MethodCallExpression call when IsIndexerCall(call) => BuildIndexerPath(call),
-            BinaryExpression binary when binary.NodeType == ExpressionType.ArrayIndex => BuildArrayIndexPath(binary),
-            ParameterExpression => string.Empty,
-            ConstantExpression => string.Empty,
-            _ => throw new NotSupportedException($"Expression '{expression}' cannot be converted into a field path.")
-        };
-    }
-
-    private static string BuildMemberPath(MemberExpression member)
-    {
-        var parent = BuildPath(Unwrap(member.Expression!));
-        return string.IsNullOrEmpty(parent) ? member.Member.Name : $"{parent}.{member.Member.Name}";
-    }
-
-    private static string BuildIndexerPath(MethodCallExpression call)
-    {
-        var parent = BuildPath(Unwrap(call.Object!));
-        var index = EvaluateIndex(call.Arguments[0]);
-        return $"{parent}[{index}]";
-    }
-
-    private static string BuildArrayIndexPath(BinaryExpression binary)
-    {
-        var parent = BuildPath(Unwrap(binary.Left));
-        var index = EvaluateIndex(binary.Right);
-        return $"{parent}[{index}]";
-    }
-
-    private static bool IsIndexerCall(MethodCallExpression call) =>
-        call.Method.Name == "get_Item" && call.Object is not null && call.Arguments.Count == 1;
-
-    private static int EvaluateIndex(Expression expression)
-    {
-        var lambda = Expression.Lambda<Func<int>>(Expression.Convert(Unwrap(expression), typeof(int)));
-        return lambda.Compile().Invoke();
-    }
-
-    private static string Normalize(string value)
-    {
-        var trimmed = value.Trim();
-        while (trimmed.StartsWith("Model.", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("Input.", StringComparison.OrdinalIgnoreCase))
-        {
-            trimmed = trimmed[(trimmed.IndexOf('.') + 1)..];
-        }
-
-        var segments = Parse(trimmed);
-        return string.Join(".", segments.Select(FormatSegment));
-    }
-
-    private static string FormatSegment(PathSegment segment)
-    {
-        var name = string.IsNullOrEmpty(segment.PropertyName)
-            ? string.Empty
-            : NormalizePropertyName(segment.PropertyName);
-        var indexes = string.Concat(segment.Indices.Select(index => $"[{index}]"));
-        return $"{name}{indexes}";
-    }
-
-    private static string NormalizePropertyName(string value)
-    {
-        if (string.IsNullOrEmpty(value) || !char.IsLetter(value[0]))
-        {
-            return value;
-        }
-
-        return char.ToUpperInvariant(value[0]) + value[1..];
-    }
-
     private static IReadOnlyList<PathSegment> Parse(string value)
     {
         var segments = new List<PathSegment>();

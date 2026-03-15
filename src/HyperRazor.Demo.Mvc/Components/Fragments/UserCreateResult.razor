@@ -1,11 +1,9 @@
-@* Main-target fragment for create-user requests; OOB updates are appended separately. *@
-<section id="users-list" class="panel">
-    <h3>Latest Created User</h3>
-    <p>
-        <strong>@DisplayName</strong> was created.
-    </p>
-    <p>Total users: @Count</p>
-</section>
+@* Region content for the users-list shell; OOB updates are appended separately. *@
+<h3>Latest Created User</h3>
+<p>
+    <strong>@DisplayName</strong> was created.
+</p>
+<p>Total users: @Count</p>
 
 @code {
     [Parameter]

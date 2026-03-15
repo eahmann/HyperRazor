@@ -34,6 +34,7 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Contains("beforeend:#activity-feed", html, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob", html, StringComparison.Ordinal);
         Assert.Contains("users-provision", html, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#users-list")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator("#users-list")).ToContainTextAsync("Jordan Avery");
         await Assertions.Expect(page.Locator("#activity-feed")).ToContainTextAsync("Jordan Avery");
     }

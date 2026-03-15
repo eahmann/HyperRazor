@@ -258,7 +258,8 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<section id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Contains("Latest Created User", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"innerHTML\"", body, StringComparison.Ordinal);
@@ -289,7 +290,7 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"render-to-string-demo-result\"", body, StringComparison.Ordinal);
         Assert.Contains("IHrzSwapService.RenderToString(clear: true)", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Equal(1, body.Split("id=\"users-list\"", StringSplitOptions.None).Length - 1);
         Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#activity-feed", body, StringComparison.Ordinal);
@@ -316,7 +317,8 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<section id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Contains("Latest Created User", body, StringComparison.Ordinal);
         Assert.DoesNotContain("hx-swap-oob", body, StringComparison.Ordinal);
     }
 }

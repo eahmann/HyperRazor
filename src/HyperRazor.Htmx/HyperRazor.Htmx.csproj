@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor.Htmx</PackageId>
+    <Description>Default onboarding package for typed HTMX support in ASP.NET without the full HyperRazor rendering stack.</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor</PackageId>
+    <Description>Default onboarding package for full HyperRazor apps with server-rendered Razor components, MVC helpers, and typed HTMX support.</Description>
   </PropertyGroup>
 
   <ItemGroup>

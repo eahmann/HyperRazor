@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor.Rendering</PackageId>
+    <Description>Supported advanced composition package for HyperRazor rendering, fragments, SSE, and validation primitives.</Description>
   </PropertyGroup>
 
   <ItemGroup>

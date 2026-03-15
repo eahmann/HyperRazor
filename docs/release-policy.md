@@ -2,16 +2,20 @@
 
 This is the release and versioning policy for the repository as Phase 4 wraps.
 
+## Which package do I install?
+
+- Full HyperRazor app: install `HyperRazor`.
+- Typed HTMX only: install `HyperRazor.Htmx`.
+- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+
 ## Package scope
 
 Primary entry-point packages:
 
-- `HyperRazor` from `src/HyperRazor`
-- `HyperRazor.Htmx`
-  - the public HTMX-only ASP.NET Core package
-  - produced from `src/HyperRazor.Htmx`
+- `HyperRazor`: the default onboarding package for a full HyperRazor app (`src/HyperRazor`)
+- `HyperRazor.Htmx`: the default onboarding package for typed HTMX support without the full HyperRazor rendering stack (`src/HyperRazor.Htmx`)
 
-Advanced but supported composition packages that still publish separately:
+Advanced but supported composition packages:
 
 - `HyperRazor.Client`
 - `HyperRazor.Components`
@@ -20,11 +24,11 @@ Advanced but supported composition packages that still publish separately:
 - `HyperRazor.Mvc`
 - `HyperRazor.Rendering`
 
-Internal-only projects do not publish:
+Internal-only projects:
 
 - `HyperRazor.Demo.Api`
 - `HyperRazor.Demo.Mvc`
-- all `tests/*`
+- `tests/*`
 
 ## Versioning
 
@@ -43,7 +47,7 @@ Use prerelease suffixes for staged releases:
 
 Keep version stamping centralized at pack/publish time so package versions cannot drift between projects.
 
-The primary packages own the onboarding story. The advanced packages remain versioned and published because the current architecture ships multiple assemblies, but they are not the default docs path.
+The primary packages own the onboarding story. The advanced packages remain versioned and published because the current architecture ships multiple assemblies, but they are advanced composition building blocks rather than the default docs path.
 
 Example:
 

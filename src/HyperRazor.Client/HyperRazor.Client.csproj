@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>HyperRazor.Client</PackageId>
+    <Description>Supported advanced composition package for HyperRazor client assets and browser-side helpers.</Description>
   </PropertyGroup>
 
   <ItemGroup>

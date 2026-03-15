@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>HyperRazor.Htmx.Components</PackageId>
+    <Description>Supported advanced composition package for HTMX-related Razor components.</Description>
   </PropertyGroup>
 
   <ItemGroup>

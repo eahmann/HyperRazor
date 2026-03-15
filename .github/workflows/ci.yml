@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check package story messaging
-        run: bash scripts/check-package-story.sh
+        run: ./scripts/check-package-story.sh
 
   fast-tests:
     name: Fast Tests / ${{ matrix.name }}

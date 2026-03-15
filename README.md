@@ -2,16 +2,19 @@
 
 Typed HTMX support for ASP.NET with server-rendered components and MVC endpoint helpers.
 
-Docs:
-- [Quickstart](docs/quickstart.md)
-- [Package Surface](docs/package-surface.md)
-- [Release Policy](docs/release-policy.md)
+## Which package do I install?
+
+- Full HyperRazor app: install `HyperRazor`.
+- Typed HTMX only: install `HyperRazor.Htmx`.
+- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
 
 Primary entry-point packages:
-- `HyperRazor`: the golden-path package for a full HyperRazor app
-- `HyperRazor.Htmx`: typed HTMX support for ASP.NET without opting into full HyperRazor rendering
+
+- `HyperRazor`: the default onboarding package for a full HyperRazor app
+- `HyperRazor.Htmx`: the default onboarding package for typed HTMX support without the full HyperRazor rendering stack
 
 Advanced but supported composition packages:
+
 - `HyperRazor.Client`
 - `HyperRazor.Components`
 - `HyperRazor.Htmx.Core`
@@ -20,9 +23,16 @@ Advanced but supported composition packages:
 - `HyperRazor.Rendering`
 
 Internal-only projects:
+
 - `HyperRazor.Demo.Api`
 - `HyperRazor.Demo.Mvc`
 - `tests/*`
+
+Docs:
+- [Quickstart](docs/quickstart.md)
+- [Adopting HyperRazor](docs/adopting-hyperrazor.md)
+- [Package Surface](docs/package-surface.md)
+- [Release Policy](docs/release-policy.md)
 
 Includes:
 - request context/profile parsing for HTMX 2 and HTMX 4-style headers

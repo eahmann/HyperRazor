@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor.Htmx.Core</PackageId>
+    <Description>Supported advanced composition package for HTMX request and response primitives, headers, and configuration types.</Description>
   </PropertyGroup>
 
 </Project>

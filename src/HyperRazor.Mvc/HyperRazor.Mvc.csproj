@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor.Mvc</PackageId>
+    <Description>Supported advanced composition package for HyperRazor MVC and Minimal API endpoint helpers.</Description>
   </PropertyGroup>
 
   <ItemGroup>

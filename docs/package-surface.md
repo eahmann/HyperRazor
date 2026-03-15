@@ -1,37 +1,54 @@
 # HyperRazor Package Surface
 
-This note defines the intended package story for the repository so docs, package metadata, and namespaces can be evaluated against the same model.
+This file is the canonical package-story source and the decision record for Package Story Phase 1. Treat the classifications and wording here as the source for onboarding docs, NuGet readme text, and packable project descriptions.
 
 ## Decision
 
-HyperRazor uses a two-tier public surface:
+HyperRazor stays on the current two-tier public surface for this phase.
 
-- Primary entry-point packages:
-  - `HyperRazor`: the default package for a full HyperRazor app
-  - `HyperRazor.Htmx`: the default package for typed HTMX support without the full HyperRazor rendering stack
-- Advanced but supported composition packages:
-  - `HyperRazor.Client`
-  - `HyperRazor.Components`
-  - `HyperRazor.Htmx.Core`
-  - `HyperRazor.Htmx.Components`
-  - `HyperRazor.Mvc`
-  - `HyperRazor.Rendering`
-- Internal-only projects:
-  - `HyperRazor.Demo.Api`
-  - `HyperRazor.Demo.Mvc`
-  - `tests/*`
+## Which package do I install?
+
+- Full HyperRazor app: install `HyperRazor`.
+- Typed HTMX only: install `HyperRazor.Htmx`.
+- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+
+## Package classification
+
+Primary entry-point packages:
+
+- `HyperRazor`: the default onboarding package for a full HyperRazor app
+- `HyperRazor.Htmx`: the default onboarding package for typed HTMX support without the full HyperRazor rendering stack
+
+Advanced but supported composition packages:
+
+- `HyperRazor.Client`
+- `HyperRazor.Components`
+- `HyperRazor.Htmx.Core`
+- `HyperRazor.Htmx.Components`
+- `HyperRazor.Mvc`
+- `HyperRazor.Rendering`
+
+Internal-only projects:
+
+- `HyperRazor.Demo.Api`
+- `HyperRazor.Demo.Mvc`
+- `tests/*`
 
 ## Rules For Docs And Packaging
 
-- First-stop docs should start with `HyperRazor` or `HyperRazor.Htmx`, not the lower-level packages.
+- First-stop docs should present the `Which package do I install?` section before they explain advanced composition packages.
+- `README.md`, `docs/quickstart.md`, `docs/adopting-hyperrazor.md`, `docs/nuget-readme.md`, and `docs/release-policy.md` should use the same primary/advanced/internal classification language.
+- Happy-path examples should use only the primary packages.
 - The primary packages should carry the common namespace imports needed for the happy path.
 - Advanced packages remain supported and versioned, but they are composition building blocks, not the default onboarding story.
 - Demo and test projects are not part of the shipped package surface.
 
-## Consequences
+## Explicit Follow-Up
 
-Because the current architecture ships multiple assemblies, the advanced packages still publish separately and share the same versioning policy. That does not make them the primary entry points.
+The current validation/component ownership mismatch remains follow-up work after the package story is stable.
 
-This slice does not move the validation component files that currently live under `src/HyperRazor.Rendering/Validation/Components`. Those files publish `HyperRazor.Components` types, but moving them into `src/HyperRazor.Components` would currently introduce a project-cycle problem because `HyperRazor.Rendering` already depends on `HyperRazor.Components`.
+- No file moves out of `Rendering`
+- No namespace renames
+- No attempt to resolve the `HyperRazor.Components`-from-`Rendering` mismatch in this phase
 
-That file-layout mismatch remains follow-up work. The immediate goal here is to make the package story and onboarding story explicit and consistent.
+The validation component files currently live under `src/HyperRazor.Rendering/Validation/Components`, even though they publish `HyperRazor.Components` types. Moving them into `src/HyperRazor.Components` would currently introduce a project-cycle problem because `HyperRazor.Rendering` already depends on `HyperRazor.Components`.

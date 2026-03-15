@@ -4,6 +4,22 @@ Start with [quickstart.md](quickstart.md) for the smallest public setup.
 For package-surface definitions, see [package-surface.md](package-surface.md).
 For CI and package/versioning expectations, see [release-policy.md](release-policy.md).
 
+## Which package do I install?
+
+- Full HyperRazor app: install `HyperRazor`.
+- Typed HTMX only: install `HyperRazor.Htmx`.
+- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+
+## Happy-path package reference
+
+For a full HyperRazor app, adopt the default onboarding package first:
+
+```bash
+dotnet add package HyperRazor
+```
+
+If you only need typed HTMX support in an existing ASP.NET Core app, install `HyperRazor.Htmx` instead. Reference the lower-level packages directly only when you are intentionally composing on those layers.
+
 ## Startup contract
 
 The adoption path is intentionally explicit:
@@ -31,4 +47,4 @@ Use the same page/fragment terms everywhere:
 
 ## Demo vs. onboarding
 
-The demo app still uses internal composition helpers because they help organize showcase code. That demo composition is not part of the framework startup contract and should not be treated as required ceremony for a real app.
+The demo app still uses internal composition helpers because they help organize showcase code. That demo composition is not part of the default onboarding path and should not be treated as required ceremony for a real app.

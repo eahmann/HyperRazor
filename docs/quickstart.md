@@ -2,12 +2,27 @@
 
 This is the smallest explicit setup for a server-rendered ASP.NET Core app that uses HyperRazor pages, partials, and HTMX-aware responses.
 
-## Packages
+## Which package do I install?
 
-- Reference `HyperRazor` for the normal page/fragment app path.
-- Reference `HyperRazor.Htmx` only when you want typed HTMX support without HyperRazor rendering.
+- Full HyperRazor app: install `HyperRazor`.
+- Typed HTMX only: install `HyperRazor.Htmx`.
+- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
 
-`HyperRazor` is the public onboarding path. It brings in the MVC and HTMX layers transitively.
+## Happy-path package reference
+
+For the normal page/fragment app path, install only the primary `HyperRazor` package:
+
+```bash
+dotnet add package HyperRazor
+```
+
+`HyperRazor` is the default onboarding package. It brings in the MVC, rendering, and typed HTMX layers transitively.
+
+If you only want typed HTMX support in an existing ASP.NET Core app, install `HyperRazor.Htmx` instead and stop there:
+
+```bash
+dotnet add package HyperRazor.Htmx
+```
 
 ## Service registration
 
@@ -106,7 +121,7 @@ The bundled client script reads the antiforgery meta tag and adds the configured
 
 ## Available later
 
-Advanced features remain available, but they are not part of the first working app:
+Advanced but supported composition features remain available, but they are not part of the first working app:
 
 - layout-aware page navigation
 - custom HTMX response handling

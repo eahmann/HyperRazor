@@ -1,20 +1,20 @@
 @implements IDisposable
-@inject HrzSwapService SwapService
+@inject IHrzSwapBuffer SwapBuffer
 
-@if (SwapService.HasBufferedContent)
+@if (SwapBuffer.ContentAvailable)
 {
-    @SwapService.RenderBufferedFragment(clear: true)
+    @SwapBuffer.RenderToFragment(clear: true)
 }
 
 @code {
     protected override void OnInitialized()
     {
-        SwapService.BufferedContentChanged += OnContentItemsUpdated;
+        SwapBuffer.ContentItemsUpdated += OnContentItemsUpdated;
     }
 
     public void Dispose()
     {
-        SwapService.BufferedContentChanged -= OnContentItemsUpdated;
+        SwapBuffer.ContentItemsUpdated -= OnContentItemsUpdated;
     }
 
     private void OnContentItemsUpdated(object? sender, EventArgs args)

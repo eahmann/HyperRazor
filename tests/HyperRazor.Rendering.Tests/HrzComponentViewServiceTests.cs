@@ -468,6 +468,7 @@ public class HrzRenderServiceTests
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<HrzSwapService>();
         services.AddScoped<IHrzSwapService>(serviceProvider => serviceProvider.GetRequiredService<HrzSwapService>());
+        services.AddScoped<IHrzSwapBuffer>(serviceProvider => (IHrzSwapBuffer)serviceProvider.GetRequiredService<HrzSwapService>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzRenderService, HrzRenderService>();
         configureServices?.Invoke(services);

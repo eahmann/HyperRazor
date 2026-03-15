@@ -19,47 +19,51 @@ namespace HyperRazor.Rendering.Tests;
 public class HrzSwapServiceTests
 {
     [Fact]
-    public void RenderBufferedFragment_WithoutHtmxRequest_ExcludesQueuedSwaps()
+    public void RenderToFragment_WithoutHtmxRequest_ExcludesQueuedSwaps()
     {
         var service = CreateService(isHtmx: false);
+        var buffer = (IHrzSwapBuffer)service;
         service.Replace("toast-stack", builder => builder.AddMarkupContent(0, "<div>Created</div>"));
 
-        var fragment = service.RenderBufferedFragment();
+        var fragment = buffer.RenderToFragment();
         var frames = RenderFrames(fragment);
 
         Assert.Equal(0, frames.Count);
-        Assert.True(service.HasBufferedContent);
+        Assert.True(buffer.ContentAvailable);
     }
 
     [Fact]
-    public void RenderBufferedFragment_WithHtmxRequest_IncludesQueuedSwaps()
+    public void RenderToFragment_WithHtmxRequest_IncludesQueuedSwaps()
     {
         var service = CreateService(isHtmx: true);
+        var buffer = (IHrzSwapBuffer)service;
         service.Replace("toast-stack", builder => builder.AddMarkupContent(0, "<div>Created</div>"));
 
-        var fragment = service.RenderBufferedFragment();
+        var fragment = buffer.RenderToFragment();
         var frames = RenderFrames(fragment);
 
         Assert.True(frames.Count > 0);
     }
 
     [Fact]
-    public void RenderBufferedFragment_ClearTrue_DrainsQueuedItems()
+    public void RenderToFragment_ClearTrue_DrainsQueuedItems()
     {
         var service = CreateService(isHtmx: true);
+        var buffer = (IHrzSwapBuffer)service;
         service.Replace<TestBadgeComponent>("badge-shell", new { Message = "Hello" });
 
-        _ = service.RenderBufferedFragment(clear: true);
+        _ = buffer.RenderToFragment(clear: true);
 
-        Assert.False(service.HasBufferedContent);
+        Assert.False(buffer.ContentAvailable);
     }
 
     [Fact]
-    public void BufferedContentChanged_RaisesOnAddAndClear()
+    public void ContentItemsUpdated_RaisesOnAddAndClear()
     {
         var service = CreateService(isHtmx: true);
+        var buffer = (IHrzSwapBuffer)service;
         var updates = 0;
-        service.BufferedContentChanged += (_, _) => updates++;
+        buffer.ContentItemsUpdated += (_, _) => updates++;
 
         service.Replace("badge-shell", builder => builder.AddContent(0, "Created"));
         service.Append("toast-stack", "toast-1", builder => builder.AddContent(0, "Toast"));

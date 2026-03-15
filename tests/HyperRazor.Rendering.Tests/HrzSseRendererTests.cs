@@ -51,7 +51,7 @@ public sealed class HrzSseRendererTests
         Assert.Contains("id=\"queued-status\"", item.Data, StringComparison.Ordinal);
         Assert.DoesNotContain("Queued title", item.Data, StringComparison.Ordinal);
         Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzHeadService>().ContentAvailable);
-        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<HrzSwapService>().HasBufferedContent);
+        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzSwapBuffer>().ContentAvailable);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class HrzSseRendererTests
             fixture.SseRenderer.RenderComponent<ThrowingQueuedContentComponent>());
 
         Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzHeadService>().ContentAvailable);
-        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<HrzSwapService>().HasBufferedContent);
+        Assert.False(fixture.Scope.ServiceProvider.GetRequiredService<IHrzSwapBuffer>().ContentAvailable);
     }
 
     [Fact]
@@ -170,6 +170,7 @@ public sealed class HrzSseRendererTests
         services.AddScoped<IHrzHeadService, HrzHeadService>();
         services.AddScoped<HrzSwapService>();
         services.AddScoped<IHrzSwapService>(serviceProvider => serviceProvider.GetRequiredService<HrzSwapService>());
+        services.AddScoped<IHrzSwapBuffer>(serviceProvider => (IHrzSwapBuffer)serviceProvider.GetRequiredService<HrzSwapService>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();
 

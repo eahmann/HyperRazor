@@ -10,7 +10,7 @@ namespace HyperRazor.Components.Services;
 
 #pragma warning disable ASP0006
 
-public sealed class HrzSwapService : IHrzSwapService
+public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters =
         new Dictionary<string, object?>(0, StringComparer.Ordinal);
@@ -19,6 +19,7 @@ public sealed class HrzSwapService : IHrzSwapService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IServiceProvider? _services;
     private readonly ILoggerFactory? _loggerFactory;
+    private event EventHandler? _contentItemsUpdated;
 
     public HrzSwapService(IHttpContextAccessor httpContextAccessor)
     {
@@ -37,9 +38,13 @@ public sealed class HrzSwapService : IHrzSwapService
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
     }
 
-    internal event EventHandler? BufferedContentChanged;
+    event EventHandler? IHrzSwapBuffer.ContentItemsUpdated
+    {
+        add => _contentItemsUpdated += value;
+        remove => _contentItemsUpdated -= value;
+    }
 
-    internal bool HasBufferedContent => _items.Count > 0;
+    bool IHrzSwapBuffer.ContentAvailable => _items.Count > 0;
 
     public void Replace<TComponent>(
         string target,
@@ -125,7 +130,12 @@ public sealed class HrzSwapService : IHrzSwapService
             itemId);
     }
 
-    internal RenderFragment RenderBufferedFragment(bool clear = false)
+    RenderFragment IHrzSwapBuffer.RenderToFragment(bool clear)
+    {
+        return CreateBufferedFragment(clear);
+    }
+
+    private RenderFragment CreateBufferedFragment(bool clear = false)
     {
         var request = GetCurrentRequest();
         var includeSwappables = ShouldForceSwapRendering() || (request.IsHtmx && !request.IsHistoryRestoreRequest);
@@ -171,7 +181,7 @@ public sealed class HrzSwapService : IHrzSwapService
                 $"{nameof(RenderToString)} requires {nameof(IServiceProvider)} and {nameof(ILoggerFactory)} to be available.");
         }
 
-        var fragment = RenderBufferedFragment(clear: clear);
+        var fragment = CreateBufferedFragment(clear: clear);
 
         var parameters = new Dictionary<string, object?>
         {
@@ -215,7 +225,7 @@ public sealed class HrzSwapService : IHrzSwapService
             TargetId: targetId,
             SwapDescriptor: swapDescriptorFactory(resolvedItemId),
             Fragment: fragment));
-        NotifyBufferedContentChanged();
+        NotifyContentItemsUpdated();
     }
 
     private HtmxRequest GetCurrentRequest()
@@ -347,9 +357,9 @@ public sealed class HrzSwapService : IHrzSwapService
         };
     }
 
-    private void NotifyBufferedContentChanged()
+    private void NotifyContentItemsUpdated()
     {
-        BufferedContentChanged?.Invoke(this, EventArgs.Empty);
+        _contentItemsUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     private void ClearInternal(bool notify)
@@ -362,7 +372,7 @@ public sealed class HrzSwapService : IHrzSwapService
         _items.Clear();
         if (notify)
         {
-            NotifyBufferedContentChanged();
+            NotifyContentItemsUpdated();
         }
     }
 }

@@ -45,6 +45,72 @@ public class HyperRazorOnrampSurfaceTests
     }
 
     [Fact]
+    public async Task HrzResultsFragment_ComponentOverload_WritesConfiguredHeader_AndRendersWrapperlessFragment()
+    {
+        await using var app = await BuildAppAsync(endpoints =>
+            endpoints.MapGet("/fragment-configured", (HttpContext context, CancellationToken cancellationToken) =>
+                HrzResults.Fragment<TestPartial>(
+                    context,
+                    configureResponse: response => response.Trigger("fragment:loaded"),
+                    cancellationToken: cancellationToken)));
+
+        var client = app.GetTestClient();
+        var response = await client.GetAsync("/fragment-configured");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Equal("fragment:loaded", response.Headers.GetValues(HtmxHeaderNames.TriggerResponse).Single());
+        Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("Hello from the onramp fragment.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HrzResultsFragment_InlineOverload_WritesConfiguredHeader_AndRendersInlineFragments()
+    {
+        await using var app = await BuildAppAsync(endpoints =>
+            endpoints.MapGet("/fragment-inline-configured", (HttpContext context, CancellationToken cancellationToken) =>
+                HrzResults.Fragment(
+                    context,
+                    configureResponse: response => response.Trigger("fragment:inline"),
+                    cancellationToken: cancellationToken,
+                    BuildInlineFragment("First inline fragment."),
+                    BuildInlineFragment("Second inline fragment."))));
+
+        var client = app.GetTestClient();
+        var response = await client.GetAsync("/fragment-inline-configured");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Equal("fragment:inline", response.Headers.GetValues(HtmxHeaderNames.TriggerResponse).Single());
+        Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("First inline fragment.", html, StringComparison.Ordinal);
+        Assert.Contains("Second inline fragment.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HrzResultsFragment_PositionalInlineOverload_RemainsSourceCompatible()
+    {
+        await using var app = await BuildAppAsync(endpoints =>
+            endpoints.MapGet("/fragment-inline-positional", (HttpContext context, CancellationToken cancellationToken) =>
+                HrzResults.Fragment(
+                    context,
+                    cancellationToken,
+                    BuildInlineFragment("Positional fragment."))));
+
+        var client = app.GetTestClient();
+        var response = await client.GetAsync("/fragment-inline-positional");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.TriggerResponse));
+        Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("Positional fragment.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UseHyperRazor_WithoutAddHtmx_ThrowsClearMessage()
     {
         var builder = WebApplication.CreateBuilder();
@@ -136,6 +202,16 @@ public class HyperRazorOnrampSurfaceTests
 
         await app.StartAsync();
         return app;
+    }
+
+    private static RenderFragment BuildInlineFragment(string content)
+    {
+        return builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddContent(1, content);
+            builder.CloseElement();
+        };
     }
 
     private sealed class TestController : HrController

@@ -31,17 +31,37 @@ public static class HrzResults
     }
 
     /// <summary>
-    /// Renders a fragment component without page-shell semantics.
+    /// Renders a fragment component without page-shell semantics, optionally customizing
+    /// the HTMX response before rendering.
     /// </summary>
     public static Task<IResult> Fragment<TComponent>(
         HttpContext context,
         object? data = null,
+        Action<HtmxResponseWriter>? configureResponse = null,
         CancellationToken cancellationToken = default)
         where TComponent : IComponent
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        configureResponse?.Invoke(context.HtmxResponse());
         return ResolveRenderService(context).Fragment<TComponent>(data, cancellationToken);
+    }
+
+    /// <summary>
+    /// Renders one or more fragments without page-shell semantics, optionally customizing
+    /// the HTMX response before rendering.
+    /// </summary>
+    public static Task<IResult> Fragment(
+        HttpContext context,
+        Action<HtmxResponseWriter>? configureResponse,
+        CancellationToken cancellationToken = default,
+        params RenderFragment[] fragments)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(fragments);
+
+        configureResponse?.Invoke(context.HtmxResponse());
+        return ResolveRenderService(context).Fragment(cancellationToken, fragments);
     }
 
     /// <summary>
@@ -52,10 +72,11 @@ public static class HrzResults
         CancellationToken cancellationToken = default,
         params RenderFragment[] fragments)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(fragments);
-
-        return ResolveRenderService(context).Fragment(cancellationToken, fragments);
+        return Fragment(
+            context,
+            configureResponse: null,
+            cancellationToken: cancellationToken,
+            fragments: fragments);
     }
 
     /// <summary>

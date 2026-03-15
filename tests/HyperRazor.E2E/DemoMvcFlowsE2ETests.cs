@@ -755,7 +755,7 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Equal("#hrz-app-shell", accessHeaders["hx-retarget"]);
         Assert.Equal("outerHTML", accessHeaders["hx-reswap"]);
         Assert.Equal("#hrz-app-shell", accessHeaders["hx-reselect"]);
-        Assert.Equal("true", accessHeaders["hx-push-url"]);
+        Assert.Equal("/access-requests", accessHeaders["hx-push-url"]);
         var accessHtml = await accessResponse.TextAsync();
         Assert.Contains("id=\"hrz-app-shell\"", accessHtml, StringComparison.Ordinal);
         await ExpectHeadingAsync(page, "Access Requests");
@@ -791,7 +791,7 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Equal("#hrz-app-shell", backHeaders["hx-retarget"]);
         Assert.Equal("outerHTML", backHeaders["hx-reswap"]);
         Assert.Equal("#hrz-app-shell", backHeaders["hx-reselect"]);
-        Assert.Equal("true", backHeaders["hx-push-url"]);
+        Assert.Equal("/users", backHeaders["hx-push-url"]);
         var backHtml = await backResponse.TextAsync();
         Assert.Contains("id=\"hrz-app-shell\"", backHtml, StringComparison.Ordinal);
         await ExpectHeadingAsync(page, "User Administration");

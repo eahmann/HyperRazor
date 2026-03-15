@@ -18,9 +18,6 @@ public sealed class HrzOptions
             _rootComponent = value;
         }
     }
-
-    public bool AllowRawContentOnNonHtmx { get; set; }
-
     private static void EnsureComponentType(Type type, string argumentName)
     {
         if (!typeof(IComponent).IsAssignableFrom(type))

@@ -15,7 +15,7 @@ public sealed class HrzRegion : ComponentBase
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter(CaptureUnmatchedValues = true)]
-    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {

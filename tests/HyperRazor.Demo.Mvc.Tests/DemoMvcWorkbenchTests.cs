@@ -68,6 +68,8 @@ public class DemoMvcWorkbenchTests : DemoMvcIntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("<h3>Incident Triage</h3>", body, StringComparison.Ordinal);
         Assert.Contains("/fragments/incidents/drills/auth", body, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#status-result\"", body, StringComparison.Ordinal);
+        Assert.Contains("id=\"status-result\"", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/incidents\"", body, StringComparison.Ordinal);
     }
 
@@ -110,7 +112,7 @@ public class DemoMvcWorkbenchTests : DemoMvcIntegrationTestBase
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
         Assert.Equal("#hrz-app-shell", reselectValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.PushUrl, out var pushUrlValues));
-        Assert.Equal("true", pushUrlValues.Single());
+        Assert.Equal("/access-requests", pushUrlValues.Single());
     }
 
     [Fact]
@@ -136,7 +138,7 @@ public class DemoMvcWorkbenchTests : DemoMvcIntegrationTestBase
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Reselect, out var reselectValues));
         Assert.Equal("#hrz-app-shell", reselectValues.Single());
         Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.PushUrl, out var pushUrlValues));
-        Assert.Equal("true", pushUrlValues.Single());
+        Assert.Equal("/access-requests/104/review", pushUrlValues.Single());
     }
 
     [Fact]

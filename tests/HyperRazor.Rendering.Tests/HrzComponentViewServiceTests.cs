@@ -185,7 +185,7 @@ public class HrzRenderServiceTests
         Assert.Equal("#hrz-app-shell", fixture.HttpContext.Response.Headers[HtmxHeaderNames.Retarget].ToString());
         Assert.Equal("outerHTML", fixture.HttpContext.Response.Headers[HtmxHeaderNames.Reswap].ToString());
         Assert.Equal("#hrz-app-shell", fixture.HttpContext.Response.Headers[HtmxHeaderNames.Reselect].ToString());
-        Assert.Equal("true", fixture.HttpContext.Response.Headers[HtmxHeaderNames.PushUrl].ToString());
+        Assert.Equal("/side/detail", fixture.HttpContext.Response.Headers[HtmxHeaderNames.PushUrl].ToString());
 
         var diagnostics = Assert.IsType<HtmxPageNavigationDiagnostics>(
             fixture.HttpContext.Items[typeof(HtmxPageNavigationDiagnostics)]);

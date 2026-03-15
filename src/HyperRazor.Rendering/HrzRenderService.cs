@@ -139,7 +139,7 @@ public sealed class HrzRenderService : IHrzRenderService
                 .Retarget(AppShellSelector)
                 .Reswap("outerHTML")
                 .Reselect(AppShellSelector)
-                .PushUrl(pushUrl: true);
+                .PushUrl(GetRequestPathAndQuery(context.Request));
         }
 
         var html = await RenderHostAsync(

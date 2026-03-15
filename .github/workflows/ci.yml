@@ -23,9 +23,21 @@ defaults:
     shell: bash
 
 jobs:
+  package-story:
+    name: Package Story Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check package story messaging
+        run: bash scripts/check-package-story.sh
+
   fast-tests:
     name: Fast Tests / ${{ matrix.name }}
     runs-on: ubuntu-latest
+    needs: package-story
     strategy:
       fail-fast: false
       matrix:

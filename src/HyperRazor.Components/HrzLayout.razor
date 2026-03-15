@@ -2,18 +2,9 @@
 
 @if (IsHtmxRequest)
 {
-    if (UseMinimalLayoutForHtmx)
-    {
-        <HrzMinimalLayout>
-            @ChildContent
-        </HrzMinimalLayout>
-    }
-    else
-    {
-        <HrzEmptyLayout>
-            @ChildContent
-        </HrzEmptyLayout>
-    }
+    <HrzMinimalLayout>
+        @ChildContent
+    </HrzMinimalLayout>
 }
 else
 {
@@ -28,7 +19,4 @@ else
 
     [Parameter]
     public bool IsHtmxRequest { get; set; }
-
-    [Parameter]
-    public bool UseMinimalLayoutForHtmx { get; set; } = true;
 }

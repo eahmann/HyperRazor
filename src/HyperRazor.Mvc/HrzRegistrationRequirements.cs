@@ -10,12 +10,12 @@ internal static class HrzRegistrationRequirements
     private const string HyperRazorRegistration = "AddHyperRazor()";
     private const string HtmxRegistration = "AddHtmx()";
 
-    public static IHrzComponentViewService ResolveViewService(IServiceProvider services)
+    public static IHrzRenderService ResolveRenderService(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        EnsureConfigured(services, "Rendering a HyperRazor page or partial");
-        return services.GetRequiredService<IHrzComponentViewService>();
+        EnsureConfigured(services, "Rendering a HyperRazor page or fragment");
+        return services.GetRequiredService<IHrzRenderService>();
     }
 
     public static void EnsureConfigured(IServiceProvider services, string operation)

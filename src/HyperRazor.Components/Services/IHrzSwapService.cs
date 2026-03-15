@@ -1,69 +1,45 @@
 using Microsoft.AspNetCore.Components;
-using System.Collections.Generic;
 
 namespace HyperRazor.Components.Services;
 
 public interface IHrzSwapService
 {
-    event EventHandler? ContentItemsUpdated;
-
-    bool ContentAvailable { get; }
-
-    void QueueComponent<TComponent>(
-        string targetId,
-        IReadOnlyDictionary<string, object?>? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
-        where TComponent : IComponent;
-
-    void QueueComponent<TComponent>(
-        string targetId,
+    void Replace<TComponent>(
+        string target,
         object? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+        HrzSwapOptions? options = null)
         where TComponent : IComponent;
 
-    void QueueFragment(
-        string targetId,
+    void Replace(
+        string target,
         RenderFragment fragment,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null);
+        HrzSwapOptions? options = null);
 
-    void QueueHtml(
-        string targetId,
-        string html,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null);
-
-    void AddSwappableComponent<TComponent>(
-        string targetId,
-        IReadOnlyDictionary<string, object?>? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
-        where TComponent : IComponent;
-
-    void AddSwappableComponent<TComponent>(
-        string targetId,
+    void Append<TComponent>(
+        string target,
+        string itemId,
         object? parameters = null,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null)
+        HrzSwapOptions? options = null)
         where TComponent : IComponent;
 
-    void AddSwappableFragment(
-        string targetId,
+    void Append(
+        string target,
+        string itemId,
         RenderFragment fragment,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null);
+        HrzSwapOptions? options = null);
 
-    void AddSwappableContent(
-        string targetId,
-        string html,
-        SwapStyle swapStyle = SwapStyle.OuterHtml,
-        string? selector = null);
+    void Prepend<TComponent>(
+        string target,
+        string itemId,
+        object? parameters = null,
+        HrzSwapOptions? options = null)
+        where TComponent : IComponent;
 
-    void AddRawContent(string html);
-
-    RenderFragment RenderToFragment(bool clear = false);
+    void Prepend(
+        string target,
+        string itemId,
+        RenderFragment fragment,
+        HrzSwapOptions? options = null);
 
     Task<string> RenderToString(bool clear = false, CancellationToken cancellationToken = default);
 

@@ -23,11 +23,11 @@ There is no wrapper registration method in the public story. `AddHyperRazor()` a
 
 ## Endpoint vocabulary
 
-Use the same page/partial terms everywhere:
+Use the same page/fragment terms everywhere:
 
-- MVC controllers use `Page<TComponent>()` and `Partial<TComponent>()` through `HrController`.
-- Minimal APIs use `MapPage<TComponent>(pattern)` and `MapPartial<TComponent>(pattern)` for direct mappings.
-- `HrzResults.Page<TComponent>(...)` and `HrzResults.Partial<TComponent>(...)` remain available for advanced composition.
+- MVC controllers use `Page<TComponent>()`, `Fragment<TComponent>()`, and `RootSwap<TComponent>()` through `HrController`.
+- Minimal APIs use `MapPage<TComponent>(pattern)` and `MapFragment<TComponent>(pattern)` for direct mappings.
+- `HrzResults.Page<TComponent>(...)`, `HrzResults.Fragment<TComponent>(...)`, and `HrzResults.RootSwap<TComponent>(...)` remain available for advanced composition.
 
 ## Demo vs. onboarding
 

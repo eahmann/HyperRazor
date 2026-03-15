@@ -82,9 +82,9 @@ internal static class DemoSseReplayScenario
         ArgumentNullException.ThrowIfNull(sseRenderer);
         ArgumentNullException.ThrowIfNull(swapService);
 
-        swapService.QueueComponent<SseDemoStatusCard>(
-            targetId: "sse-replay-connection",
-            parameters: new
+        swapService.Replace<SseDemoStatusCard>(
+            HyperRazor.Demo.Mvc.Components.Pages.Admin.SseReplayPage.ConnectionRegion,
+            new
             {
                 Label = "connection",
                 Title = entry.ConnectionTitle,
@@ -92,9 +92,9 @@ internal static class DemoSseReplayScenario
                 Tone = entry.ConnectionTone
             });
 
-        swapService.QueueComponent<SseDemoStatusCard>(
-            targetId: "sse-replay-resume",
-            parameters: new
+        swapService.Replace<SseDemoStatusCard>(
+            HyperRazor.Demo.Mvc.Components.Pages.Admin.SseReplayPage.ResumeRegion,
+            new
             {
                 Label = "last-event-id",
                 Title = resumeContext.HasLastEventId

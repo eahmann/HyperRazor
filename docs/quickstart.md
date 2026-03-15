@@ -60,13 +60,13 @@ public sealed class FeatureController : HrController
 }
 ```
 
-Use `Partial<TComponent>()` when the action should return a fragment instead of a full page shell:
+Use `Fragment<TComponent>()` when the action should return a fragment instead of a full page shell:
 
 ```csharp
 [HttpPost("/fragments/toast/success")]
 public Task<IResult> Toast(CancellationToken cancellationToken)
 {
-    return Partial<ToastSuccess>(
+    return Fragment<ToastSuccess>(
         new { Message = "Saved successfully." },
         cancellationToken);
 }
@@ -85,10 +85,10 @@ app.MapPage<BrandingSettingsPage>("/settings/branding");
 For straightforward fragment endpoints:
 
 ```csharp
-app.MapPartial<SystemStatusPanel>("/fragments/system-status");
+app.MapFragment<SystemStatusPanel>("/fragments/system-status");
 ```
 
-When the endpoint needs route data, form data, or custom HTMX response behavior, drop to `HrzResults.Page<TComponent>(...)` or `HrzResults.Partial<TComponent>(...)` inside a route handler.
+When the endpoint needs route data, form data, or custom HTMX response behavior, drop to `HrzResults.Page<TComponent>(...)` or `HrzResults.Fragment<TComponent>(...)` inside a route handler.
 
 ## Antiforgery in component forms
 
@@ -108,7 +108,7 @@ The bundled client script reads the antiforgery meta tag and adds the configured
 
 Advanced features remain available, but they are not part of the first working app:
 
-- layout-boundary promotion
+- layout-aware page navigation
 - custom HTMX response handling
 - SSE replay customization
 - validation policy overrides

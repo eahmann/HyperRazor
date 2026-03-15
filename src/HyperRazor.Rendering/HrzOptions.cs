@@ -18,13 +18,6 @@ public sealed class HrzOptions
             _rootComponent = value;
         }
     }
-
-    public bool UseMinimalLayoutForHtmx { get; set; } = true;
-
-    public bool AllowRawContentOnNonHtmx { get; set; }
-
-    public HrzLayoutBoundaryOptions LayoutBoundary { get; set; } = new();
-
     private static void EnsureComponentType(Type type, string argumentName)
     {
         if (!typeof(IComponent).IsAssignableFrom(type))

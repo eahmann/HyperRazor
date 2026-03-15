@@ -27,13 +27,14 @@ public static class HrzResults
         ArgumentNullException.ThrowIfNull(context);
 
         configureResponse?.Invoke(context.HtmxResponse());
-        return ResolveViewService(context).View<TComponent>(data, cancellationToken);
+        return ResolveRenderService(context).Page<TComponent>(data, cancellationToken);
     }
 
     /// <summary>
-    /// Renders a fragment component without page-shell semantics.
+    /// Renders a fragment component without page-shell semantics, optionally customizing
+    /// the HTMX response before rendering.
     /// </summary>
-    public static Task<IResult> Partial<TComponent>(
+    public static Task<IResult> Fragment<TComponent>(
         HttpContext context,
         object? data = null,
         Action<HtmxResponseWriter>? configureResponse = null,
@@ -43,21 +44,53 @@ public static class HrzResults
         ArgumentNullException.ThrowIfNull(context);
 
         configureResponse?.Invoke(context.HtmxResponse());
-        return ResolveViewService(context).PartialView<TComponent>(data, cancellationToken);
+        return ResolveRenderService(context).Fragment<TComponent>(data, cancellationToken);
     }
 
     /// <summary>
-    /// Renders one or more fragments without page-shell semantics.
+    /// Renders one or more fragments without page-shell semantics, optionally customizing
+    /// the HTMX response before rendering.
     /// </summary>
-    public static Task<IResult> Partial(
+    public static Task<IResult> Fragment(
         HttpContext context,
+        Action<HtmxResponseWriter>? configureResponse,
         CancellationToken cancellationToken = default,
         params RenderFragment[] fragments)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(fragments);
 
-        return ResolveViewService(context).PartialView(cancellationToken, fragments);
+        configureResponse?.Invoke(context.HtmxResponse());
+        return ResolveRenderService(context).Fragment(cancellationToken, fragments);
+    }
+
+    /// <summary>
+    /// Renders one or more fragments without page-shell semantics.
+    /// </summary>
+    public static Task<IResult> Fragment(
+        HttpContext context,
+        CancellationToken cancellationToken = default,
+        params RenderFragment[] fragments)
+    {
+        return Fragment(
+            context,
+            configureResponse: null,
+            cancellationToken: cancellationToken,
+            fragments: fragments);
+    }
+
+    /// <summary>
+    /// Renders a page component and forces an app-root swap for HTMX partial requests.
+    /// </summary>
+    public static Task<IResult> RootSwap<TComponent>(
+        HttpContext context,
+        object? data = null,
+        CancellationToken cancellationToken = default)
+        where TComponent : IComponent
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        return ResolveRenderService(context).RootSwap<TComponent>(data, cancellationToken);
     }
 
     /// <summary>
@@ -93,7 +126,7 @@ public static class HrzResults
         ArgumentNullException.ThrowIfNull(context);
 
         configureResponse?.Invoke(context.HtmxResponse());
-        var inner = await ResolveViewService(context).PartialView<TComponent>(data, cancellationToken);
+        var inner = await ResolveRenderService(context).Fragment<TComponent>(data, cancellationToken);
         return new HrzStatusResult(statusCode, inner);
     }
 
@@ -180,13 +213,13 @@ public static class HrzResults
         ArgumentNullException.ThrowIfNull(context);
 
         configureResponse?.Invoke(context.HtmxResponse());
-        var inner = await ResolveViewService(context).PartialView<TComponent>(data, cancellationToken);
+        var inner = await ResolveRenderService(context).Fragment<TComponent>(data, cancellationToken);
         return new HrzStatusResult(statusCode, inner);
     }
 
-    private static IHrzComponentViewService ResolveViewService(HttpContext context)
+    private static IHrzRenderService ResolveRenderService(HttpContext context)
     {
-        return HrzRegistrationRequirements.ResolveViewService(context.RequestServices);
+        return HrzRegistrationRequirements.ResolveRenderService(context.RequestServices);
     }
 
     private sealed class HrzStatusResult : IResult

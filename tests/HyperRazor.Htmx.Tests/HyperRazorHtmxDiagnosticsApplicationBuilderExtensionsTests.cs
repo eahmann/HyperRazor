@@ -11,17 +11,17 @@ namespace HyperRazor.Htmx.Tests;
 public class HyperRazorHtmxDiagnosticsApplicationBuilderExtensionsTests
 {
     [Fact]
-    public async Task UseHyperRazorDiagnostics_LogsLayoutPromotionMetadata_WhenPresent()
+    public async Task UseHyperRazorDiagnostics_LogsPageNavigationMetadata_WhenPresent()
     {
         var loggerProvider = new TestLoggerProvider();
 
         await using var app = await BuildApp(async context =>
         {
-            context.Items[typeof(HtmxLayoutPromotionDiagnostics)] = new HtmxLayoutPromotionDiagnostics(
-                ClientLayoutFamily: "main",
-                RouteLayoutFamily: "side",
-                PromotionMode: "ShellSwap",
-                PromotionApplied: true);
+            context.Items[typeof(HtmxPageNavigationDiagnostics)] = new HtmxPageNavigationDiagnostics(
+                CurrentUrl: "https://localhost/users",
+                SourceLayout: "AdminLayout",
+                TargetLayout: "WorkbenchLayout",
+                Mode: "RootSwap");
             context.Response.ContentType = "text/html";
             await context.Response.WriteAsync("<p>ok</p>");
         }, loggerProvider);
@@ -35,11 +35,11 @@ public class HyperRazorHtmxDiagnosticsApplicationBuilderExtensionsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains(
             loggerProvider.Messages,
-            message =>
-                message.Contains("clientLayoutFamily=main", StringComparison.Ordinal)
-                && message.Contains("routeLayoutFamily=side", StringComparison.Ordinal)
-                && message.Contains("promotionMode=ShellSwap", StringComparison.Ordinal)
-                && message.Contains("promotionApplied=True", StringComparison.Ordinal));
+                message =>
+                    message.Contains("currentUrl=https://localhost/users", StringComparison.Ordinal)
+                    && message.Contains("sourceLayout=AdminLayout", StringComparison.Ordinal)
+                    && message.Contains("targetLayout=WorkbenchLayout", StringComparison.Ordinal)
+                    && message.Contains("mode=RootSwap", StringComparison.Ordinal));
     }
 
     private static async Task<WebApplication> BuildApp(RequestDelegate endpoint, ILoggerProvider loggerProvider)

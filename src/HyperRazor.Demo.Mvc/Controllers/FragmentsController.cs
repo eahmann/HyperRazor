@@ -60,7 +60,7 @@ public sealed class FragmentsController : HrController
             action: "search-users",
             details: $"query=\"{normalizedQuery ?? "*"}\", sort={normalizedSort}, page={safePage}, pageSize={safePageSize}");
 
-        return Partial<UserSearchResults>(new
+        return Fragment<UserSearchResults>(new
         {
             Query = normalizedQuery,
             Sort = normalizedSort,
@@ -83,7 +83,7 @@ public sealed class FragmentsController : HrController
             action: "dashboard-sync-check",
             details: "Emitted an HX-Trigger workflow event from the dashboard health check.");
 
-        return Partial<DashboardCheckResult>(new
+        return Fragment<DashboardCheckResult>(new
         {
             Title = "Sync check completed",
             Message = "Saved successfully.",
@@ -101,7 +101,7 @@ public sealed class FragmentsController : HrController
             action: "dashboard-banner-check",
             details: "Trigger is configured via [HtmxResponse] for a dashboard broadcast event.");
 
-        return Partial<DashboardCheckResult>(new
+        return Fragment<DashboardCheckResult>(new
         {
             Title = "Broadcast banner queued",
             Message = "Saved successfully (attribute trigger).",
@@ -170,11 +170,11 @@ public sealed class FragmentsController : HrController
     [HtmxRequest]
     public Task<IResult> IncidentBackendFailureDrill(CancellationToken cancellationToken)
     {
-        _swapService.QueueHtml(
-            targetId: $"error-toast-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
-            html: "<div class=\"toast error\">Server-side failure demo (500) with OOB toast.</div>",
-            swapStyle: SwapStyle.BeforeEnd,
-            selector: "#toast-stack");
+        var toastId = $"error-toast-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        _swapService.Append(
+            HyperRazor.Demo.Mvc.Components.Pages.Workbench.IncidentsPage.ToastStackRegion,
+            toastId,
+            builder => builder.AddMarkupContent(0, "<div class=\"toast error\">Server-side failure demo (500) with OOB toast.</div>"));
 
         QueueInspectorUpdate(
             action: "incident-drill-backend-failure",
@@ -220,7 +220,7 @@ public sealed class FragmentsController : HrController
             action: "settings-branding",
             details: $"Queued title/meta/style/script via IHrzHeadService. Title=\"{normalizedTitle}\", accent={accentPreset.Name}.");
 
-        return Partial<HeadUpdateResult>(new
+        return Fragment<HeadUpdateResult>(new
         {
             Title = normalizedTitle,
             Description = normalizedDescription,
@@ -249,7 +249,7 @@ public sealed class FragmentsController : HrController
             action: "users-provision",
             details: $"Created {normalizedName} (#{count}).");
 
-        return Partial<UserCreateResult>(new { DisplayName = normalizedName, Count = count }, cancellationToken);
+        return Fragment<UserCreateResult>(new { DisplayName = normalizedName, Count = count }, cancellationToken);
     }
 
     [HttpPost("users/provision-rendered")]
@@ -277,7 +277,7 @@ public sealed class FragmentsController : HrController
         var oobMarkup = await _swapService.RenderToString(clear: true, cancellationToken);
         var preview = BuildRenderToStringPreview(oobMarkup);
 
-        return await Partial(
+        return await Fragment(
             cancellationToken,
             builder =>
             {
@@ -309,7 +309,7 @@ public sealed class FragmentsController : HrController
                 action: "review-access-request",
                 details: $"Request #{requestId} failed validation with {errors.Count} error(s).");
 
-            return Partial<AccessRequestReviewResult>(new
+            return Fragment<AccessRequestReviewResult>(new
             {
                 Errors = errors
             }, cancellationToken);
@@ -354,42 +354,38 @@ public sealed class FragmentsController : HrController
     {
         if (includeUsersList)
         {
-            _swapService.QueueComponent<UserCreateResult>(
-                targetId: "users-list",
-                parameters: new Dictionary<string, object?>
+            _swapService.Replace<UserCreateResult>(
+                HyperRazor.Demo.Mvc.Components.Pages.Admin.UsersPage.UsersListRegion,
+                new Dictionary<string, object?>
                 {
                     [nameof(UserCreateResult.DisplayName)] = normalizedName,
                     [nameof(UserCreateResult.Count)] = count
-                },
-                swapStyle: SwapStyle.OuterHtml);
+                });
         }
 
-        _swapService.QueueComponent<ToastSuccess>(
-            targetId: $"toast-{count}",
-            parameters: new Dictionary<string, object?>
+        _swapService.Append<ToastSuccess>(
+            HyperRazor.Demo.Mvc.Components.Pages.Admin.UsersPage.ToastStackRegion,
+            $"toast-{count}",
+            new Dictionary<string, object?>
             {
                 [nameof(Components.Fragments.ToastSuccess.Message)] = $"Created {normalizedName}."
-            },
-            swapStyle: SwapStyle.BeforeEnd,
-            selector: "#toast-stack");
+            });
 
-        _swapService.QueueComponent<UserCountValue>(
-            targetId: "user-count-shell",
-            parameters: new Dictionary<string, object?>
+        _swapService.Replace<UserCountValue>(
+            HyperRazor.Demo.Mvc.Components.Pages.Admin.UsersPage.UserCountRegion,
+            new Dictionary<string, object?>
             {
                 [nameof(UserCountValue.Count)] = count
-            },
-            swapStyle: SwapStyle.InnerHtml);
+            });
 
-        _swapService.QueueComponent<ActivityFeedItem>(
-            targetId: $"activity-{count}",
-            parameters: new Dictionary<string, object?>
+        _swapService.Append<ActivityFeedItem>(
+            HyperRazor.Demo.Mvc.Components.Pages.Admin.UsersPage.ActivityFeedRegion,
+            $"activity-{count}",
+            new Dictionary<string, object?>
             {
                 [nameof(ActivityFeedItem.DisplayName)] = normalizedName,
                 [nameof(ActivityFeedItem.Count)] = count
-            },
-            swapStyle: SwapStyle.BeforeEnd,
-            selector: "#activity-feed");
+            });
     }
 
     private void QueueInspectorUpdate(string action, string details)
@@ -399,13 +395,12 @@ public sealed class FragmentsController : HrController
 
     private void QueueDashboardEventLog(string message)
     {
-        _swapService.QueueComponent<DashboardEventLog>(
-            targetId: "dashboard-event-log",
-            parameters: new
+        _swapService.Replace<DashboardEventLog>(
+            HyperRazor.Demo.Mvc.Components.Pages.Admin.DashboardPage.EventLogRegion,
+            new
             {
                 Message = message
-            },
-            swapStyle: SwapStyle.InnerHtml);
+            });
     }
 
     private static string BuildRenderToStringPreview(string markup)

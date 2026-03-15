@@ -25,8 +25,6 @@ public static class DemoServiceCollectionExtensions
         services.AddHyperRazor(options =>
         {
             options.RootComponent = typeof(HrzApp<AppLayout>);
-            options.LayoutBoundary.Enabled = true;
-            options.LayoutBoundary.DefaultLayoutFamily = "admin";
         });
         services.AddScoped<IHrzSseReplayStrategy, DemoSseReplayStrategy>();
         services.AddHtmx(htmx =>

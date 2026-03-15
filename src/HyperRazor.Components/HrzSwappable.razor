@@ -1,30 +1,25 @@
-@using HyperRazor.Components.Services
-
 <div id="@TargetId" hx-swap-oob="@SwapDescriptor">@ChildContent</div>
 
 @code {
     [Parameter, EditorRequired]
     public string TargetId { get; set; } = default!;
 
-    [Parameter]
-    public SwapStyle SwapStyle { get; set; } = SwapStyle.OuterHtml;
-
-    [Parameter]
-    public string? Selector { get; set; }
+    [Parameter, EditorRequired]
+    public string SwapDescriptor { get; set; } = default!;
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
-
-    private string SwapDescriptor =>
-        string.IsNullOrWhiteSpace(Selector)
-            ? SwapStyle.ToHtmxString()
-            : $"{SwapStyle.ToHtmxString()}:{Selector}";
 
     protected override void OnParametersSet()
     {
         if (string.IsNullOrWhiteSpace(TargetId))
         {
             throw new InvalidOperationException($"{nameof(TargetId)} must be provided.");
+        }
+
+        if (string.IsNullOrWhiteSpace(SwapDescriptor))
+        {
+            throw new InvalidOperationException($"{nameof(SwapDescriptor)} must be provided.");
         }
     }
 }

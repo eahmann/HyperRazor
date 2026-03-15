@@ -41,20 +41,25 @@
         <h3>Replay State</h3>
         <p class="demo-caption">The left feed stays HTML-first. These status cards show when the first response ends, when the reconnect happens, and when replay hands back to live streaming.</p>
 
-        <div id="sse-replay-connection">
+        <HrzRegion Name="@ConnectionRegion">
             <section class="sse-status-card sse-status-card--neutral">
                 <p class="app-kicker">connection</p>
                 <h4>Opening connection</h4>
                 <p class="mb-0">Waiting for the first live frame.</p>
             </section>
-        </div>
+        </HrzRegion>
 
-        <div id="sse-replay-resume">
+        <HrzRegion Name="@ResumeRegion">
             <section class="sse-status-card sse-status-card--neutral">
                 <p class="app-kicker">last-event-id</p>
                 <h4>Awaiting reconnect</h4>
                 <p class="mb-0">The first response will end after <code>replay-demo-02</code> so EventSource can reconnect with a resume header.</p>
             </section>
-        </div>
+        </HrzRegion>
     </section>
 </section>
+
+@code {
+    public const string ConnectionRegion = "sse-replay-connection";
+    public const string ResumeRegion = "sse-replay-resume";
+}

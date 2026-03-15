@@ -77,5 +77,11 @@
     <section id="dashboard-sync-status" class="panel">
         <p class="empty mb-0">Run a check to render the server result card here.</p>
     </section>
-    <p id="dashboard-event-log" class="signal-log" aria-live="polite">No workflow events yet.</p>
+    <HrzRegion Name="@EventLogRegion" TagName="p" class="signal-log" aria-live="polite">
+        No workflow events yet.
+    </HrzRegion>
 </section>
+
+@code {
+    public const string EventLogRegion = "dashboard-event-log";
+}

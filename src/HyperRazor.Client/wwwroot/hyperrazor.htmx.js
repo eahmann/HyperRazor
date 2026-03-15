@@ -1,6 +1,9 @@
 (function () {
     "use strict";
 
+    var CURRENT_LAYOUT_HEADER = "X-Hrz-Current-Layout";
+    var CURRENT_LAYOUT_SELECTOR = "template[data-hrz-current-layout]";
+
     function readBodySetting(name, fallback) {
         var body = document.body;
         if (!body) {
@@ -85,24 +88,30 @@
         headers[headerName] = token;
     }
 
-    function applyLayoutFamilyHeader(event) {
+    function readCurrentLayout() {
+        var markers = document.querySelectorAll(CURRENT_LAYOUT_SELECTOR);
+        if (!markers || markers.length === 0) {
+            return null;
+        }
+
+        var marker = markers[markers.length - 1];
+        var value = marker.getAttribute("data-hrz-current-layout");
+        return value && value.trim().length > 0 ? value.trim() : null;
+    }
+
+    function applyCurrentLayout(event) {
         var detail = event && event.detail ? event.detail : null;
         var headers = resolveHeaders(detail);
         if (!headers) {
             return;
         }
 
-        var shell = document.querySelector("#hrz-app-shell");
-        if (!shell) {
+        var currentLayout = readCurrentLayout();
+        if (!currentLayout) {
             return;
         }
 
-        var family = shell.getAttribute("data-hrz-layout-family");
-        if (!family || family.trim().length === 0) {
-            return;
-        }
-
-        headers["X-Hrz-Layout-Family"] = family.trim();
+        headers[CURRENT_LAYOUT_HEADER] = currentLayout;
     }
 
     function ensureHeadSupport() {
@@ -135,8 +144,8 @@
 
         body.addEventListener("htmx:configRequest", applyAntiforgery);
         body.addEventListener("htmx:config:request", applyAntiforgery);
-        body.addEventListener("htmx:configRequest", applyLayoutFamilyHeader);
-        body.addEventListener("htmx:config:request", applyLayoutFamilyHeader);
+        body.addEventListener("htmx:configRequest", applyCurrentLayout);
+        body.addEventListener("htmx:config:request", applyCurrentLayout);
         ensureHeadSupport();
     }
 

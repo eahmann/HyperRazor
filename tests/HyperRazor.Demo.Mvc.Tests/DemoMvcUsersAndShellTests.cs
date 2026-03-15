@@ -1,4 +1,5 @@
 using System.Net;
+using HyperRazor.Demo.Mvc.Components.Layouts;
 using HyperRazor.Htmx;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -7,6 +8,8 @@ namespace HyperRazor.Demo.Mvc.Tests;
 [Collection("DemoMvcWebAppFactoryCollection")]
 public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
 {
+    private const string CurrentLayoutHeader = "X-Hrz-Current-Layout";
+
     public DemoMvcUsersAndShellTests(WebApplicationFactory<Program> factory)
         : base(factory)
     {
@@ -36,7 +39,7 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         Assert.Contains(HtmxHeaderNames.RequestType, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.Boosted, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
-        Assert.Contains(HtmxHeaderNames.LayoutFamily, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(CurrentLayoutHeader, response.Headers.Vary, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -87,33 +90,31 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
     }
 
     [Fact]
-    public async Task Users_WithBoostedRequestAndAdminFamily_DoesNotPromoteLayoutBoundary()
+    public async Task Users_WithBoostedSameLayoutRequest_ReturnsFragment()
     {
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/users");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add(HtmxHeaderNames.Boosted, "true");
-        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "admin");
+        request.Headers.Add(CurrentLayoutHeader, typeof(AdminLayout).FullName!);
 
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.False(response.Headers.Contains(HtmxHeaderNames.Retarget));
-        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reswap));
-        Assert.False(response.Headers.Contains(HtmxHeaderNames.Reselect));
+        Assert.False(response.Headers.Contains(HtmxHeaderNames.Location));
         Assert.DoesNotContain("<header id=\"app-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("<h2>User Administration</h2>", body, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Users_WithBoostedRequestAndAdminFamily_IncludesChromeOobUpdates()
+    public async Task Users_WithBoostedSameLayoutRequest_IncludesChromeOobUpdates()
     {
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/users");
         request.Headers.Add(HtmxHeaderNames.Request, "true");
         request.Headers.Add(HtmxHeaderNames.Boosted, "true");
-        request.Headers.Add(HtmxHeaderNames.LayoutFamily, "admin");
+        request.Headers.Add(CurrentLayoutHeader, typeof(AdminLayout).FullName!);
 
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
@@ -121,10 +122,28 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"app-chrome-toolbar\"", body, StringComparison.Ordinal);
         Assert.Contains("id=\"app-chrome-sidebar\"", body, StringComparison.Ordinal);
-        Assert.Contains("hx-swap-oob=\"outerHTML\"", body, StringComparison.Ordinal);
+        Assert.Contains("hx-swap-oob=\"innerHTML\"", body, StringComparison.Ordinal);
         Assert.Contains("<code>/users</code>", body, StringComparison.Ordinal);
         Assert.Contains("<span class=\"sidebar-mode-value\">admin</span>", body, StringComparison.Ordinal);
         Assert.Contains("href=\"/users\" aria-current=\"page\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Users_WithBoostedRequestAndMissingCurrentLayout_ReturnsHxLocation()
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/users");
+        request.Headers.Add(HtmxHeaderNames.Request, "true");
+        request.Headers.Add(HtmxHeaderNames.Boosted, "true");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(string.Empty, body);
+        Assert.True(response.Headers.TryGetValues(HtmxHeaderNames.Location, out var locationValues));
+        Assert.Contains("/users", locationValues.Single(), StringComparison.Ordinal);
+        Assert.Contains("\"HX-Request-Type\":\"full\"", locationValues.Single(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -239,7 +258,8 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<section id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Contains("Latest Created User", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob=\"innerHTML\"", body, StringComparison.Ordinal);
@@ -270,7 +290,7 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("id=\"render-to-string-demo-result\"", body, StringComparison.Ordinal);
         Assert.Contains("IHrzSwapService.RenderToString(clear: true)", body, StringComparison.Ordinal);
-        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Equal(1, body.Split("id=\"users-list\"", StringSplitOptions.None).Length - 1);
         Assert.Contains("beforeend:#toast-stack", body, StringComparison.Ordinal);
         Assert.Contains("id=\"user-count-shell\"", body, StringComparison.Ordinal);
         Assert.Contains("beforeend:#activity-feed", body, StringComparison.Ordinal);
@@ -297,7 +317,8 @@ public class DemoMvcUsersAndShellTests : DemoMvcIntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<section id=\"users-list\"", body, StringComparison.Ordinal);
+        Assert.Contains("Latest Created User", body, StringComparison.Ordinal);
         Assert.DoesNotContain("hx-swap-oob", body, StringComparison.Ordinal);
     }
 }

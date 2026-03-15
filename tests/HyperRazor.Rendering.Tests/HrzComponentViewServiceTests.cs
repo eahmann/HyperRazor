@@ -21,7 +21,7 @@ using System.Linq.Expressions;
 
 namespace HyperRazor.Rendering.Tests;
 
-public class HrzComponentViewServiceTests
+public class HrzRenderServiceTests
 {
     [Fact]
     public async Task View_WithoutHtmxRequest_RendersFullShell()
@@ -29,11 +29,12 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
+        Assert.Contains($"data-hrz-current-layout=\"{HrzLayoutKey.None}\"", html, StringComparison.Ordinal);
         Assert.Contains(HtmxHeaderNames.Request, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.RequestType, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains(HtmxHeaderNames.HistoryRestoreRequest, fixture.HttpContext.Response.Headers.Vary.ToString(), StringComparison.OrdinalIgnoreCase);
@@ -48,11 +49,12 @@ public class HrzComponentViewServiceTests
         });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-hrz-current-layout=\"{HrzLayoutKey.None}\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -65,7 +67,7 @@ public class HrzComponentViewServiceTests
         });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
@@ -80,7 +82,7 @@ public class HrzComponentViewServiceTests
         });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
@@ -92,12 +94,13 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<GreetingComponent>(new { Name = "Ava" });
+        var result = await fixture.RenderService.Fragment<GreetingComponent>(new { Name = "Ava" });
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-hrz-current-layout=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -106,10 +109,10 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var anonymousResult = await fixture.ViewService.View<GreetingComponent>(new { Name = "Anonymous" });
+        var anonymousResult = await fixture.RenderService.Page<GreetingComponent>(new { Name = "Anonymous" });
         var anonymousHtml = await ExecuteResultAsync(anonymousResult, fixture.HttpContext);
 
-        var dictionaryResult = await fixture.ViewService.View<GreetingComponent>(
+        var dictionaryResult = await fixture.RenderService.Page<GreetingComponent>(
             new Dictionary<string, object?> { ["Name"] = "Dictionary" });
         var dictionaryHtml = await ExecuteResultAsync(dictionaryResult, fixture.HttpContext);
 
@@ -123,7 +126,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.View<AsyncGreetingComponent>();
+        var result = await fixture.RenderService.Page<AsyncGreetingComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Loaded", html, StringComparison.Ordinal);
@@ -131,59 +134,108 @@ public class HrzComponentViewServiceTests
     }
 
     [Fact]
-    public async Task View_WithCrossFamilyBoostedRequest_StoresLayoutPromotionDiagnostics()
+    public async Task View_WithBoostedSameLayoutRequest_RendersPageFragment_AndStoresNavigationDiagnostics()
     {
         await using var fixture = await CreateFixtureAsync(
             headers =>
             {
                 headers[HtmxHeaderNames.Request] = "true";
                 headers[HtmxHeaderNames.Boosted] = "true";
-                headers[HtmxHeaderNames.LayoutFamily] = "main";
-            },
-            options =>
-            {
-                options.LayoutBoundary.Enabled = true;
-                options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
+                headers[HtmxHeaderNames.CurrentUrl] = "https://localhost/side/list";
+                headers[HrzInternalHeaderNames.CurrentLayout] = HrzLayoutKey.Create(typeof(SideTestLayout));
             });
         fixture.SetCurrentContext();
+        fixture.HttpContext.Request.Path = "/side/detail";
 
-        var result = await fixture.ViewService.View<SideGreetingComponent>(new { Name = "Ava" });
-        _ = await ExecuteResultAsync(result, fixture.HttpContext);
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        var diagnostics = Assert.IsType<HtmxLayoutPromotionDiagnostics>(
-            fixture.HttpContext.Items[typeof(HtmxLayoutPromotionDiagnostics)]);
-        Assert.Equal("main", diagnostics.ClientLayoutFamily);
-        Assert.Equal("side", diagnostics.RouteLayoutFamily);
-        Assert.Equal(nameof(HrzLayoutBoundaryPromotionMode.ShellSwap), diagnostics.PromotionMode);
-        Assert.True(diagnostics.PromotionApplied);
+        Assert.Contains("id=\"hrz-minimal-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
+        Assert.False(fixture.HttpContext.Response.Headers.ContainsKey(HtmxHeaderNames.Location));
+
+        var diagnostics = Assert.IsType<HtmxPageNavigationDiagnostics>(
+            fixture.HttpContext.Items[typeof(HtmxPageNavigationDiagnostics)]);
+        Assert.Equal("https://localhost/side/list", diagnostics.CurrentUrl);
+        Assert.Equal(HrzLayoutKey.Create(typeof(SideTestLayout)), diagnostics.SourceLayout);
+        Assert.Equal(HrzLayoutKey.Create(typeof(SideTestLayout)), diagnostics.TargetLayout);
+        Assert.Equal(nameof(HrzPageNavigationResponseMode.PageFragment), diagnostics.Mode);
     }
 
     [Fact]
-    public async Task View_WithSameFamilyBoostedRequest_StoresNonAppliedLayoutPromotionDiagnostics()
+    public async Task View_WithBoostedDifferentLayoutRequest_ReturnsRootSwap_AndStoresNavigationDiagnostics()
     {
         await using var fixture = await CreateFixtureAsync(
             headers =>
             {
                 headers[HtmxHeaderNames.Request] = "true";
                 headers[HtmxHeaderNames.Boosted] = "true";
-                headers[HtmxHeaderNames.LayoutFamily] = "main";
-            },
-            options =>
-            {
-                options.LayoutBoundary.Enabled = true;
-                options.LayoutBoundary.PromotionMode = HrzLayoutBoundaryPromotionMode.ShellSwap;
+                headers[HtmxHeaderNames.CurrentUrl] = "https://localhost/main";
+                headers[HrzInternalHeaderNames.CurrentLayout] = HrzLayoutKey.None;
             });
         fixture.SetCurrentContext();
+        fixture.HttpContext.Request.Path = "/side/detail";
 
-        var result = await fixture.ViewService.View<GreetingComponent>(new { Name = "Ava" });
-        _ = await ExecuteResultAsync(result, fixture.HttpContext);
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
-        var diagnostics = Assert.IsType<HtmxLayoutPromotionDiagnostics>(
-            fixture.HttpContext.Items[typeof(HtmxLayoutPromotionDiagnostics)]);
-        Assert.Equal("main", diagnostics.ClientLayoutFamily);
-        Assert.Equal("main", diagnostics.RouteLayoutFamily);
-        Assert.Equal(nameof(HrzLayoutBoundaryPromotionMode.Off), diagnostics.PromotionMode);
-        Assert.False(diagnostics.PromotionApplied);
+        Assert.Contains("id=\"hrz-app-shell\"", html, StringComparison.Ordinal);
+        Assert.Contains("Hello Ava", html, StringComparison.Ordinal);
+        Assert.False(fixture.HttpContext.Response.Headers.ContainsKey(HtmxHeaderNames.Location));
+        Assert.Equal("#hrz-app-shell", fixture.HttpContext.Response.Headers[HtmxHeaderNames.Retarget].ToString());
+        Assert.Equal("outerHTML", fixture.HttpContext.Response.Headers[HtmxHeaderNames.Reswap].ToString());
+        Assert.Equal("#hrz-app-shell", fixture.HttpContext.Response.Headers[HtmxHeaderNames.Reselect].ToString());
+        Assert.Equal("/side/detail", fixture.HttpContext.Response.Headers[HtmxHeaderNames.PushUrl].ToString());
+
+        var diagnostics = Assert.IsType<HtmxPageNavigationDiagnostics>(
+            fixture.HttpContext.Items[typeof(HtmxPageNavigationDiagnostics)]);
+        Assert.Equal("https://localhost/main", diagnostics.CurrentUrl);
+        Assert.Equal(HrzLayoutKey.None, diagnostics.SourceLayout);
+        Assert.Equal(HrzLayoutKey.Create(typeof(SideTestLayout)), diagnostics.TargetLayout);
+        Assert.Equal(nameof(HrzPageNavigationResponseMode.RootSwap), diagnostics.Mode);
+    }
+
+    [Fact]
+    public async Task View_WithBoostedRequestAndMissingCurrentLayout_ReturnsHxLocation()
+    {
+        await using var fixture = await CreateFixtureAsync(headers =>
+        {
+            headers[HtmxHeaderNames.Request] = "true";
+            headers[HtmxHeaderNames.Boosted] = "true";
+            headers[HtmxHeaderNames.CurrentUrl] = "https://localhost/not-mapped";
+        });
+        fixture.SetCurrentContext();
+        fixture.HttpContext.Request.Path = "/side/detail";
+
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Equal(string.Empty, html);
+        Assert.True(fixture.HttpContext.Response.Headers.ContainsKey(HtmxHeaderNames.Location));
+
+        var diagnostics = Assert.IsType<HtmxPageNavigationDiagnostics>(
+            fixture.HttpContext.Items[typeof(HtmxPageNavigationDiagnostics)]);
+        Assert.Equal(nameof(HrzPageNavigationResponseMode.HxLocation), diagnostics.Mode);
+        Assert.Null(diagnostics.SourceLayout);
+    }
+
+    [Fact]
+    public async Task View_WithBoostedRequestAndBlankCurrentLayout_ReturnsHxLocation()
+    {
+        await using var fixture = await CreateFixtureAsync(headers =>
+        {
+            headers[HtmxHeaderNames.Request] = "true";
+            headers[HtmxHeaderNames.Boosted] = "true";
+            headers[HrzInternalHeaderNames.CurrentLayout] = "   ";
+        });
+        fixture.SetCurrentContext();
+        fixture.HttpContext.Request.Path = "/side/detail";
+
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Equal(string.Empty, html);
+        Assert.True(fixture.HttpContext.Response.Headers.ContainsKey(HtmxHeaderNames.Location));
     }
 
     [Fact]
@@ -200,7 +252,7 @@ public class HrzComponentViewServiceTests
             }));
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<AttemptedValueComponent>();
+        var result = await fixture.RenderService.Fragment<AttemptedValueComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("value=\"typed@example.com\"", html, StringComparison.Ordinal);
@@ -220,7 +272,7 @@ public class HrzComponentViewServiceTests
             new Dictionary<HrzFieldPath, HrzAttemptedValue>()));
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<EditFormBridgeComponent>();
+        var result = await fixture.RenderService.Fragment<EditFormBridgeComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("Form summary error.", html, StringComparison.Ordinal);
@@ -233,7 +285,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationAuthoringSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationAuthoringSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"users-invite-form\"", html, StringComparison.Ordinal);
@@ -274,7 +326,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationAuthoringOverridesComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationAuthoringOverridesComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"override-form\"", html, StringComparison.Ordinal);
@@ -309,7 +361,7 @@ public class HrzComponentViewServiceTests
             }));
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationExpandedInputSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationExpandedInputSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"expanded-notes\"", html, StringComparison.Ordinal);
@@ -343,7 +395,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationPlaceholderSelectSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationPlaceholderSelectSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("id=\"placeholder-select-role\"", html, StringComparison.Ordinal);
@@ -362,7 +414,7 @@ public class HrzComponentViewServiceTests
             });
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationCustomMetadataSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationCustomMetadataSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("data-val-rolloutplan=", html, StringComparison.Ordinal);
@@ -376,7 +428,7 @@ public class HrzComponentViewServiceTests
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
 
-        var result = await fixture.ViewService.PartialView<ValidationManualSelectSurfaceComponent>();
+        var result = await fixture.RenderService.Fragment<ValidationManualSelectSurfaceComponent>();
         var html = await ExecuteResultAsync(result, fixture.HttpContext);
 
         Assert.Contains("<optgroup label=\"Operators\">", html, StringComparison.Ordinal);
@@ -407,18 +459,18 @@ public class HrzComponentViewServiceTests
         services.Configure<HrzOptions>(options =>
         {
             options.RootComponent = typeof(HrzApp<HrzAppLayout>);
-            options.UseMinimalLayoutForHtmx = true;
             configureOptions?.Invoke(options);
         });
-        services.AddOptions<HrzSwapOptions>();
-        services.AddSingleton<IHrzLayoutFamilyResolver, HrzLayoutFamilyResolver>();
+        services.AddSingleton<IHrzLayoutTypeResolver, HrzLayoutTypeResolver>();
         services.AddSingleton<IHrzFieldPathResolver>(new HrzFieldPathResolver());
         services.AddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.AddScoped<IHrzHeadService, HrzHeadService>();
-        services.AddScoped<IHrzSwapService, HrzSwapService>();
+        services.AddScoped<HrzSwapService>();
+        services.AddScoped<IHrzSwapService>(serviceProvider => serviceProvider.GetRequiredService<HrzSwapService>());
+        services.AddScoped<IHrzSwapBuffer>(serviceProvider => (IHrzSwapBuffer)serviceProvider.GetRequiredService<HrzSwapService>());
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
-        services.AddScoped<IHrzComponentViewService, HrzComponentViewService>();
+        services.AddScoped<IHrzRenderService, HrzRenderService>();
         configureServices?.Invoke(services);
 
         var provider = services.BuildServiceProvider();
@@ -432,11 +484,11 @@ public class HrzComponentViewServiceTests
 
         httpContextAccessor.HttpContext = httpContext;
 
-        var viewService = scope.ServiceProvider.GetRequiredService<IHrzComponentViewService>();
+        var renderService = scope.ServiceProvider.GetRequiredService<IHrzRenderService>();
 
         await Task.Yield();
 
-        return new TestFixture(provider, scope, httpContextAccessor, httpContext, viewService);
+        return new TestFixture(provider, scope, httpContextAccessor, httpContext, renderService);
     }
 
     private static async Task<string> ExecuteResultAsync(IResult result, HttpContext context)
@@ -457,13 +509,13 @@ public class HrzComponentViewServiceTests
             IServiceScope scope,
             IHttpContextAccessor httpContextAccessor,
             HttpContext httpContext,
-            IHrzComponentViewService viewService)
+            IHrzRenderService renderService)
         {
             Provider = provider;
             Scope = scope;
             HttpContextAccessor = httpContextAccessor;
             HttpContext = httpContext;
-            ViewService = viewService;
+            RenderService = renderService;
         }
 
         public ServiceProvider Provider { get; }
@@ -474,7 +526,7 @@ public class HrzComponentViewServiceTests
 
         public HttpContext HttpContext { get; }
 
-        public IHrzComponentViewService ViewService { get; }
+        public IHrzRenderService RenderService { get; }
 
         public void SetCurrentContext()
         {
@@ -541,7 +593,6 @@ public class HrzComponentViewServiceTests
         }
     }
 
-    [HrzLayoutFamily("side")]
     private sealed class SideTestLayout : LayoutComponentBase
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)

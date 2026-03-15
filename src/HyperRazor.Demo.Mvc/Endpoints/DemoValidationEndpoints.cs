@@ -63,7 +63,7 @@ public static class DemoValidationEndpoints
 
         if (context.HtmxRequest().IsHtmx)
         {
-            return await HrzResults.Partial<UserInviteValidationForm>(
+            return await HrzResults.Fragment<UserInviteValidationForm>(
                 context,
                 new
                 {
@@ -133,7 +133,7 @@ public static class DemoValidationEndpoints
 
         if (context.HtmxRequest().IsHtmx)
         {
-            return await HrzResults.Partial<UserInviteValidationForm>(
+            return await HrzResults.Fragment<UserInviteValidationForm>(
                 context,
                 new
                 {
@@ -195,7 +195,7 @@ public static class DemoValidationEndpoints
 
         if (context.HtmxRequest().IsHtmx)
         {
-            return await HrzResults.Partial<MixedValidationAuthoringForm>(
+            return await HrzResults.Fragment<MixedValidationAuthoringForm>(
                 context,
                 new
                 {
@@ -277,7 +277,7 @@ public static class DemoValidationEndpoints
                 action: "validation-mixed-live-policy-disabled",
                 details: $"Mixed live policy blocked {primaryField.Value} and cleared {string.Join(", ", primaryPolicy.ClearFields.Select(static field => field.Value))}.");
 
-            return await HrzResults.Partial(context, cancellationToken, disabledFragments.ToArray());
+            return await HrzResults.Fragment(context, cancellationToken, disabledFragments.ToArray());
         }
 
         var livePatch = DemoValidationSupport.BuildMixedLiveValidationPatch(scope, primaryField, formPostState.Model, resolvedPolicies);
@@ -310,7 +310,7 @@ public static class DemoValidationEndpoints
             action: "validation-mixed-live",
             details: $"Mixed live validation updated {string.Join(", ", livePatch.AffectedFields.Select(static field => field.Value))}.");
 
-        return await HrzResults.Partial(context, cancellationToken, fragments.ToArray());
+        return await HrzResults.Fragment(context, cancellationToken, fragments.ToArray());
     }
 
     private static async Task<IResult> HandleInviteLiveAsync(
@@ -383,7 +383,7 @@ public static class DemoValidationEndpoints
                 action: "validation-live-policy-disabled",
                 details: $"Live policy blocked {primaryField.Value} and cleared {string.Join(", ", primaryPolicy.ClearFields.Select(static field => field.Value))}.");
 
-            return await HrzResults.Partial(context, cancellationToken, disabledFragments.ToArray());
+            return await HrzResults.Fragment(context, cancellationToken, disabledFragments.ToArray());
         }
 
         var livePatch = DemoValidationSupport.BuildInviteLiveValidationPatch(scope, primaryField, formPostState.Model, resolvedPolicies);
@@ -416,6 +416,6 @@ public static class DemoValidationEndpoints
             action: "validation-live",
             details: $"Live validation updated {string.Join(", ", livePatch.AffectedFields.Select(static field => field.Value))}.");
 
-        return await HrzResults.Partial(context, cancellationToken, fragments.ToArray());
+        return await HrzResults.Fragment(context, cancellationToken, fragments.ToArray());
     }
 }

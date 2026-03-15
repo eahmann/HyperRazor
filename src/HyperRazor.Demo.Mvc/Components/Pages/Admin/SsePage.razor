@@ -41,20 +41,25 @@
         <h3>Out-of-Band Sidecar</h3>
         <p class="demo-caption">These regions are updated from the same SSE payloads through HyperRazor's queued OOB rendering path.</p>
 
-        <div id="sse-stream-status">
+        <HrzRegion Name="@StreamStatusRegion">
             <section class="sse-status-card sse-status-card--neutral">
                 <p class="app-kicker">connection</p>
                 <h4>Connecting</h4>
                 <p class="mb-0">Waiting for the first streamed HTML fragment.</p>
             </section>
-        </div>
+        </HrzRegion>
 
-        <div id="sse-last-event-id">
+        <HrzRegion Name="@LastEventIdRegion">
             <section class="sse-status-card sse-status-card--resume">
                 <p class="app-kicker">last-event-id</p>
                 <h4>Fresh Stream</h4>
                 <p class="mb-0">No resume header was supplied on the initial connection.</p>
             </section>
-        </div>
+        </HrzRegion>
     </section>
 </section>
+
+@code {
+    public const string StreamStatusRegion = "sse-stream-status";
+    public const string LastEventIdRegion = "sse-last-event-id";
+}

@@ -5,9 +5,9 @@
             <p>Ten live server-pushed notes prepend into the panel without polling while the unread badge updates out-of-band.</p>
         </div>
 
-        <div id="notifications-unread-indicator">
+        <HrzRegion Name="@UnreadIndicatorRegion">
             <NotificationsUnreadIndicator Count="0" />
-        </div>
+        </HrzRegion>
     </div>
 
     <div class="demo-note" role="note">
@@ -39,12 +39,17 @@
         <h3>Stream State</h3>
         <p class="demo-caption">The unread badge is a server-owned number. This sidecar just shows the latest SSE event ID and where the demo stream is in its 10-note sequence.</p>
 
-        <div id="notifications-stream-state">
+        <HrzRegion Name="@StreamStateRegion">
             <NotificationsStreamStateCard
                 EventId="connecting"
                 Position="0 / 10"
                 Detail="Waiting for the first server-pushed notification."
                 Tone="neutral" />
-        </div>
+        </HrzRegion>
     </section>
 </section>
+
+@code {
+    public const string UnreadIndicatorRegion = "notifications-unread-indicator";
+    public const string StreamStateRegion = "notifications-stream-state";
+}

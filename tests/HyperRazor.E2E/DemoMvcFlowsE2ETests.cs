@@ -34,6 +34,7 @@ public sealed class DemoMvcFlowsE2ETests
         Assert.Contains("beforeend:#activity-feed", html, StringComparison.Ordinal);
         Assert.Contains("hx-swap-oob", html, StringComparison.Ordinal);
         Assert.Contains("users-provision", html, StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator("#users-list")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator("#users-list")).ToContainTextAsync("Jordan Avery");
         await Assertions.Expect(page.Locator("#activity-feed")).ToContainTextAsync("Jordan Avery");
     }
@@ -706,7 +707,7 @@ public sealed class DemoMvcFlowsE2ETests
     }
 
     [SkippableFact]
-    public async Task AppNav_BoostedLinks_SwapAcrossAdminAndWorkbenchLayouts()
+    public async Task AppNav_BoostedLinks_NavigateAcrossAdminAndWorkbenchLayouts()
     {
         Skip.IfNot(_fixture.CanRun, _fixture.SkipReason ?? "Playwright browser runtime unavailable.");
 
@@ -744,13 +745,20 @@ public sealed class DemoMvcFlowsE2ETests
 
         var accessResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync(".app-nav a[href='/access-requests']"),
-            response => response.Url.Contains("/access-requests", StringComparison.Ordinal));
+            response =>
+                response.Url.Contains("/access-requests", StringComparison.Ordinal)
+                && response.Request.Headers.TryGetValue("hx-boosted", out var boosted)
+                && string.Equals(boosted, "true", StringComparison.OrdinalIgnoreCase));
 
         Assert.Equal(200, accessResponse.Status);
-        Assert.Equal("admin", accessResponse.Request.Headers["x-hrz-layout-family"]);
         var accessHeaders = await accessResponse.AllHeadersAsync();
-        Assert.True(accessHeaders.TryGetValue("hx-retarget", out var accessRetarget));
-        Assert.Equal("#hrz-app-shell", accessRetarget);
+        Assert.False(accessHeaders.ContainsKey("hx-location"));
+        Assert.Equal("#hrz-app-shell", accessHeaders["hx-retarget"]);
+        Assert.Equal("outerHTML", accessHeaders["hx-reswap"]);
+        Assert.Equal("#hrz-app-shell", accessHeaders["hx-reselect"]);
+        Assert.Equal("/access-requests", accessHeaders["hx-push-url"]);
+        var accessHtml = await accessResponse.TextAsync();
+        Assert.Contains("id=\"hrz-app-shell\"", accessHtml, StringComparison.Ordinal);
         await ExpectHeadingAsync(page, "Access Requests");
         await Assertions.Expect(page.Locator("#workbench-layout-shell")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("/access-requests");
@@ -763,9 +771,8 @@ public sealed class DemoMvcFlowsE2ETests
             response => response.Url.Contains("/incidents", StringComparison.Ordinal));
 
         Assert.Equal(200, incidentsResponse.Status);
-        Assert.Equal("workbench", incidentsResponse.Request.Headers["x-hrz-layout-family"]);
         var incidentsHeaders = await incidentsResponse.AllHeadersAsync();
-        Assert.False(incidentsHeaders.ContainsKey("hx-retarget"));
+        Assert.False(incidentsHeaders.ContainsKey("hx-location"));
         await ExpectHeadingAsync(page, "Incidents");
         await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("/incidents");
         await Assertions.Expect(page.Locator("#app-chrome-toolbar")).ToContainTextAsync("workbench");
@@ -774,13 +781,20 @@ public sealed class DemoMvcFlowsE2ETests
 
         var backResponse = await page.RunAndWaitForResponseAsync(
             async () => await page.ClickAsync(".side-layout-nav a[href='/users']"),
-            response => response.Url.Contains("/users", StringComparison.Ordinal));
+            response =>
+                response.Url.Contains("/users", StringComparison.Ordinal)
+                && response.Request.Headers.TryGetValue("hx-boosted", out var boosted)
+                && string.Equals(boosted, "true", StringComparison.OrdinalIgnoreCase));
 
         Assert.Equal(200, backResponse.Status);
-        Assert.Equal("workbench", backResponse.Request.Headers["x-hrz-layout-family"]);
         var backHeaders = await backResponse.AllHeadersAsync();
-        Assert.True(backHeaders.TryGetValue("hx-retarget", out var backRetarget));
-        Assert.Equal("#hrz-app-shell", backRetarget);
+        Assert.False(backHeaders.ContainsKey("hx-location"));
+        Assert.Equal("#hrz-app-shell", backHeaders["hx-retarget"]);
+        Assert.Equal("outerHTML", backHeaders["hx-reswap"]);
+        Assert.Equal("#hrz-app-shell", backHeaders["hx-reselect"]);
+        Assert.Equal("/users", backHeaders["hx-push-url"]);
+        var backHtml = await backResponse.TextAsync();
+        Assert.Contains("id=\"hrz-app-shell\"", backHtml, StringComparison.Ordinal);
         await ExpectHeadingAsync(page, "User Administration");
         Assert.EndsWith("/users", page.Url, StringComparison.Ordinal);
         await Assertions.Expect(page.Locator(".app-nav")).ToHaveCountAsync(1);

@@ -5,13 +5,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>HyperRazor.Components</PackageId>
-    <Description>Supported advanced composition package for HyperRazor Razor components, layouts, shell primitives, and validation authoring/contracts.</Description>
+    <Description>Supported advanced composition package for HyperRazor Razor components, layouts, validation authoring/contracts, and client assets.</Description>
+    <StaticWebAssetBasePath>_content/HyperRazor.Client</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\HyperRazor.Client\HyperRazor.Client.csproj" />
-    <ProjectReference Include="..\HyperRazor.Htmx.Core\HyperRazor.Htmx.Core.csproj" />
+    <ProjectReference Include="..\HyperRazor.Htmx\HyperRazor.Htmx.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 <Project>
   <ItemGroup>
     <Using Include="HyperRazor.Htmx" />
+    <Using Include="HyperRazor.Htmx.Components" />
   </ItemGroup>
 </Project>

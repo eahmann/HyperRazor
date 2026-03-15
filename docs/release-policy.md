@@ -6,7 +6,7 @@ This is the release and versioning policy for the repository as Phase 4 wraps.
 
 - Full HyperRazor app: install `HyperRazor`.
 - Typed HTMX only: install `HyperRazor.Htmx`.
-- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+- Advanced component composition: install `HyperRazor.Components` only when you are intentionally composing on that layer.
 
 ## Package scope
 
@@ -15,19 +15,14 @@ Primary entry-point packages:
 - `HyperRazor`: the default onboarding package for a full HyperRazor app (`src/HyperRazor`)
 - `HyperRazor.Htmx`: the default onboarding package for typed HTMX support without the full HyperRazor rendering stack (`src/HyperRazor.Htmx`)
 
-Advanced but supported composition packages:
+Advanced but supported composition package:
 
-- `HyperRazor.Client`
 - `HyperRazor.Components`
-- `HyperRazor.Htmx.Core`
-- `HyperRazor.Htmx.Components`
-- `HyperRazor.Mvc`
-- `HyperRazor.Rendering`
 
 Internal-only projects:
 
-- `HyperRazor.Demo.Api`
-- `HyperRazor.Demo.Mvc`
+- `samples/HyperRazor.Demo.Api`
+- `samples/HyperRazor.Demo.Mvc`
 - `tests/*`
 
 ## Versioning
@@ -38,7 +33,7 @@ Use one shared semantic version across all published HyperRazor packages.
 - `MINOR`: additive public API, new features, or opt-in behavior that remains backward compatible
 - `PATCH`: bug fixes, diagnostics, test-only changes, doc fixes, and internal refactors with no intended public surface change
 
-Example `MAJOR` changes include advanced namespace moves such as validation contracts moving from `HyperRazor.Rendering` to `HyperRazor.Components.Validation`.
+Example `MAJOR` changes include advanced namespace moves such as validation contracts moving from `HyperRazor.Rendering` to `HyperRazor.Components.Validation`, or package retirement/mapping changes such as `HyperRazor.Rendering` folding into `HyperRazor`.
 
 Use prerelease suffixes for staged releases:
 
@@ -49,7 +44,7 @@ Use prerelease suffixes for staged releases:
 
 Keep version stamping centralized at pack/publish time so package versions cannot drift between projects.
 
-The primary packages own the onboarding story. The advanced packages remain versioned and published because the current architecture ships multiple assemblies, but they are advanced composition building blocks rather than the default docs path.
+The primary packages own the onboarding story. `HyperRazor.Components` remains versioned and published because the current architecture intentionally keeps an advanced component assembly available, but it is not the default docs path.
 
 Example:
 

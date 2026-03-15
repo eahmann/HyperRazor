@@ -9,7 +9,7 @@ Use the larger validation specs when you need design history or future direction
 
 ## Purpose
 
-The validation code spans multiple projects:
+The validation code spans the three shipped libraries plus the demo sample:
 
 - component authoring and render-time metadata
 - submit-time state transport
@@ -18,7 +18,7 @@ The validation code spans multiple projects:
 - browser-side gating and field-state updates
 - demo-only policies and response composition
 
-This note names those layers, points to the files that own them, and shows the live-validation flow end to end. Shared validation contracts now import from `HyperRazor.Components.Validation`.
+This note names those layers, points to the files that own them, and shows the live-validation flow end to end. Shared validation contracts import from `HyperRazor.Components.Validation`, and the runtime implementation APIs live under `src/HyperRazor/`.
 
 ## Layers
 
@@ -82,14 +82,14 @@ This layer binds requests, resolves field paths, converts framework validation i
 
 Primary files:
 
-- `src/HyperRazor.Mvc/HrController.cs`
-- `src/HyperRazor.Mvc/HrzMinimalApiFormExtensions.cs`
-- `src/HyperRazor.Rendering/HrzValidationBridge.cs`
-- `src/HyperRazor.Rendering/HrzDataAnnotationsModelValidator.cs`
-- `src/HyperRazor.Rendering/Validation/HrzFieldPathResolver.cs`
-- `src/HyperRazor.Rendering/Validation/HrzDataAnnotationsClientValidationMetadataProvider.cs`
+- `src/HyperRazor/Mvc/HrController.cs`
+- `src/HyperRazor/Mvc/HrzMinimalApiFormExtensions.cs`
+- `src/HyperRazor/Rendering/HrzValidationBridge.cs`
+- `src/HyperRazor/Rendering/HrzDataAnnotationsModelValidator.cs`
+- `src/HyperRazor/Rendering/Validation/HrzFieldPathResolver.cs`
+- `src/HyperRazor/Rendering/Validation/HrzDataAnnotationsClientValidationMetadataProvider.cs`
 - `src/HyperRazor.Components/Validation/IHrzLiveValidationPolicyResolver.cs`
-- `src/HyperRazor.Rendering/Validation/HrzDefaultLiveValidationPolicyResolver.cs`
+- `src/HyperRazor/Rendering/Validation/HrzDefaultLiveValidationPolicyResolver.cs`
 
 Responsibilities:
 
@@ -102,7 +102,7 @@ Responsibilities:
 
 ### 4. Client runtime layer
 
-This layer is the browser-side harness in `src/HyperRazor.Client/wwwroot/hyperrazor.validation.js`.
+This layer is the browser-side harness in `src/HyperRazor.Components/wwwroot/hyperrazor.validation.js`.
 
 Internal modules in that file:
 
@@ -137,13 +137,13 @@ This layer proves the framework runtime but also contains app-specific policy an
 
 Primary files:
 
-- `src/HyperRazor.Demo.Mvc/Program.cs`
-- `src/HyperRazor.Demo.Mvc/Controllers/ValidationController.cs`
-- `src/HyperRazor.Demo.Mvc/Infrastructure/UserInviteValidationResponses.cs`
-- `src/HyperRazor.Demo.Mvc/Infrastructure/MixedValidationResponses.cs`
-- `src/HyperRazor.Demo.Mvc/Infrastructure/DemoValidationLivePolicyResolver.cs`
-- `src/HyperRazor.Demo.Mvc/Models/UserInviteValidationDefinitions.cs`
-- `src/HyperRazor.Demo.Mvc/Models/MixedValidationDefinitions.cs`
+- `samples/HyperRazor.Demo.Mvc/Program.cs`
+- `samples/HyperRazor.Demo.Mvc/Controllers/ValidationController.cs`
+- `samples/HyperRazor.Demo.Mvc/Infrastructure/UserInviteValidationResponses.cs`
+- `samples/HyperRazor.Demo.Mvc/Infrastructure/MixedValidationResponses.cs`
+- `samples/HyperRazor.Demo.Mvc/Infrastructure/DemoValidationLivePolicyResolver.cs`
+- `samples/HyperRazor.Demo.Mvc/Models/UserInviteValidationDefinitions.cs`
+- `samples/HyperRazor.Demo.Mvc/Models/MixedValidationDefinitions.cs`
 
 Responsibilities:
 
@@ -175,13 +175,13 @@ Responsibilities:
 
 ## Where To Change Behavior
 
-- Change shared field-path helpers in `src/HyperRazor.Components/Validation/HrzFieldPaths.cs` and the DI-backed resolver implementation in `src/HyperRazor.Rendering/Validation/HrzFieldPathResolver.cs`.
-- Change Minimal API form binding or live-scope binding in `src/HyperRazor.Mvc/HrzMinimalApiFormExtensions.cs`.
-- Change server-side `DataAnnotations` evaluation in `src/HyperRazor.Rendering/HrzDataAnnotationsModelValidator.cs`.
-- Change MVC-to-HyperRazor submit-state capture in `src/HyperRazor.Mvc/HrController.cs`.
-- Change Blazor `EditContext` message projection in `src/HyperRazor.Rendering/HrzValidationBridge.cs`.
-- Change browser gating, local adapter behavior, or form disable/restore behavior in `src/HyperRazor.Client/wwwroot/hyperrazor.validation.js`.
-- Change demo-only policies or examples in `src/HyperRazor.Demo.Mvc/`.
+- Change shared field-path helpers in `src/HyperRazor.Components/Validation/HrzFieldPaths.cs` and the DI-backed resolver implementation in `src/HyperRazor/Rendering/Validation/HrzFieldPathResolver.cs`.
+- Change Minimal API form binding or live-scope binding in `src/HyperRazor/Mvc/HrzMinimalApiFormExtensions.cs`.
+- Change server-side `DataAnnotations` evaluation in `src/HyperRazor/Rendering/HrzDataAnnotationsModelValidator.cs`.
+- Change MVC-to-HyperRazor submit-state capture in `src/HyperRazor/Mvc/HrController.cs`.
+- Change Blazor `EditContext` message projection in `src/HyperRazor/Rendering/HrzValidationBridge.cs`.
+- Change browser gating, local adapter behavior, or form disable/restore behavior in `src/HyperRazor.Components/wwwroot/hyperrazor.validation.js`.
+- Change demo-only policies or examples in `samples/HyperRazor.Demo.Mvc/`.
 
 ## Relationship To Other Docs
 

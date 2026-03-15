@@ -6,29 +6,24 @@ Typed HTMX support for ASP.NET with server-rendered components and MVC endpoint 
 
 - Full HyperRazor app: install `HyperRazor`.
 - Typed HTMX only: install `HyperRazor.Htmx`.
-- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+- Advanced component composition: install `HyperRazor.Components` only when you are intentionally composing on that layer.
 
 Primary entry-point packages:
 
-- `HyperRazor`: the default onboarding package for a full HyperRazor app
+- `HyperRazor`: the default onboarding package for a full HyperRazor app; it brings in `HyperRazor.Components` and `HyperRazor.Htmx` transitively
 - `HyperRazor.Htmx`: the default onboarding package for typed HTMX support without the full HyperRazor rendering stack
 
-Advanced but supported composition packages:
+Advanced but supported composition package:
 
-- `HyperRazor.Client`
 - `HyperRazor.Components`
-- `HyperRazor.Htmx.Core`
-- `HyperRazor.Htmx.Components`
-- `HyperRazor.Mvc`
-- `HyperRazor.Rendering`
 
 Internal-only projects:
 
-- `HyperRazor.Demo.Api`
-- `HyperRazor.Demo.Mvc`
+- `samples/HyperRazor.Demo.Api`
+- `samples/HyperRazor.Demo.Mvc`
 - `tests/*`
 
-Advanced validation authoring stays in `HyperRazor.Components`, and shared validation contracts import from `HyperRazor.Components.Validation`. `HyperRazor.Rendering` remains the implementation layer for rendering and validation engines.
+Advanced validation authoring stays in `HyperRazor.Components`, shared validation contracts import from `HyperRazor.Components.Validation`, and the `HyperRazor` package continues to expose the `HyperRazor.Mvc` and `HyperRazor.Rendering` namespaces for server/runtime APIs.
 
 Docs:
 - [Quickstart](docs/quickstart.md)

@@ -1,18 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor</PackageId>
-    <Description>Default onboarding package for full HyperRazor apps with server-rendered Razor components, MVC helpers, and typed HTMX support.</Description>
+    <Description>Default onboarding package for full HyperRazor apps with server-rendered Razor components, rendering services, MVC helpers, and typed HTMX support.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\HyperRazor.Components\HyperRazor.Components.csproj" />
     <ProjectReference Include="..\HyperRazor.Htmx\HyperRazor.Htmx.csproj" />
-    <ProjectReference Include="..\HyperRazor.Mvc\HyperRazor.Mvc.csproj" />
-    <ProjectReference Include="..\HyperRazor.Rendering\HyperRazor.Rendering.csproj" />
   </ItemGroup>
 
   <ItemGroup>

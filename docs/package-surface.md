@@ -1,37 +1,32 @@
 # HyperRazor Package Surface
 
-This file is the canonical package-story source and the decision record for Package Story Phase 1. Treat the classifications and wording here as the source for onboarding docs, NuGet readme text, and packable project descriptions.
+This file is the canonical package-story source and decision record for the current public package layout. Treat the classifications and wording here as the source for onboarding docs, NuGet readme text, and packable project descriptions.
 
 ## Decision
 
-HyperRazor stays on the current two-tier public surface for this phase.
+HyperRazor ships three library projects under `src` and keeps the current two-package primary onboarding story.
 
 ## Which package do I install?
 
 - Full HyperRazor app: install `HyperRazor`.
 - Typed HTMX only: install `HyperRazor.Htmx`.
-- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+- Advanced component composition: install `HyperRazor.Components` only when you are intentionally composing on that layer.
 
 ## Package classification
 
 Primary entry-point packages:
 
-- `HyperRazor`: the default onboarding package for a full HyperRazor app
+- `HyperRazor`: the default onboarding package for a full HyperRazor app; it brings in `HyperRazor.Components` and `HyperRazor.Htmx` transitively
 - `HyperRazor.Htmx`: the default onboarding package for typed HTMX support without the full HyperRazor rendering stack
 
-Advanced but supported composition packages:
+Advanced but supported composition package:
 
-- `HyperRazor.Client`
 - `HyperRazor.Components`
-- `HyperRazor.Htmx.Core`
-- `HyperRazor.Htmx.Components`
-- `HyperRazor.Mvc`
-- `HyperRazor.Rendering`
 
 Internal-only projects:
 
-- `HyperRazor.Demo.Api`
-- `HyperRazor.Demo.Mvc`
+- `samples/HyperRazor.Demo.Api`
+- `samples/HyperRazor.Demo.Mvc`
 - `tests/*`
 
 ## Rules For Docs And Packaging
@@ -40,17 +35,30 @@ Internal-only projects:
 - `README.md`, `docs/quickstart.md`, `docs/adopting-hyperrazor.md`, `docs/nuget-readme.md`, and `docs/release-policy.md` should use the same primary/advanced/internal classification language.
 - Happy-path examples should use only the primary packages.
 - The primary packages should carry the common namespace imports needed for the happy path.
-- Advanced packages remain supported and versioned, but they are composition building blocks, not the default onboarding story.
+- `HyperRazor.Components` remains supported and versioned, but it is a composition building block, not the default onboarding story.
 - Demo and test projects are not part of the shipped package surface.
 
-## Advanced Validation Migration
+## Source Project Layout
 
-Package Story Phase 2 resolves the old validation ownership mismatch without introducing a new package.
+- `src/HyperRazor` owns the full-stack onboarding package and now contains the runtime, `HyperRazor.Mvc`, and `HyperRazor.Rendering` source.
+- `src/HyperRazor.Components` owns the component authoring surface, validation contracts/authoring, and client assets.
+- `src/HyperRazor.Htmx` owns the HTMX primitives, services, and HTMX-related components.
 
-- `HyperRazor.Components` now owns the validation authoring surface.
+## Migration
+
+Package Story Phase 3 retires the old advanced package IDs without introducing a new package:
+
+- `HyperRazor.Client` -> `HyperRazor.Components`
+- `HyperRazor.Mvc` -> `HyperRazor`
+- `HyperRazor.Rendering` -> `HyperRazor`
+- `HyperRazor.Htmx.Core` -> `HyperRazor.Htmx`
+- `HyperRazor.Htmx.Components` -> `HyperRazor.Htmx`
+
+Validation ownership from Phase 2 remains in place:
+
+- `HyperRazor.Components` owns the validation authoring surface.
 - `HyperRazor.Components.Validation` is the shared validation contract namespace.
-- `HyperRazor.Rendering` remains public for rendering primitives and validation implementations, but no longer owns the shared validation contract surface.
-- `HyperRazor.Mvc` now carries a direct dependency on `HyperRazor.Components` because its public validation helpers expose `HyperRazor.Components.Validation` types.
+- The implementation APIs remain public under the `HyperRazor.Rendering` namespace, but they now ship from the `HyperRazor` package.
 
 Migration guidance:
 
@@ -59,4 +67,4 @@ using HyperRazor.Components;
 using HyperRazor.Components.Validation;
 ```
 
-Replace old validation-type imports from `HyperRazor.Rendering` when a file only needs shared validation contracts such as `HrzValidationRootId`, `HrzFieldPath`, `HrzSubmitValidationState`, `IHrzFieldPathResolver`, or `IHrzLiveValidationPolicyResolver`.
+Replace old validation-type imports from `HyperRazor.Rendering` when a file only needs shared validation contracts such as `HrzValidationRootId`, `HrzFieldPath`, `HrzSubmitValidationState`, `IHrzFieldPathResolver`, or `IHrzLiveValidationPolicyResolver`. Switch retired package references to the package mapping above.

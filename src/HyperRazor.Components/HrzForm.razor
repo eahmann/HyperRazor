@@ -16,9 +16,8 @@
         @attributes="AdditionalAttributes">
         <HrzAntiforgeryInput />
         @ChildContent
+        <HrzLivePolicyRegion />
     </form>
-
-    <HrzValidationLivePolicyRegion />
 </CascadingValue>
 
 @code {
@@ -56,6 +55,9 @@
     public bool EnableClientValidation { get; set; } = true;
 
     [Parameter]
+    public HrzLiveValidationOptions? Live { get; set; }
+
+    [Parameter]
     public string? LiveValidationPath { get; set; }
 
     [Parameter]
@@ -80,18 +82,12 @@
     private HttpContext? HttpContext { get; set; }
 
     [Inject]
-    private IEnumerable<IHrzClientValidationMetadataProvider> ClientValidationMetadataProviders { get; set; } =
-        Array.Empty<IHrzClientValidationMetadataProvider>();
+    private IHrzForms HrzForms { get; set; } = default!;
 
-    private readonly HrzValidationFormContext _formContext = new();
+    private HrzValidationFormContext _formContext = default!;
     private bool _registrationRefreshPending;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
-
-    protected override void OnInitialized()
-    {
-        _formContext.RegistrationChanged = RequestRegistrationRefresh;
-    }
 
     protected override void OnParametersSet()
     {
@@ -99,26 +95,35 @@
         ArgumentException.ThrowIfNullOrWhiteSpace(Action);
 
         var resolvedRootId = RootId ?? ResolveRootId(FormName);
-        var idPrefix = string.IsNullOrWhiteSpace(IdPrefix)
-            ? resolvedRootId.Value
-            : IdPrefix;
+        var formView = string.IsNullOrWhiteSpace(IdPrefix)
+            ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
+            : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
 
-        _formContext.Model = Model!;
-        _formContext.RootId = resolvedRootId;
-        _formContext.IdPrefix = idPrefix;
-        _formContext.ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId);
-        _formContext.EnableClientValidation = EnableClientValidation;
-        _formContext.ClientValidationMetadataProviders = ClientValidationMetadataProviders.ToArray();
-        _formContext.LiveValidationPath = LiveValidationPath;
-        _formContext.LiveTrigger = LiveTrigger;
-        _formContext.LiveInclude = LiveInclude;
-        _formContext.LiveSync = LiveSync;
+        formView.RegistrationChanged += RequestRegistrationRefresh;
+        _formContext = HrzValidationFormContext.Create(formView);
     }
 
     private static HrzValidationRootId ResolveRootId(string? formName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(formName);
         return new HrzValidationRootId(formName);
+    }
+
+    private HrzLiveValidationOptions? ResolveLiveOptions()
+    {
+        var legacyPath = string.IsNullOrWhiteSpace(LiveValidationPath) ? null : LiveValidationPath;
+        if (Live is null && legacyPath is null)
+        {
+            return null;
+        }
+
+        return new HrzLiveValidationOptions
+        {
+            Path = !string.IsNullOrWhiteSpace(Live?.Path) ? Live.Path : legacyPath,
+            Trigger = Live?.Trigger ?? LiveTrigger,
+            Include = Live?.Include ?? LiveInclude,
+            Sync = Live?.Sync ?? LiveSync
+        };
     }
 
     private void RequestRegistrationRefresh()

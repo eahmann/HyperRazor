@@ -280,6 +280,26 @@ public class HrzRenderServiceTests
     }
 
     [Fact]
+    public async Task PartialView_EditFormValidationAuthoringSurface_ReusesSharedFieldStack()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.RenderService.Fragment<EditFormValidationAuthoringComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("hx-post=\"/users/invite\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"this\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-swap=\"outerHTML\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("for=\"users-invite-email\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PartialView_ValidationAuthoringSurface_EmitsLiveRuntimeContract()
     {
         await using var fixture = await CreateFixtureAsync();
@@ -318,6 +338,27 @@ public class HrzRenderServiceTests
         Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-live-enabled=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-hrz-summary-slot-id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_RawValidationSurface_UsesSharedFormViews()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.RenderService.Fragment<RawValidationAuthoringSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"users-invite-form\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-validation-root=\"users-invite\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/users/invite\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"this\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("for=\"users-invite-email\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -451,6 +492,7 @@ public class HrzRenderServiceTests
         var httpContextAccessor = new HttpContextAccessor();
         services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
         services.AddRazorComponents();
+        services.AddHyperRazorComponentServices();
         services.AddHtmx(config =>
         {
             config.SelfRequestsOnly = true;
@@ -657,6 +699,65 @@ public class HrzRenderServiceTests
         public string Email { get; set; } = string.Empty;
     }
 
+    private sealed class EditFormValidationAuthoringComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new()
+        {
+            Email = "riley@example.com"
+        };
+
+        private EditContext? _editContext;
+
+        protected override void OnInitialized()
+        {
+            _editContext = new EditContext(_model);
+        }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<EditForm>(0);
+            builder.AddAttribute(1, nameof(EditForm.EditContext), _editContext);
+            builder.AddAttribute(2, "FormName", "users-invite");
+            builder.AddAttribute(3, "action", "/users/invite");
+            builder.AddAttribute(4, "hx-post", "/users/invite");
+            builder.AddAttribute(5, "hx-target", "this");
+            builder.AddAttribute(6, "hx-swap", "outerHTML");
+            builder.AddAttribute(7, nameof(EditForm.ChildContent), (RenderFragment<EditContext>)(editContext => childBuilder =>
+            {
+                childBuilder.OpenComponent<DataAnnotationsValidator>(0);
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<HrzValidationBridge>(1);
+                childBuilder.AddAttribute(2, nameof(HrzValidationBridge.FormName), "users-invite");
+                childBuilder.AddAttribute(3, nameof(HrzValidationBridge.Live), new HrzLiveValidationOptions
+                {
+                    Path = "/validation/live"
+                });
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<HrzValidationSummary>(4);
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<HrzField<string>>(5);
+                childBuilder.AddAttribute(6, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                childBuilder.AddAttribute(7, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzLabel>(0);
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzInputText>(1);
+                    fieldBuilder.AddAttribute(2, nameof(HrzInputText.Type), "email");
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
     private sealed class ValidationAuthoringSurfaceComponent : ComponentBase
     {
         private readonly ValidationAuthoringModel _model = new()
@@ -670,7 +771,10 @@ public class HrzRenderServiceTests
             builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
             builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
             builder.AddAttribute(3, nameof(HrzForm<ValidationAuthoringModel>.FormName), "users-invite");
-            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.LiveValidationPath), "/validation/live");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.Live), new HrzLiveValidationOptions
+            {
+                Path = "/validation/live"
+            });
             builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.Class), "form-custom");
             builder.AddAttribute(6, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
             {
@@ -701,6 +805,59 @@ public class HrzRenderServiceTests
                 formBuilder.CloseComponent();
             }));
             builder.CloseComponent();
+        }
+    }
+
+    private sealed class RawValidationAuthoringSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new()
+        {
+            Email = "riley@example.com"
+        };
+
+        [Inject]
+        private IHrzForms HrzForms { get; set; } = default!;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var inviteForm = HrzForms.For(
+                _model,
+                formName: "users-invite",
+                live: new HrzLiveValidationOptions
+                {
+                    Path = "/validation/live"
+                });
+            var email = inviteForm.Field(() => _model.Email);
+
+            builder.OpenElement(0, "form");
+            builder.AddMultipleAttributes(1, inviteForm.FormAttributes(
+                action: "/users/invite",
+                hxPost: "/users/invite",
+                hxTarget: "this",
+                hxSwap: "outerHTML"));
+
+            builder.OpenComponent<HrzSummaryMessages>(2);
+            builder.AddAttribute(3, nameof(HrzSummaryMessages.Form), inviteForm);
+            builder.CloseComponent();
+
+            builder.OpenElement(4, "label");
+            builder.AddAttribute(5, "for", email.InputId);
+            builder.AddContent(6, email.LabelText);
+            builder.CloseElement();
+
+            builder.OpenElement(7, "input");
+            builder.AddMultipleAttributes(8, email.AsTextInput(type: "email", autocomplete: "email"));
+            builder.CloseElement();
+
+            builder.OpenComponent<HrzFieldMessages>(9);
+            builder.AddAttribute(10, nameof(HrzFieldMessages.Field), email);
+            builder.CloseComponent();
+
+            builder.OpenComponent<HrzLivePolicyRegion>(11);
+            builder.AddAttribute(12, nameof(HrzLivePolicyRegion.Form), inviteForm);
+            builder.CloseComponent();
+
+            builder.CloseElement();
         }
     }
 

@@ -1,78 +1,61 @@
 using HyperRazor.Components.Validation;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace HyperRazor.Components;
 
 internal sealed class HrzValidationFormContext
 {
-    private readonly Dictionary<string, HrzValidationFieldContext> _registeredLiveFields = new(StringComparer.Ordinal);
+    public required HrzFormView View { get; init; }
 
-    public object Model { get; set; } = default!;
+    public object Model => View.Model;
 
-    public HrzValidationRootId RootId { get; set; } = default!;
+    public HrzValidationRootId RootId => View.RootId;
 
-    public string IdPrefix { get; set; } = string.Empty;
+    public string IdPrefix => View.IdPrefix;
 
-    public HrzSubmitValidationState? ValidationState { get; set; }
+    public HrzSubmitValidationState? ValidationState => View.ValidationState;
 
-    public bool EnableClientValidation { get; set; }
+    public bool EnableClientValidation => View.EnableClientValidation;
 
-    public IReadOnlyList<IHrzClientValidationMetadataProvider> ClientValidationMetadataProviders { get; set; } =
-        Array.Empty<IHrzClientValidationMetadataProvider>();
+    public HrzLiveValidationOptions? Live => View.Live;
 
-    public string? LiveValidationPath { get; set; }
+    public string SummaryId => View.SummaryId;
 
-    public string LiveTrigger { get; set; } = "input changed delay:400ms, blur";
+    public string FormId => View.FormId;
 
-    public string LiveInclude { get; set; } = "closest form";
+    public string LivePolicyRegionId => View.LivePolicyRegionId;
 
-    public string LiveSync { get; set; } = "closest form:abort";
+    public IReadOnlyList<HrzFieldView> RegisteredLiveFields => View.RegisteredLiveFields;
 
-    public Action? RegistrationChanged { get; set; }
-
-    public string SummaryId => $"{IdPrefix}-server-summary";
-
-    public string FormId => $"{IdPrefix}-form";
-
-    public string LivePolicyRegionId => $"{IdPrefix}-live-policies";
-
-    public IReadOnlyList<HrzValidationFieldContext> RegisteredLiveFields =>
-        _registeredLiveFields.Values
-            .OrderBy(static fieldContext => fieldContext.FieldPath.Value, StringComparer.Ordinal)
-            .ToArray();
-
-    public void RegisterField(HrzValidationFieldContext fieldContext)
+    public static HrzValidationFormContext Create(HrzFormView view)
     {
-        ArgumentNullException.ThrowIfNull(fieldContext);
+        ArgumentNullException.ThrowIfNull(view);
+        return new HrzValidationFormContext { View = view };
+    }
 
-        if (!fieldContext.HasLiveValidation)
-        {
-            UnregisterField(fieldContext.FieldPath);
-            return;
-        }
+    public static HrzValidationFormContext? ResolveFrom(EditContext? editContext)
+    {
+        return HrzEditFormState.TryGetFormView(editContext, out var formView)
+            ? Create(formView!)
+            : null;
+    }
 
-        var key = fieldContext.FieldPath.Value;
-        if (_registeredLiveFields.TryGetValue(key, out var existing)
-            && existing.LivePolicyId == fieldContext.LivePolicyId
-            && existing.LiveValidationPath == fieldContext.LiveValidationPath
-            && existing.LiveTrigger == fieldContext.LiveTrigger
-            && existing.LiveInclude == fieldContext.LiveInclude
-            && existing.LiveSync == fieldContext.LiveSync)
-        {
-            _registeredLiveFields[key] = fieldContext;
-            return;
-        }
+    public HrzFieldView<TValue> Field<TValue>(
+        System.Linq.Expressions.Expression<Func<TValue>> accessor,
+        Func<TValue> compiledAccessor,
+        string? label,
+        bool? enableClientValidation,
+        HrzFieldLiveOptions? live)
+    {
+        ArgumentNullException.ThrowIfNull(accessor);
+        ArgumentNullException.ThrowIfNull(compiledAccessor);
 
-        _registeredLiveFields[key] = fieldContext;
-        RegistrationChanged?.Invoke();
+        return View.Field(accessor, compiledAccessor, label, enableClientValidation, live);
     }
 
     public void UnregisterField(HrzFieldPath fieldPath)
     {
         ArgumentNullException.ThrowIfNull(fieldPath);
-
-        if (_registeredLiveFields.Remove(fieldPath.Value))
-        {
-            RegistrationChanged?.Invoke();
-        }
+        View.UnregisterField(fieldPath);
     }
 }

@@ -81,7 +81,7 @@ public class HrzValidationInfrastructureTests
     }
 
     [Fact]
-    public async Task BindLiveValidationScopeAsync_ReadsRootFieldsAndValidateAll()
+    public async Task BindLiveValidationRequestAsync_ReadsRootFieldsAndValidateAll()
     {
         var services = CreateServices();
         using var scope = services.CreateScope();
@@ -98,7 +98,7 @@ public class HrzValidationInfrastructureTests
             ["__hrz_validate_all"] = "true"
         })));
 
-        var scopeModel = await context.BindLiveValidationScopeAsync();
+        var scopeModel = await context.BindLiveValidationRequestAsync();
 
         Assert.NotNull(scopeModel);
         Assert.Equal("invite-live", scopeModel!.RootId.Value);
@@ -107,6 +107,46 @@ public class HrzValidationInfrastructureTests
             scopeModel.Fields,
             field => Assert.Equal("DisplayName", field.Value),
             field => Assert.Equal("Email", field.Value));
+    }
+
+    [Fact]
+    public void HrzForms_For_FormName_UsesFormNameAsRootAndCurrentRequestValidationState()
+    {
+        var services = CreateServices();
+        using var scope = services.CreateScope();
+        var rootId = new HrzValidationRootId("users-invite");
+        var validationState = new HrzSubmitValidationState(
+            rootId,
+            Array.Empty<string>(),
+            new Dictionary<HrzFieldPath, IReadOnlyList<string>>(),
+            new Dictionary<HrzFieldPath, HrzAttemptedValue>
+            {
+                [HrzFieldPaths.FromFieldName(nameof(InviteLikeFormModel.Email))] = new(new[] { "typed@example.com" }, Array.Empty<HrzAttemptedFile>())
+            });
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider
+        };
+        context.SetSubmitValidationState(validationState);
+        scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = context;
+
+        var model = new InviteLikeFormModel
+        {
+            Email = "server@example.com"
+        };
+        var forms = scope.ServiceProvider.GetRequiredService<IHrzForms>();
+
+        var form = forms.For(
+            model,
+            formName: "users-invite",
+            live: new HrzLiveValidationOptions { Path = "/validation/live" });
+        var email = form.Field(() => model.Email);
+
+        Assert.Equal(rootId, form.RootId);
+        Assert.Same(validationState, form.ValidationState);
+        Assert.Equal("users-invite-form", form.FormId);
+        Assert.Equal("typed@example.com", email.Value);
+        Assert.Equal("/validation/live", email.LiveValidationPath);
     }
 
     [Fact]

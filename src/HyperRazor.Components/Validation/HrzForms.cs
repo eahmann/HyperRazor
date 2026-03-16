@@ -1,0 +1,77 @@
+using Microsoft.AspNetCore.Http;
+
+namespace HyperRazor.Components.Validation;
+
+internal interface IHrzValidationViewFactory
+{
+    HrzFormView<TModel> CreateFormView<TModel>(
+        TModel model,
+        HrzValidationRootId rootId,
+        string? idPrefix,
+        HrzSubmitValidationState? validationState,
+        bool enableClientValidation,
+        HrzLiveValidationOptions? live);
+
+    HrzFieldView<TValue> CreateFieldView<TValue>(
+        HrzFormView form,
+        System.Linq.Expressions.Expression<Func<TValue>> accessor,
+        Func<TValue> compiledAccessor,
+        string? label,
+        bool? enableClientValidation,
+        HrzFieldLiveOptions? live);
+}
+
+public sealed class HrzForms : IHrzForms
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHrzValidationViewFactory _viewFactory;
+
+    internal HrzForms(
+        IHttpContextAccessor httpContextAccessor,
+        IHrzValidationViewFactory viewFactory)
+    {
+        _httpContextAccessor = httpContextAccessor;
+        _viewFactory = viewFactory;
+    }
+
+    public HrzFormView<TModel> For<TModel>(
+        TModel model,
+        string formName,
+        HrzSubmitValidationState? validationState = null,
+        HrzLiveValidationOptions? live = null,
+        string? idPrefix = null,
+        bool enableClientValidation = true)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(formName);
+
+        return For(
+            model,
+            new HrzValidationRootId(formName),
+            validationState,
+            live,
+            idPrefix,
+            enableClientValidation);
+    }
+
+    public HrzFormView<TModel> For<TModel>(
+        TModel model,
+        HrzValidationRootId rootId,
+        HrzSubmitValidationState? validationState = null,
+        HrzLiveValidationOptions? live = null,
+        string? idPrefix = null,
+        bool enableClientValidation = true)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(rootId);
+
+        validationState ??= _httpContextAccessor.HttpContext?.GetSubmitValidationState(rootId);
+
+        return _viewFactory.CreateFormView(
+            model,
+            rootId,
+            idPrefix,
+            validationState,
+            enableClientValidation,
+            live);
+    }
+}

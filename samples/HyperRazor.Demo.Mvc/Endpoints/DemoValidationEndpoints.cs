@@ -215,7 +215,7 @@ public static class DemoValidationEndpoints
     {
         await antiforgery.ValidateRequestAsync(context);
 
-        var scope = await context.BindLiveValidationScopeAsync(cancellationToken);
+        var scope = await context.BindLiveValidationRequestAsync(cancellationToken);
         if (scope is null || scope.Fields.Count == 0)
         {
             return Results.NoContent();
@@ -321,7 +321,7 @@ public static class DemoValidationEndpoints
     {
         await antiforgery.ValidateRequestAsync(context);
 
-        var scope = await context.BindLiveValidationScopeAsync(cancellationToken);
+        var scope = await context.BindLiveValidationRequestAsync(cancellationToken);
         if (scope is null || scope.Fields.Count == 0)
         {
             return Results.NoContent();

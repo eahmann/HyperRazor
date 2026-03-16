@@ -1,5 +1,6 @@
 @typeparam TValue
 @using System.Linq.Expressions
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="@FieldClass">
     <CascadingValue Value="_fieldContext">
@@ -23,6 +24,9 @@
     public bool? Live { get; set; }
 
     [Parameter]
+    public HrzFieldLiveOptions? LiveOptions { get; set; }
+
+    [Parameter]
     public string? LiveValidationPath { get; set; }
 
     [Parameter]
@@ -43,6 +47,9 @@
     [CascadingParameter]
     private HrzValidationFormContext? FormContext { get; set; }
 
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
     private HrzValidationFieldContext _fieldContext = default!;
     private HrzFieldPath? _registeredFieldPath;
     private Expression<Func<TValue>>? _cachedFor;
@@ -59,9 +66,11 @@
 
     protected override void OnParametersSet()
     {
-        if (FormContext is null)
+        var resolvedFormContext = FormContext ?? HrzValidationFormContext.ResolveFrom(EditContext);
+        if (resolvedFormContext is null)
         {
-            throw new InvalidOperationException($"{nameof(HrzField<object>)} requires a cascading {nameof(HrzForm<object>)}.");
+            throw new InvalidOperationException(
+                $"{nameof(HrzField<object>)} requires a cascading {nameof(HrzForm<object>)} or an {nameof(EditForm)} validation bridge.");
         }
 
         var compiledAccessor = _compiledAccessor;
@@ -73,7 +82,7 @@
         }
 
         _fieldContext = HrzValidationFieldContext.Create(
-            FormContext,
+            resolvedFormContext,
             For,
             compiledAccessor,
             Label,
@@ -82,30 +91,31 @@
             LiveValidationPath,
             LiveTrigger,
             LiveInclude,
-            LiveSync);
+            LiveSync,
+            LiveOptions);
 
         if (_registeredFieldPath is not null && !_registeredFieldPath.Equals(_fieldContext.FieldPath))
         {
-            FormContext.UnregisterField(_registeredFieldPath);
+            resolvedFormContext.UnregisterField(_registeredFieldPath);
         }
 
         if (_fieldContext.HasLiveValidation)
         {
-            FormContext.RegisterField(_fieldContext);
             _registeredFieldPath = _fieldContext.FieldPath;
         }
         else if (_registeredFieldPath is not null)
         {
-            FormContext.UnregisterField(_registeredFieldPath);
+            resolvedFormContext.UnregisterField(_registeredFieldPath);
             _registeredFieldPath = null;
         }
     }
 
     public void Dispose()
     {
-        if (FormContext is not null && _registeredFieldPath is not null)
+        var resolvedFormContext = FormContext ?? HrzValidationFormContext.ResolveFrom(EditContext);
+        if (resolvedFormContext is not null && _registeredFieldPath is not null)
         {
-            FormContext.UnregisterField(_registeredFieldPath);
+            resolvedFormContext.UnregisterField(_registeredFieldPath);
             _registeredFieldPath = null;
         }
     }

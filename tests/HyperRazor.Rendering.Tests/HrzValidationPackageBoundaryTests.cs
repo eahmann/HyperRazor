@@ -93,6 +93,7 @@ public class HrzValidationPackageBoundaryTests
         var movedFiles = new[]
         {
             "HrzField.razor",
+            "HrzFieldMessages.razor",
             "HrzForm.razor",
             "HrzInputCheckbox.razor",
             "HrzInputComponentBase.cs",
@@ -102,6 +103,7 @@ public class HrzValidationPackageBoundaryTests
             "HrzInputText.razor",
             "HrzInputTextArea.razor",
             "HrzLabel.razor",
+            "HrzLivePolicyRegion.razor",
             "HrzValidationFieldContext.cs",
             "HrzValidationFormContext.cs",
             "HrzValidationLivePolicyCarrier.razor",
@@ -109,6 +111,7 @@ public class HrzValidationPackageBoundaryTests
             "HrzValidationMessage.razor",
             "HrzValidationServerFieldSlot.razor",
             "HrzValidationServerSummarySlot.razor",
+            "HrzSummaryMessages.razor",
             "HrzValidationSummary.razor"
         };
 

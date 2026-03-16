@@ -1,0 +1,68 @@
+@inject IHrzLiveValidationPolicyResolver LiveValidationPolicyResolver
+
+@if (Policies.Count > 0)
+{
+    <div id="@ResolvedForm.LivePolicyRegionId" hidden data-hrz-live-policy-region>
+        @foreach (var field in ResolvedForm.RegisteredLiveFields)
+        {
+            if (Policies.TryGetValue(field.FieldPath, out var policy))
+            {
+                <HrzValidationLivePolicyCarrier
+                    Id="@field.LivePolicyId"
+                    Policy="@policy"
+                    SummarySlotId="@ResolvedForm.SummaryId"
+                    SwapOob="@SwapOob" />
+            }
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public HrzFormView? Form { get; set; }
+
+    [Parameter]
+    public bool SwapOob { get; set; }
+
+    [CascadingParameter]
+    private HrzValidationFormContext? FormContext { get; set; }
+
+    private static readonly IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> EmptyAttemptedValues =
+        new Dictionary<HrzFieldPath, HrzAttemptedValue>();
+
+    private IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> Policies { get; set; } =
+        new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
+
+    private HrzFormView ResolvedForm => Form ?? FormContext?.View
+        ?? throw new InvalidOperationException($"{nameof(HrzLivePolicyRegion)} requires a form view.");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _ = ResolvedForm;
+
+        if (ResolvedForm.RegisteredLiveFields.Count == 0)
+        {
+            Policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
+            return;
+        }
+
+        var attemptedValues = ResolvedForm.ValidationState?.AttemptedValues ?? EmptyAttemptedValues;
+        var fields = ResolvedForm.RegisteredLiveFields;
+
+        var tasks = fields.Select(field => LiveValidationPolicyResolver.ResolveAsync(
+            ResolvedForm.Model,
+            ResolvedForm.RootId,
+            field.FieldPath,
+            attemptedValues));
+
+        var results = await Task.WhenAll(tasks);
+
+        var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
+        for (var i = 0; i < fields.Count; i++)
+        {
+            policies[fields[i].FieldPath] = results[i];
+        }
+
+        Policies = policies;
+    }
+}

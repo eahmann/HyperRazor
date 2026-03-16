@@ -30,10 +30,22 @@ public sealed class HrzRegion : ComponentBase
         }
 
         builder.OpenElement(0, TagName);
-        builder.AddMultipleAttributes(1, AdditionalAttributes);
+        builder.AddMultipleAttributes(1, GetNormalizedAdditionalAttributes());
         builder.AddAttribute(2, "id", Name);
         builder.AddAttribute(3, "data-hrz-region", Name);
         builder.AddContent(4, ChildContent);
         builder.CloseElement();
+    }
+
+    private IEnumerable<KeyValuePair<string, object>>? GetNormalizedAdditionalAttributes()
+    {
+        if (AdditionalAttributes is null)
+        {
+            return null;
+        }
+
+        return AdditionalAttributes
+            .Where(static attribute => attribute.Value is not null)
+            .Select(static attribute => new KeyValuePair<string, object>(attribute.Key, attribute.Value!));
     }
 }

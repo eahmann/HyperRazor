@@ -24,14 +24,14 @@ defaults:
 
 jobs:
   package-story:
-    name: Package Story Check
+    name: Package Story Shape
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check package story messaging
+      - name: Check package story shape
         run: ./scripts/check-package-story.sh
 
   fast-tests:
@@ -42,12 +42,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Htmx
-            project: tests/HyperRazor.Htmx.Tests/HyperRazor.Htmx.Tests.csproj
-          - name: Htmx.Core
-            project: tests/HyperRazor.Htmx.Core.Tests/HyperRazor.Htmx.Core.Tests.csproj
-          - name: Rendering
-            project: tests/HyperRazor.Rendering.Tests/HyperRazor.Rendering.Tests.csproj
+          - name: Htmx.AspNetCore
+            project: tests/HyperRazor.Htmx.AspNetCore.Tests/HyperRazor.Htmx.AspNetCore.Tests.csproj
+          - name: Htmx.Primitives
+            project: tests/HyperRazor.Htmx.Primitives.Tests/HyperRazor.Htmx.Primitives.Tests.csproj
+          - name: HyperRazor
+            project: tests/HyperRazor.Tests/HyperRazor.Tests.csproj
           - name: Demo.Mvc
             project: tests/HyperRazor.Demo.Mvc.Tests/HyperRazor.Demo.Mvc.Tests.csproj
 

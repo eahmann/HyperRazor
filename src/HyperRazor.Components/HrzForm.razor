@@ -1,5 +1,6 @@
 @typeparam TModel
 @using Microsoft.AspNetCore.Http
+@implements IDisposable
 
 <CascadingValue Value="_formContext">
     <form
@@ -85,6 +86,7 @@
     private IHrzForms HrzForms { get; set; } = default!;
 
     private HrzValidationFormContext _formContext = default!;
+    private HrzFormView? _subscribedFormView;
     private bool _registrationRefreshPending;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
@@ -94,19 +96,38 @@
         ArgumentNullException.ThrowIfNull(Model);
         ArgumentException.ThrowIfNullOrWhiteSpace(Action);
 
-        var resolvedRootId = RootId ?? ResolveRootId(FormName);
+        DetachRegistrationHandler();
+
+        var resolvedRootId = ResolveRequiredRootId();
         var formView = string.IsNullOrWhiteSpace(IdPrefix)
             ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
             : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
 
         formView.RegistrationChanged += RequestRegistrationRefresh;
+        _subscribedFormView = formView;
         _formContext = HrzValidationFormContext.Create(formView);
     }
 
-    private static HrzValidationRootId ResolveRootId(string? formName)
+    public void Dispose()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(formName);
-        return new HrzValidationRootId(formName);
+        DetachRegistrationHandler();
+    }
+
+    private HrzValidationRootId ResolveRequiredRootId()
+    {
+        if (RootId is not null)
+        {
+            return RootId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(FormName))
+        {
+            return new HrzValidationRootId(FormName);
+        }
+
+        throw new InvalidOperationException(
+            $"{nameof(HrzForm<object>)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
+            $"{nameof(RootId)} takes precedence when both are supplied.");
     }
 
     private HrzLiveValidationOptions? ResolveLiveOptions()
@@ -139,5 +160,16 @@
             _registrationRefreshPending = false;
             StateHasChanged();
         });
+    }
+
+    private void DetachRegistrationHandler()
+    {
+        if (_subscribedFormView is null)
+        {
+            return;
+        }
+
+        _subscribedFormView.RegistrationChanged -= RequestRegistrationRefresh;
+        _subscribedFormView = null;
     }
 }

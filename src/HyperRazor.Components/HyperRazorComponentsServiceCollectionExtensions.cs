@@ -10,6 +10,7 @@ public static class HyperRazorComponentsServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddHttpContextAccessor();
         services.TryAddSingleton<HrzFieldDescriptorFactory>();
         services.TryAddSingleton<HrzFieldValueProjector>();
         services.TryAddSingleton<HrzClientValidationMetadataFactory>();

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HyperRazor.Components;
 using HyperRazor;
 using HyperRazor.Mvc;
 using Microsoft.AspNetCore.Http;
@@ -185,6 +186,18 @@ public class HrzValidationInfrastructureTests
         Assert.Equal(TimeSpan.FromSeconds(9), options.HeartbeatInterval);
         Assert.Equal("global-heartbeat", options.HeartbeatComment);
         Assert.False(options.DisableProxyBuffering);
+    }
+
+    [Fact]
+    public void AddHyperRazorComponentServices_RegistersHttpContextAccessorAndForms()
+    {
+        var services = new ServiceCollection();
+        services.AddHyperRazorComponentServices();
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IHttpContextAccessor>());
+        Assert.NotNull(provider.GetRequiredService<IHrzForms>());
     }
 
     private static ServiceProvider CreateServices(Action<HrzSseOptions>? configureSse = null)

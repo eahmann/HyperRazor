@@ -12,6 +12,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
     private ValidationMessageStore? _messageStore;
     private EditContext? _currentEditContext;
     private HrzFormView? _formView;
+    private HrzFormView? _subscribedFormView;
     private HrzValidationRootId? _resolvedRootId;
     private bool _registrationRefreshPending;
 
@@ -51,12 +52,15 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
             _messageStore = new ValidationMessageStore(CurrentEditContext);
         }
 
-        _resolvedRootId = RootId ?? ResolveRootId(FormName);
+        DetachRegistrationHandler();
+
+        _resolvedRootId = ResolveRequiredRootId();
         _formView = HrzForms.For(
             _currentEditContext.Model,
             _resolvedRootId,
             live: Live);
         _formView.RegistrationChanged += RequestRegistrationRefresh;
+        _subscribedFormView = _formView;
         _currentEditContext.Properties[typeof(HrzFormView)] = _formView;
 
         ApplySubmitValidationState();
@@ -76,6 +80,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
 
     public void Dispose()
     {
+        DetachRegistrationHandler();
         ClearMessages(notify: true);
         ClearFormView(_currentEditContext);
     }
@@ -107,10 +112,21 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         _currentEditContext.NotifyValidationStateChanged();
     }
 
-    private static HrzValidationRootId ResolveRootId(string? formName)
+    private HrzValidationRootId ResolveRequiredRootId()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(formName);
-        return new HrzValidationRootId(formName);
+        if (RootId is not null)
+        {
+            return RootId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(FormName))
+        {
+            return new HrzValidationRootId(FormName);
+        }
+
+        throw new InvalidOperationException(
+            $"{nameof(HrzValidationBridge)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
+            $"{nameof(RootId)} takes precedence when both are supplied.");
     }
 
     private void RequestRegistrationRefresh()
@@ -145,5 +161,16 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
     private static void ClearFormView(EditContext? editContext)
     {
         _ = editContext?.Properties.Remove(typeof(HrzFormView));
+    }
+
+    private void DetachRegistrationHandler()
+    {
+        if (_subscribedFormView is null)
+        {
+            return;
+        }
+
+        _subscribedFormView.RegistrationChanged -= RequestRegistrationRefresh;
+        _subscribedFormView = null;
     }
 }

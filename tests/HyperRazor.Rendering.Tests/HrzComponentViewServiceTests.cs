@@ -280,6 +280,30 @@ public class HrzRenderServiceTests
     }
 
     [Fact]
+    public async Task PartialView_HrzFormWithoutRootMetadata_ThrowsTargetedMessage()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.RenderService.Fragment<MissingFormIdentityComponent>());
+
+        Assert.Contains("requires either RootId or FormName", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_HrzValidationBridgeWithoutRootMetadata_ThrowsTargetedMessage()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.RenderService.Fragment<MissingBridgeIdentityComponent>());
+
+        Assert.Contains("requires either RootId or FormName", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PartialView_EditFormValidationAuthoringSurface_ReusesSharedFieldStack()
     {
         await using var fixture = await CreateFixtureAsync();
@@ -697,6 +721,43 @@ public class HrzRenderServiceTests
     private sealed class EditFormBridgeModel
     {
         public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class MissingFormIdentityComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new();
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationAuthoringModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class MissingBridgeIdentityComponent : ComponentBase
+    {
+        private readonly EditFormBridgeModel _model = new();
+        private EditContext? _editContext;
+
+        protected override void OnInitialized()
+        {
+            _editContext = new EditContext(_model);
+        }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<EditForm>(0);
+            builder.AddAttribute(1, nameof(EditForm.EditContext), _editContext);
+            builder.AddAttribute(2, "action", "/users/invite");
+            builder.AddAttribute(3, nameof(EditForm.ChildContent), (RenderFragment<EditContext>)(_ => childBuilder =>
+            {
+                childBuilder.OpenComponent<HrzValidationBridge>(0);
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
     }
 
     private sealed class EditFormValidationAuthoringComponent : ComponentBase

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace HyperRazor.Components.Services;
 
-internal interface IHrzSwapBuffer
+public interface IHrzSwapBuffer
 {
     event EventHandler? ContentItemsUpdated;
 

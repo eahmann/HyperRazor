@@ -1,0 +1,38 @@
+<div
+    id="@Id"
+    hidden
+    data-hrz-live-enabled="@ToDataValue(Policy.Enabled)"
+    data-hrz-live-clear-fields="@JoinFieldPaths(Policy.ClearFields)"
+    data-hrz-live-affects="@JoinFieldPaths(Policy.AffectedFields)"
+    data-hrz-summary-slot-id="@SummarySlotId"
+    data-hrz-live-replace-summary-when-disabled="@ToDataValue(Policy.ReplaceSummaryWhenDisabled)"
+    data-hrz-immediate-recheck-when-enabled="@ToDataValue(Policy.ImmediateRecheckWhenEnabled)"
+    hx-swap-oob="@(SwapOob ? "outerHTML" : null)"></div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public HrzLiveValidationPolicy Policy { get; set; } =
+        new(
+            Enabled: false,
+            DependsOn: Array.Empty<HrzFieldPath>(),
+            AffectedFields: Array.Empty<HrzFieldPath>(),
+            ClearFields: Array.Empty<HrzFieldPath>(),
+            ReplaceSummaryWhenDisabled: false,
+            ImmediateRecheckWhenEnabled: false);
+
+    [Parameter]
+    public string? SummarySlotId { get; set; }
+
+    [Parameter]
+    public bool SwapOob { get; set; }
+
+    private static string JoinFieldPaths(IReadOnlyList<HrzFieldPath> fields)
+    {
+        return string.Join(",", fields.Select(static field => field.Value));
+    }
+
+    private static string ToDataValue(bool value) => value ? "true" : "false";
+}

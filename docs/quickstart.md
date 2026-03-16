@@ -6,7 +6,7 @@ This is the smallest explicit setup for a server-rendered ASP.NET Core app that 
 
 - Full HyperRazor app: install `HyperRazor`.
 - Typed HTMX only: install `HyperRazor.Htmx`.
-- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+- Advanced component composition: install `HyperRazor.Components` only when you are intentionally composing on that layer.
 
 ## Happy-path package reference
 
@@ -16,7 +16,7 @@ For the normal page/fragment app path, install only the primary `HyperRazor` pac
 dotnet add package HyperRazor
 ```
 
-`HyperRazor` is the default onboarding package. It brings in the MVC, rendering, and typed HTMX layers transitively.
+`HyperRazor` is the default onboarding package. It brings in `HyperRazor.Components` and `HyperRazor.Htmx` transitively, while continuing to expose the `HyperRazor.Mvc` and `HyperRazor.Rendering` namespaces from the `HyperRazor` assembly.
 
 If you only want typed HTMX support in an existing ASP.NET Core app, install `HyperRazor.Htmx` instead and stop there:
 
@@ -127,5 +127,7 @@ Advanced but supported composition features remain available, but they are not p
 - custom HTMX response handling
 - SSE replay customization
 - validation policy overrides
+
+If you adopt the advanced validation surface later, import shared validation contracts from `HyperRazor.Components.Validation`. Validation authoring components stay in `HyperRazor.Components`, and the implementation APIs remain under the `HyperRazor.Rendering` namespace inside the `HyperRazor` package.
 
 For CI and package/versioning expectations, see [release-policy.md](release-policy.md).

@@ -1,16 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor.Htmx</PackageId>
-    <Description>Default onboarding package for typed HTMX support in ASP.NET without the full HyperRazor rendering stack.</Description>
+    <Description>Default onboarding package for typed HTMX request/response primitives, services, and components without the full HyperRazor rendering stack.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\HyperRazor.Htmx.Core\HyperRazor.Htmx.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

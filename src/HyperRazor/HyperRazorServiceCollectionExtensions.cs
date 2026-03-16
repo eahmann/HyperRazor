@@ -1,4 +1,5 @@
 using HyperRazor.Components.Services;
+using HyperRazor.Components.Validation;
 using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;

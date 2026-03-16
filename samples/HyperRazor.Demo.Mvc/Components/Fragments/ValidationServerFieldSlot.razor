@@ -1,0 +1,24 @@
+<div
+    id="@Id"
+    class="validation-slot validation-slot--server"
+    data-hrz-server-validation-for="@FieldPath"
+    hx-swap-oob="@(SwapOob ? "outerHTML" : null)">
+    @foreach (var error in Errors)
+    {
+        <p class="validation-message">@error</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string FieldPath { get; set; } = string.Empty;
+
+    [Parameter]
+    public IReadOnlyList<string> Errors { get; set; } = Array.Empty<string>();
+
+    [Parameter]
+    public bool SwapOob { get; set; }
+}

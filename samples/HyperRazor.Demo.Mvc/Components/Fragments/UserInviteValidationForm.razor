@@ -1,0 +1,78 @@
+@using HyperRazor.Demo.Mvc.Models
+@using HyperRazor.Components.Validation
+@using Microsoft.AspNetCore.Http
+
+<section
+    id="@FormShellId"
+    class="panel validation-form-shell"
+    data-hrz-validation-root="@Form.RootId.Value"
+    data-hrz-validation-region>
+    <h3>@Form.PanelTitle</h3>
+    <p class="empty">@Form.PanelDescription</p>
+    <div class="demo-note" role="note">
+        <strong>How To Test:</strong> @Form.Instructions
+    </div>
+
+    @if (Form.Success)
+    {
+        <p class="validation-success">
+            @Form.SuccessVerb <strong>@Form.Input.DisplayName</strong> (<code>@Form.Input.Email</code>) as user #@Form.Count.
+        </p>
+    }
+
+    <HrzForm Model="Input"
+             FormName="@Form.RootId.Value"
+             IdPrefix="@Form.IdPrefix"
+             Action="@Form.Action"
+             HxPost="@ResolvedHxPost"
+             SubmitTarget="@($"#{FormShellId}")"
+             EnableClientValidation="@Form.EnableClientValidation"
+             LiveValidationPath="@Form.LiveValidationPath"
+             Class="validation-form">
+        <HrzValidationSummary />
+
+        <HrzField For="() => Input.DisplayName">
+            <HrzLabel />
+            <HrzInputText />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Email">
+            <HrzLabel />
+            <HrzInputText Type="email" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <button type="submit">@Form.ButtonText</button>
+    </HrzForm>
+</section>
+
+@code {
+    public static HrzValidationRootId RootId { get; } = UserInviteValidationRoots.MvcLocal;
+    public static HrzFieldPath DisplayNamePath { get; } = HrzFieldPaths.FromFieldName(nameof(InviteUserInput.DisplayName));
+    public static HrzFieldPath EmailPath { get; } = HrzFieldPaths.FromFieldName(nameof(InviteUserInput.Email));
+
+    [Parameter]
+    public InviteValidationFormViewModel Form { get; set; } = UserInviteValidationDefinitions.MvcLocal();
+
+    private InviteUserInput Input => Form.Input;
+
+    private string ResolvedHxPost => string.IsNullOrWhiteSpace(Form.HxPost) ? Form.Action : Form.HxPost;
+    private string FormShellId => GetFormShellId(Form.IdPrefix);
+
+    public static string GetFormShellId(string idPrefix) => $"{idPrefix}-form-shell";
+
+    public static string GetFormId(string idPrefix) => $"{idPrefix}-form";
+
+    public static string GetLivePolicyRegionId(string idPrefix) => $"{idPrefix}-live-policies";
+
+    public static string GetSummaryId(string idPrefix) => $"{idPrefix}-server-summary";
+
+    public static string GetDisplayNameServerId(string idPrefix) => $"{idPrefix}-display-name-server";
+
+    public static string GetDisplayNameLivePolicyId(string idPrefix) => $"{idPrefix}-display-name-live";
+
+    public static string GetEmailServerId(string idPrefix) => $"{idPrefix}-email-server";
+
+    public static string GetEmailLivePolicyId(string idPrefix) => $"{idPrefix}-email-live";
+}

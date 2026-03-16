@@ -89,7 +89,7 @@ public sealed class DemoMvcE2EFixture : IAsyncLifetime
     private async Task StartDemoMvcServerAsync()
     {
         var repositoryRoot = ResolveRepositoryRoot();
-        var projectPath = Path.Combine(repositoryRoot, "src", "HyperRazor.Demo.Mvc", "HyperRazor.Demo.Mvc.csproj");
+        var projectPath = Path.Combine(repositoryRoot, "samples", "HyperRazor.Demo.Mvc", "HyperRazor.Demo.Mvc.csproj");
 
         var startInfo = new ProcessStartInfo
         {

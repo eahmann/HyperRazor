@@ -5,15 +5,12 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/HyperRazor/HyperRazor.csproj" />
-    <Project Path="src/HyperRazor.Client/HyperRazor.Client.csproj" />
     <Project Path="src/HyperRazor.Components/HyperRazor.Components.csproj" />
-    <Project Path="src/HyperRazor.Demo.Api/HyperRazor.Demo.Api.csproj" />
-    <Project Path="src/HyperRazor.Demo.Mvc/HyperRazor.Demo.Mvc.csproj" />
     <Project Path="src/HyperRazor.Htmx/HyperRazor.Htmx.csproj" />
-    <Project Path="src/HyperRazor.Htmx.Core/HyperRazor.Htmx.Core.csproj" />
-    <Project Path="src/HyperRazor.Htmx.Components/HyperRazor.Htmx.Components.csproj" />
-    <Project Path="src/HyperRazor.Mvc/HyperRazor.Mvc.csproj" />
-    <Project Path="src/HyperRazor.Rendering/HyperRazor.Rendering.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/HyperRazor.Demo.Api/HyperRazor.Demo.Api.csproj" />
+    <Project Path="samples/HyperRazor.Demo.Mvc/HyperRazor.Demo.Mvc.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HyperRazor.E2E/HyperRazor.E2E.csproj" />

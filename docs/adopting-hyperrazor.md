@@ -8,7 +8,7 @@ For CI and package/versioning expectations, see [release-policy.md](release-poli
 
 - Full HyperRazor app: install `HyperRazor`.
 - Typed HTMX only: install `HyperRazor.Htmx`.
-- Advanced composition: install the lower-level packages directly only when you are intentionally composing on those layers.
+- Advanced component composition: install `HyperRazor.Components` only when you are intentionally composing on that layer.
 
 ## Happy-path package reference
 
@@ -47,4 +47,32 @@ Use the same page/fragment terms everywhere:
 
 ## Demo vs. onboarding
 
-The demo app still uses internal composition helpers because they help organize showcase code. That demo composition is not part of the default onboarding path and should not be treated as required ceremony for a real app.
+The demo app still uses internal composition helpers because they help organize showcase code. That demo composition is not part of the default onboarding path and should not be treated as required ceremony for a real app. The demo projects now live under `samples/`, not `src/`.
+
+## Package Migration
+
+Package Story Phase 3 is a breaking package cleanup that collapses the shipped source projects to three libraries.
+
+- `HyperRazor.Client` -> `HyperRazor.Components`
+- `HyperRazor.Mvc` -> `HyperRazor`
+- `HyperRazor.Rendering` -> `HyperRazor`
+- `HyperRazor.Htmx.Core` -> `HyperRazor.Htmx`
+- `HyperRazor.Htmx.Components` -> `HyperRazor.Htmx`
+
+Installing `HyperRazor` now brings in `HyperRazor.Components` and `HyperRazor.Htmx` transitively. The `HyperRazor.Mvc` and `HyperRazor.Rendering` namespaces remain public, but they now come from the `HyperRazor` package instead of separate package IDs.
+
+## Advanced Validation Migration
+
+Package Story Phase 2 remains the breaking advanced-surface cleanup for validation ownership.
+
+- Shared validation contracts now live in `HyperRazor.Components.Validation`.
+- Validation authoring components such as `HrzForm`, `HrzField`, `HrzValidationSummary`, and `HrzValidationMessage` stay in `HyperRazor.Components`.
+- The implementation APIs remain under the `HyperRazor.Rendering` namespace inside the `HyperRazor` package for `HrzFieldPathResolver`, `HrzDataAnnotationsModelValidator`, `HrzDefaultLiveValidationPolicyResolver`, and `HrzValidationBridge`.
+
+Update validation-only imports like this:
+
+```csharp
+using HyperRazor.Components.Validation;
+```
+
+Replace old validation-type imports from `HyperRazor.Rendering` when the file only needs shared validation contracts such as `HrzValidationRootId`, `HrzFieldPath`, `HrzSubmitValidationState`, `IHrzFieldPathResolver`, or `IHrzLiveValidationPolicyResolver`.

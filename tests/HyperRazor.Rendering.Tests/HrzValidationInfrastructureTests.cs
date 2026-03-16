@@ -151,6 +151,25 @@ public class HrzValidationInfrastructureTests
     }
 
     [Fact]
+    public void HrzFieldView_AsTextInput_OmitsClientSlotReferencesWhenRequested()
+    {
+        var services = CreateServices();
+        using var scope = services.CreateScope();
+        var model = new InviteLikeFormModel
+        {
+            Email = "riley@example.com"
+        };
+        var forms = scope.ServiceProvider.GetRequiredService<IHrzForms>();
+
+        var form = forms.For(model, formName: "users-invite", enableClientValidation: true);
+        var email = form.Field(() => model.Email);
+        var attributes = email.AsTextInput(includeClientValidationSlot: false);
+
+        Assert.Equal(email.ServerSlotId, attributes["aria-describedby"]);
+        Assert.False(attributes.ContainsKey("data-hrz-client-slot-id"));
+    }
+
+    [Fact]
     public async Task DefaultLiveValidationPolicyResolver_PreservesAlwaysArmedBehavior()
     {
         var services = CreateServices();

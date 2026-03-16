@@ -379,6 +379,8 @@ public class HrzRenderServiceTests
         Assert.Contains("hx-target=\"this\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-server-summary\"", html, StringComparison.Ordinal);
         Assert.Contains("for=\"users-invite-email\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-client\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-valmsg-for=\"email\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-email-server\"", html, StringComparison.Ordinal);
         Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);

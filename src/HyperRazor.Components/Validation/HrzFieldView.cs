@@ -27,7 +27,7 @@ public abstract class HrzFieldView
         HasErrors = projection.HasErrors;
         EnableClientValidation = descriptor.EnableClientValidation;
         ClientValidationAttributes = clientValidationAttributes;
-        AriaDescribedBy = $"{ClientSlotId} {ServerSlotId}";
+        AriaDescribedBy = BuildAriaDescribedBy(descriptor.EnableClientValidation);
         HasLiveValidation = live.Enabled;
         LiveValidationPath = live.Path;
         LiveTrigger = live.Trigger;
@@ -90,7 +90,8 @@ public abstract class HrzFieldView
         string type = "text",
         string? placeholder = null,
         string? autocomplete = null,
-        string? inputMode = null) =>
+        string? inputMode = null,
+        bool includeClientValidationSlot = true) =>
         BuildControlAttributes(new Dictionary<string, object?>
         {
             ["type"] = type,
@@ -98,25 +99,27 @@ public abstract class HrzFieldView
             ["placeholder"] = placeholder,
             ["autocomplete"] = autocomplete,
             ["inputmode"] = inputMode
-        });
+        }, includeClientValidationSlot: includeClientValidationSlot);
 
     public IReadOnlyDictionary<string, object> AsTextArea(
         int? rows = null,
         string? placeholder = null,
-        string? autocomplete = null) =>
+        string? autocomplete = null,
+        bool includeClientValidationSlot = true) =>
         BuildControlAttributes(new Dictionary<string, object?>
         {
             ["rows"] = rows?.ToString(),
             ["placeholder"] = placeholder,
             ["autocomplete"] = autocomplete
-        });
+        }, includeClientValidationSlot: includeClientValidationSlot);
 
     public IReadOnlyDictionary<string, object> AsNumberInput(
         string? min = null,
         string? max = null,
         string? step = null,
         string? placeholder = null,
-        string? inputMode = null) =>
+        string? inputMode = null,
+        bool includeClientValidationSlot = true) =>
         BuildControlAttributes(new Dictionary<string, object?>
         {
             ["type"] = "number",
@@ -126,32 +129,37 @@ public abstract class HrzFieldView
             ["step"] = step,
             ["placeholder"] = placeholder,
             ["inputmode"] = inputMode
-        });
+        }, includeClientValidationSlot: includeClientValidationSlot);
 
-    public IReadOnlyDictionary<string, object> AsCheckbox() =>
+    public IReadOnlyDictionary<string, object> AsCheckbox(
+        bool includeClientValidationSlot = true) =>
         BuildControlAttributes(new Dictionary<string, object?>
         {
             ["type"] = "checkbox",
             ["value"] = "true"
-        });
+        }, includeClientValidationSlot: includeClientValidationSlot);
 
-    public IReadOnlyDictionary<string, object> AsSelect(bool multiple = false) =>
+    public IReadOnlyDictionary<string, object> AsSelect(
+        bool multiple = false,
+        bool includeClientValidationSlot = true) =>
         BuildControlAttributes(new Dictionary<string, object?>
         {
             ["multiple"] = multiple
-        });
+        }, includeClientValidationSlot: includeClientValidationSlot);
 
     internal IReadOnlyDictionary<string, object> BuildControlAttributes(
         IReadOnlyDictionary<string, object?>? elementAttributes = null,
         string? cssClass = null,
-        IReadOnlyDictionary<string, object?>? additionalAttributes = null)
+        IReadOnlyDictionary<string, object?>? additionalAttributes = null,
+        bool includeClientValidationSlot = true)
     {
+        var includeClientSlot = includeClientValidationSlot && EnableClientValidation;
         var attributes = new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["id"] = InputId,
             ["name"] = Name,
             ["aria-invalid"] = HasErrors ? "true" : "false",
-            ["aria-describedby"] = AriaDescribedBy,
+            ["aria-describedby"] = BuildAriaDescribedBy(includeClientSlot),
             ["data-hrz-field-path"] = FieldPath.Value,
             ["data-hrz-server-slot-id"] = ServerSlotId
         };
@@ -175,7 +183,7 @@ public abstract class HrzFieldView
             attributes[key] = value;
         }
 
-        if (EnableClientValidation)
+        if (includeClientSlot)
         {
             attributes["data-hrz-client-slot-id"] = ClientSlotId;
         }
@@ -185,6 +193,13 @@ public abstract class HrzFieldView
         MergeClassValue(attributes, cssClass, elementAttributes, additionalAttributes);
 
         return attributes;
+    }
+
+    private string BuildAriaDescribedBy(bool includeClientSlot)
+    {
+        return includeClientSlot
+            ? $"{ClientSlotId} {ServerSlotId}"
+            : ServerSlotId;
     }
 
     private static void MergeAttributes(

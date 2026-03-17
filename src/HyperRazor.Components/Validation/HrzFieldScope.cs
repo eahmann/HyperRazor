@@ -1,9 +1,9 @@
 namespace HyperRazor.Components.Validation;
 
-public abstract class HrzFieldView
+public abstract class HrzFieldScope
 {
-    internal HrzFieldView(
-        HrzFormView form,
+    internal HrzFieldScope(
+        HrzFormScope form,
         HrzFieldDescriptor descriptor,
         HrzFieldValueProjection projection,
         IReadOnlyDictionary<string, string> clientValidationAttributes,
@@ -36,7 +36,7 @@ public abstract class HrzFieldView
         LiveValidationValuesJson = live.ValuesJson;
     }
 
-    public HrzFormView Form { get; }
+    public HrzFormScope Form { get; }
 
     public HrzFieldPath FieldPath { get; }
 
@@ -267,10 +267,10 @@ public abstract class HrzFieldView
     }
 }
 
-public sealed class HrzFieldView<TValue> : HrzFieldView
+public sealed class HrzFieldScope<TValue> : HrzFieldScope
 {
-    internal HrzFieldView(
-        HrzFormView form,
+    internal HrzFieldScope(
+        HrzFormScope form,
         HrzFieldDescriptor descriptor,
         HrzFieldValueProjection projection,
         IReadOnlyDictionary<string, string> clientValidationAttributes,

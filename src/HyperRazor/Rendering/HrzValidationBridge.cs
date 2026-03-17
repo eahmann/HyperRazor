@@ -11,8 +11,8 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
 {
     private ValidationMessageStore? _messageStore;
     private EditContext? _currentEditContext;
-    private HrzFormView? _formView;
-    private HrzFormView? _subscribedFormView;
+    private HrzFormScope? _formScope;
+    private HrzFormScope? _subscribedFormScope;
     private HrzValidationRootId? _resolvedRootId;
     private bool _registrationRefreshPending;
 
@@ -47,7 +47,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         if (!ReferenceEquals(_currentEditContext, CurrentEditContext))
         {
             ClearMessages(notify: false);
-            ClearFormView(_currentEditContext);
+            HrzEditFormState.ClearFormScope(_currentEditContext);
             _currentEditContext = CurrentEditContext;
             _messageStore = new ValidationMessageStore(CurrentEditContext);
         }
@@ -55,26 +55,26 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         DetachRegistrationHandler();
 
         _resolvedRootId = ResolveRequiredRootId();
-        _formView = HrzForms.For(
+        _formScope = HrzForms.For(
             _currentEditContext.Model,
             _resolvedRootId,
             live: Live);
-        _formView.RegistrationChanged += RequestRegistrationRefresh;
-        _subscribedFormView = _formView;
-        _currentEditContext.Properties[typeof(HrzFormView)] = _formView;
+        _formScope.RegistrationChanged += RequestRegistrationRefresh;
+        _subscribedFormScope = _formScope;
+        HrzEditFormState.SetFormScope(_currentEditContext, _formScope);
 
         ApplySubmitValidationState();
     }
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
-        if (_formView is null)
+        if (_formScope is null)
         {
             return;
         }
 
         builder.OpenComponent<HrzLivePolicyRegion>(0);
-        builder.AddAttribute(1, nameof(HrzLivePolicyRegion.Form), _formView);
+        builder.AddAttribute(1, nameof(HrzLivePolicyRegion.Form), _formScope);
         builder.CloseComponent();
     }
 
@@ -82,7 +82,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
     {
         DetachRegistrationHandler();
         ClearMessages(notify: true);
-        ClearFormView(_currentEditContext);
+        HrzEditFormState.ClearFormScope(_currentEditContext);
     }
 
     private void ApplySubmitValidationState()
@@ -158,19 +158,14 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         }
     }
 
-    private static void ClearFormView(EditContext? editContext)
-    {
-        _ = editContext?.Properties.Remove(typeof(HrzFormView));
-    }
-
     private void DetachRegistrationHandler()
     {
-        if (_subscribedFormView is null)
+        if (_subscribedFormScope is null)
         {
             return;
         }
 
-        _subscribedFormView.RegistrationChanged -= RequestRegistrationRefresh;
-        _subscribedFormView = null;
+        _subscribedFormScope.RegistrationChanged -= RequestRegistrationRefresh;
+        _subscribedFormScope = null;
     }
 }

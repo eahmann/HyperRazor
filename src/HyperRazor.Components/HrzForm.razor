@@ -2,12 +2,12 @@
 @using Microsoft.AspNetCore.Http
 @implements IDisposable
 
-<CascadingValue Value="_formContext">
+<CascadingValue Value="_formScope">
     <form
-        id="@_formContext.FormId"
+        id="@_formScope.FormId"
         class="@Class"
         action="@Action"
-        data-hrz-validation-root="@_formContext.RootId.Value"
+        data-hrz-validation-root="@_formScope.RootId.Value"
         data-hrz-validation-region
         data-hrz-disabled-elt="@(Enhance ? DisabledElementSelector : null)"
         hx-post="@(Enhance ? ResolvedHxPost : null)"
@@ -85,8 +85,8 @@
     [Inject]
     private IHrzForms HrzForms { get; set; } = default!;
 
-    private HrzValidationFormContext _formContext = default!;
-    private HrzFormView? _subscribedFormView;
+    private HrzFormScope<TModel> _formScope = default!;
+    private HrzFormScope? _subscribedFormScope;
     private bool _registrationRefreshPending;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
@@ -99,13 +99,13 @@
         DetachRegistrationHandler();
 
         var resolvedRootId = ResolveRequiredRootId();
-        var formView = string.IsNullOrWhiteSpace(IdPrefix)
+        var formScope = string.IsNullOrWhiteSpace(IdPrefix)
             ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
             : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
 
-        formView.RegistrationChanged += RequestRegistrationRefresh;
-        _subscribedFormView = formView;
-        _formContext = HrzValidationFormContext.Create(formView);
+        formScope.RegistrationChanged += RequestRegistrationRefresh;
+        _subscribedFormScope = formScope;
+        _formScope = formScope;
     }
 
     public void Dispose()
@@ -164,12 +164,12 @@
 
     private void DetachRegistrationHandler()
     {
-        if (_subscribedFormView is null)
+        if (_subscribedFormScope is null)
         {
             return;
         }
 
-        _subscribedFormView.RegistrationChanged -= RequestRegistrationRefresh;
-        _subscribedFormView = null;
+        _subscribedFormScope.RegistrationChanged -= RequestRegistrationRefresh;
+        _subscribedFormScope = null;
     }
 }

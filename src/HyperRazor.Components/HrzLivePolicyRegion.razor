@@ -19,13 +19,13 @@
 
 @code {
     [Parameter]
-    public HrzFormView? Form { get; set; }
+    public HrzFormScope? Form { get; set; }
 
     [Parameter]
     public bool SwapOob { get; set; }
 
     [CascadingParameter]
-    private HrzValidationFormContext? FormContext { get; set; }
+    private HrzFormScope? FormScope { get; set; }
 
     private static readonly IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> EmptyAttemptedValues =
         new Dictionary<HrzFieldPath, HrzAttemptedValue>();
@@ -33,8 +33,8 @@
     private IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> Policies { get; set; } =
         new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
 
-    private HrzFormView ResolvedForm => Form ?? FormContext?.View
-        ?? throw new InvalidOperationException($"{nameof(HrzLivePolicyRegion)} requires a form view.");
+    private HrzFormScope ResolvedForm => Form ?? FormScope
+        ?? throw new InvalidOperationException($"{nameof(HrzLivePolicyRegion)} requires a {nameof(HrzFormScope)}.");
 
     protected override async Task OnParametersSetAsync()
     {

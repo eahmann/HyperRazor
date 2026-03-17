@@ -152,7 +152,7 @@ public class HrzValidationInfrastructureTests
     }
 
     [Fact]
-    public void HrzFieldView_AsTextInput_OmitsClientSlotReferencesWhenRequested()
+    public void HrzFieldScope_AsTextInput_OmitsClientSlotReferencesWhenRequested()
     {
         var services = CreateServices();
         using var scope = services.CreateScope();
@@ -171,7 +171,7 @@ public class HrzValidationInfrastructureTests
     }
 
     [Fact]
-    public void HrzFieldView_AsCheckbox_ReflectsCheckedState()
+    public void HrzFieldScope_AsCheckbox_ReflectsCheckedState()
     {
         var services = CreateServices();
         using var scope = services.CreateScope();

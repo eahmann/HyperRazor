@@ -1,5 +1,5 @@
-<label for="@ResolvedFieldContext.InputId" class="@Class" @attributes="AdditionalAttributes">
-    @(string.IsNullOrWhiteSpace(Text) ? ResolvedFieldContext.LabelText : Text)
+<label for="@ResolvedField.InputId" class="@Class" @attributes="AdditionalAttributes">
+    @(string.IsNullOrWhiteSpace(Text) ? ResolvedField.LabelText : Text)
 </label>
 
 @code {
@@ -13,13 +13,13 @@
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
 
     [CascadingParameter]
-    private HrzValidationFieldContext? FieldContext { get; set; }
+    private HrzFieldScope? Field { get; set; }
 
-    private HrzValidationFieldContext ResolvedFieldContext => FieldContext
+    private HrzFieldScope ResolvedField => Field
         ?? throw new InvalidOperationException($"{nameof(HrzLabel)} requires a cascading {nameof(HrzField<object>)}.");
 
     protected override void OnParametersSet()
     {
-        _ = ResolvedFieldContext;
+        _ = ResolvedField;
     }
 }

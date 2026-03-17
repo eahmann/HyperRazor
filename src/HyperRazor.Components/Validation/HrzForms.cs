@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace HyperRazor.Components.Validation;
 
-internal interface IHrzValidationViewFactory
+internal interface IHrzValidationScopeFactory
 {
-    HrzFormView<TModel> CreateFormView<TModel>(
+    HrzFormScope<TModel> CreateFormScope<TModel>(
         TModel model,
         HrzValidationRootId rootId,
         string? idPrefix,
@@ -12,8 +12,8 @@ internal interface IHrzValidationViewFactory
         bool enableClientValidation,
         HrzLiveValidationOptions? live);
 
-    HrzFieldView<TValue> CreateFieldView<TValue>(
-        HrzFormView form,
+    HrzFieldScope<TValue> CreateFieldScope<TValue>(
+        HrzFormScope form,
         System.Linq.Expressions.Expression<Func<TValue>> accessor,
         Func<TValue> compiledAccessor,
         string? label,
@@ -24,17 +24,17 @@ internal interface IHrzValidationViewFactory
 public sealed class HrzForms : IHrzForms
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IHrzValidationViewFactory _viewFactory;
+    private readonly IHrzValidationScopeFactory _scopeFactory;
 
     internal HrzForms(
         IHttpContextAccessor httpContextAccessor,
-        IHrzValidationViewFactory viewFactory)
+        IHrzValidationScopeFactory scopeFactory)
     {
         _httpContextAccessor = httpContextAccessor;
-        _viewFactory = viewFactory;
+        _scopeFactory = scopeFactory;
     }
 
-    public HrzFormView<TModel> For<TModel>(
+    public HrzFormScope<TModel> For<TModel>(
         TModel model,
         string formName,
         HrzSubmitValidationState? validationState = null,
@@ -53,7 +53,7 @@ public sealed class HrzForms : IHrzForms
             enableClientValidation);
     }
 
-    public HrzFormView<TModel> For<TModel>(
+    public HrzFormScope<TModel> For<TModel>(
         TModel model,
         HrzValidationRootId rootId,
         HrzSubmitValidationState? validationState = null,
@@ -66,7 +66,7 @@ public sealed class HrzForms : IHrzForms
 
         validationState ??= _httpContextAccessor.HttpContext?.GetSubmitValidationState(rootId);
 
-        return _viewFactory.CreateFormView(
+        return _scopeFactory.CreateFormScope(
             model,
             rootId,
             idPrefix,

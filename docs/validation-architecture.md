@@ -25,14 +25,19 @@ This note names those layers, points to the files that own them, and shows the l
 ### 1. Authoring layer
 
 This layer emits the DOM contract that the rest of the runtime consumes.
+It supports two authoring lanes that share the same runtime model:
+
+- component-first authoring through `HrzForm`, `HrzField`, and `HrzInput*`
+- advanced/raw authoring through `IHrzForms`, `HrzFormScope`, and `HrzFieldScope`
 
 Primary files:
 
 - `src/HyperRazor.Components/HrzForm.razor`
 - `src/HyperRazor.Components/HrzField.razor`
 - `src/HyperRazor.Components/HrzInputComponentBase.cs`
-- `src/HyperRazor.Components/HrzValidationFieldContext.cs`
-- `src/HyperRazor.Components/HrzValidationFormContext.cs`
+- `src/HyperRazor.Components/Validation/IHrzForms.cs`
+- `src/HyperRazor.Components/Validation/HrzFormScope.cs`
+- `src/HyperRazor.Components/Validation/HrzFieldScope.cs`
 - `src/HyperRazor.Components/HrzValidationMessage.razor`
 - `src/HyperRazor.Components/HrzValidationSummary.razor`
 - `src/HyperRazor.Components/HrzValidationLivePolicyCarrier.razor`
@@ -42,6 +47,7 @@ Responsibilities:
 
 - establish the validation root
 - resolve field paths from expressions
+- share form and field metadata between stock components and custom markup/components
 - emit input `name` and `id` values
 - emit client and server validation slot ids
 - emit hidden live-policy carriers

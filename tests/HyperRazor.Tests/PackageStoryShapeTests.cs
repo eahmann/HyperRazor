@@ -1,3 +1,5 @@
+using HyperRazor.Components;
+using HyperRazor.Components.Validation;
 using HyperRazor.Rendering;
 
 namespace HyperRazor.Tests;
@@ -313,8 +315,6 @@ public class PackageStoryShapeTests
             "HrzInputTextArea.razor",
             "HrzLabel.razor",
             "HrzLivePolicyRegion.razor",
-            "HrzValidationFieldContext.cs",
-            "HrzValidationFormContext.cs",
             "HrzValidationLivePolicyCarrier.razor",
             "HrzValidationLivePolicyRegion.razor",
             "HrzValidationMessage.razor",
@@ -328,6 +328,39 @@ public class PackageStoryShapeTests
         {
             Assert.True(File.Exists(Path.Combine(repoRoot, "src", "HyperRazor.Components", fileName)));
             Assert.False(File.Exists(Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", fileName)));
+        }
+    }
+
+    [Fact]
+    public void ComponentsProject_KeepsValidationScopesUnderValidationFolder()
+    {
+        var repoRoot = GetRepoRoot();
+        var validationFiles = new[]
+        {
+            "HrzFieldScope.cs",
+            "HrzFormScope.cs",
+            "HrzForms.cs",
+            "IHrzForms.cs",
+            "HrzValidationScopeFactory.cs"
+        };
+
+        foreach (var fileName in validationFiles)
+        {
+            Assert.True(File.Exists(Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", fileName)));
+        }
+
+        var removedFiles = new[]
+        {
+            Path.Combine(repoRoot, "src", "HyperRazor.Components", "HrzValidationFieldContext.cs"),
+            Path.Combine(repoRoot, "src", "HyperRazor.Components", "HrzValidationFormContext.cs"),
+            Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzFieldView.cs"),
+            Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzFormView.cs"),
+            Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzValidationViewFactory.cs")
+        };
+
+        foreach (var filePath in removedFiles)
+        {
+            Assert.False(File.Exists(filePath));
         }
     }
 
@@ -370,6 +403,51 @@ public class PackageStoryShapeTests
             Assert.DoesNotContain(@"InternalsVisibleTo(""HyperRazor"")", text, StringComparison.Ordinal);
             Assert.DoesNotContain(@"InternalsVisibleTo(""HyperRazor.Components"")", text, StringComparison.Ordinal);
             Assert.DoesNotContain(@"InternalsVisibleTo(""HyperRazor.Htmx"")", text, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void ComponentsAssembly_ExposesValidationScopes_AndRetiresViewTypes()
+    {
+        var assembly = typeof(IHrzForms).Assembly;
+
+        Assert.True(typeof(IHrzForms).IsPublic);
+        Assert.True(typeof(HrzFormScope).IsPublic);
+        Assert.True(typeof(HrzFormScope<>).IsPublic);
+        Assert.True(typeof(HrzFieldScope).IsPublic);
+        Assert.True(typeof(HrzFieldScope<>).IsPublic);
+
+        Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFormView", throwOnError: false, ignoreCase: false));
+        Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFormView`1", throwOnError: false, ignoreCase: false));
+        Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFieldView", throwOnError: false, ignoreCase: false));
+        Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFieldView`1", throwOnError: false, ignoreCase: false));
+
+        Assert.Equal(typeof(HrzFormScope), typeof(HrzSummaryMessages).GetProperty(nameof(HrzSummaryMessages.Form))!.PropertyType);
+        Assert.Equal(typeof(HrzFieldScope), typeof(HrzFieldMessages).GetProperty(nameof(HrzFieldMessages.Field))!.PropertyType);
+        Assert.Equal(typeof(HrzFormScope), typeof(HrzLivePolicyRegion).GetProperty(nameof(HrzLivePolicyRegion.Form))!.PropertyType);
+        Assert.Equal(typeof(HrzFormScope), typeof(HrzValidationLivePolicyRegion).GetProperty(nameof(HrzValidationLivePolicyRegion.Form))!.PropertyType);
+    }
+
+    [Fact]
+    public void CurrentDocs_Describe_Component_And_Builder_ValidationAuthoringLanes()
+    {
+        var files = new[]
+        {
+            "README.md",
+            "docs/adopting-hyperrazor.md",
+            "docs/nuget-readme.md",
+            "docs/package-surface.md",
+            "docs/quickstart.md",
+            "docs/validation-architecture.md"
+        };
+
+        foreach (var relativePath in files)
+        {
+            var text = ReadFile(relativePath);
+
+            Assert.Contains("IHrzForms", text, StringComparison.Ordinal);
+            Assert.Contains("HrzFormScope", text, StringComparison.Ordinal);
+            Assert.Contains("HrzFieldScope", text, StringComparison.Ordinal);
         }
     }
 

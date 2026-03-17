@@ -67,6 +67,7 @@ Package Story Phase 2 remains the breaking advanced-surface cleanup for validati
 
 - Shared validation contracts now live in `HyperRazor.Components.Validation`.
 - Validation authoring components such as `HrzForm`, `HrzField`, `HrzValidationSummary`, and `HrzValidationMessage` stay in `HyperRazor.Components`.
+- Supported advanced validation authoring now goes through `IHrzForms`, `HrzFormScope`, and `HrzFieldScope` when you need custom markup or custom components instead of the stock `HrzInput*` controls.
 - The implementation APIs remain under the `HyperRazor.Rendering` namespace inside the `HyperRazor` package for `HrzFieldPathResolver`, `HrzDataAnnotationsModelValidator`, `HrzDefaultLiveValidationPolicyResolver`, and `HrzValidationBridge`.
 
 Update validation-only imports like this:
@@ -76,3 +77,8 @@ using HyperRazor.Components.Validation;
 ```
 
 Replace old validation-type imports from `HyperRazor.Rendering` when the file only needs shared validation contracts such as `HrzValidationRootId`, `HrzFieldPath`, `HrzSubmitValidationState`, `IHrzFieldPathResolver`, or `IHrzLiveValidationPolicyResolver`.
+
+Use one of these validation authoring lanes:
+
+- component-first: `HrzForm`, `HrzField`, `HrzLabel`, `HrzInput*`, `HrzValidationMessage`, `HrzValidationSummary`
+- advanced/custom: `IHrzForms.For(...)`, `HrzFormScope.Field(...)`, and the scope-aware helper components for raw markup or custom inputs

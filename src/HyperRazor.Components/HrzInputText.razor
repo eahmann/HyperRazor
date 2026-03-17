@@ -18,7 +18,7 @@
     private IReadOnlyDictionary<string, object> InputAttributes => BuildControlAttributes(new Dictionary<string, object?>
     {
         ["type"] = Type,
-        ["value"] = ResolvedFieldContext.Value ?? string.Empty,
+        ["value"] = ResolvedField.Value ?? string.Empty,
         ["placeholder"] = Placeholder,
         ["autocomplete"] = Autocomplete,
         ["inputmode"] = InputMode

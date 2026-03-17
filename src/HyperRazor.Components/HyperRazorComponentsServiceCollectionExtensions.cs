@@ -15,11 +15,11 @@ public static class HyperRazorComponentsServiceCollectionExtensions
         services.TryAddSingleton<HrzFieldValueProjector>();
         services.TryAddSingleton<HrzClientValidationMetadataFactory>();
         services.TryAddSingleton<HrzLiveMetadataFactory>();
-        services.TryAddSingleton<IHrzValidationViewFactory, HrzValidationViewFactory>();
+        services.TryAddSingleton<IHrzValidationScopeFactory, HrzValidationScopeFactory>();
         services.TryAddScoped<IHrzForms>(serviceProvider =>
             new HrzForms(
                 serviceProvider.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
-                serviceProvider.GetRequiredService<IHrzValidationViewFactory>()));
+                serviceProvider.GetRequiredService<IHrzValidationScopeFactory>()));
 
         return services;
     }

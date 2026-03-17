@@ -16,6 +16,7 @@ Primary entry-point packages:
 Advanced but supported composition package:
 
 - `HyperRazor.Components`
+  This package includes the stock validation components plus the advanced validation builder/scope API (`IHrzForms`, `HrzFormScope`, `HrzFieldScope`).
 
 Internal-only projects:
 
@@ -23,7 +24,7 @@ Internal-only projects:
 - `samples/HyperRazor.Demo.Mvc`
 - `tests/*`
 
-Advanced validation authoring stays in `HyperRazor.Components`, shared validation contracts import from `HyperRazor.Components.Validation`, and the `HyperRazor` package continues to expose the `HyperRazor.Mvc` and `HyperRazor.Rendering` namespaces for server/runtime APIs.
+Advanced validation authoring stays in `HyperRazor.Components`. Use `HrzForm` / `HrzField` / `HrzInput*` for the default path, or `IHrzForms`, `HrzFormScope`, and `HrzFieldScope` for custom markup and custom input components. Shared validation contracts import from `HyperRazor.Components.Validation`, and the `HyperRazor` package continues to expose the `HyperRazor.Mvc` and `HyperRazor.Rendering` namespaces for server/runtime APIs.
 
 Docs:
 - [Docs Index](docs/README.md)

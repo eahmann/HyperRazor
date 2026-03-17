@@ -37,14 +37,14 @@ internal sealed record HrzResolvedLiveValidation(
     string? Sync,
     string? ValuesJson);
 
-internal sealed class HrzValidationViewFactory : IHrzValidationViewFactory
+internal sealed class HrzValidationScopeFactory : IHrzValidationScopeFactory
 {
     private readonly HrzFieldDescriptorFactory _descriptorFactory;
     private readonly HrzFieldValueProjector _valueProjector;
     private readonly HrzClientValidationMetadataFactory _clientValidationFactory;
     private readonly HrzLiveMetadataFactory _liveMetadataFactory;
 
-    public HrzValidationViewFactory(
+    public HrzValidationScopeFactory(
         HrzFieldDescriptorFactory descriptorFactory,
         HrzFieldValueProjector valueProjector,
         HrzClientValidationMetadataFactory clientValidationFactory,
@@ -56,7 +56,7 @@ internal sealed class HrzValidationViewFactory : IHrzValidationViewFactory
         _liveMetadataFactory = liveMetadataFactory;
     }
 
-    public HrzFormView<TModel> CreateFormView<TModel>(
+    public HrzFormScope<TModel> CreateFormScope<TModel>(
         TModel model,
         HrzValidationRootId rootId,
         string? idPrefix,
@@ -64,7 +64,7 @@ internal sealed class HrzValidationViewFactory : IHrzValidationViewFactory
         bool enableClientValidation,
         HrzLiveValidationOptions? live)
     {
-        return new HrzFormView<TModel>(
+        return new HrzFormScope<TModel>(
             model,
             rootId,
             string.IsNullOrWhiteSpace(idPrefix) ? rootId.Value : idPrefix,
@@ -74,8 +74,8 @@ internal sealed class HrzValidationViewFactory : IHrzValidationViewFactory
             this);
     }
 
-    public HrzFieldView<TValue> CreateFieldView<TValue>(
-        HrzFormView form,
+    public HrzFieldScope<TValue> CreateFieldScope<TValue>(
+        HrzFormScope form,
         Expression<Func<TValue>> accessor,
         Func<TValue> compiledAccessor,
         string? label,
@@ -90,7 +90,7 @@ internal sealed class HrzValidationViewFactory : IHrzValidationViewFactory
             descriptor.EnableClientValidation);
         var liveMetadata = _liveMetadataFactory.Create(form, descriptor.FieldPath, live);
 
-        return new HrzFieldView<TValue>(
+        return new HrzFieldScope<TValue>(
             form,
             descriptor,
             projection,
@@ -110,7 +110,7 @@ internal sealed class HrzValidationViewFactory : IHrzValidationViewFactory
 internal sealed class HrzFieldDescriptorFactory
 {
     public HrzFieldDescriptor Create<TValue>(
-        HrzFormView form,
+        HrzFormScope form,
         Expression<Func<TValue>> accessor,
         string? explicitLabel,
         bool? enableClientValidation)
@@ -383,7 +383,7 @@ internal sealed class HrzFieldDescriptorFactory
 internal sealed class HrzFieldValueProjector
 {
     public HrzFieldValueProjection Project<TValue>(
-        HrzFormView form,
+        HrzFormScope form,
         HrzFieldPath fieldPath,
         Func<TValue> compiledAccessor)
     {
@@ -551,7 +551,7 @@ internal sealed class HrzClientValidationMetadataFactory
 internal sealed class HrzLiveMetadataFactory
 {
     public HrzResolvedLiveValidation Create(
-        HrzFormView form,
+        HrzFormScope form,
         HrzFieldPath fieldPath,
         HrzFieldLiveOptions? live)
     {

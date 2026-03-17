@@ -1,10 +1,10 @@
 @inherits HrzInputComponentBase
 
-<input checked="@ResolvedFieldContext.IsChecked" @attributes="InputAttributes" />
+<input checked="@ResolvedField.IsChecked" @attributes="InputAttributes" />
 
 @if (IncludeHiddenInput)
 {
-    <input type="hidden" name="@ResolvedFieldContext.Name" value="false" disabled="@IsDisabled" />
+    <input type="hidden" name="@ResolvedField.Name" value="false" disabled="@IsDisabled" />
 }
 
 @code {

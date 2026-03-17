@@ -3,15 +3,19 @@ using HyperRazor.Rendering;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+#if NET10_0_OR_GREATER
 using Microsoft.Extensions.Options;
 using System.Net.ServerSentEvents;
+#endif
 
 namespace HyperRazor.Mvc;
 
 public static class HrzResults
 {
+#if NET10_0_OR_GREATER
     private const string ProxyBufferingHeader = "X-Accel-Buffering";
     private const string ProxyBufferingDisabledValue = "no";
+#endif
 
     /// <summary>
     /// Renders a routable page component, automatically returning full HTML or an HTMX fragment
@@ -96,6 +100,7 @@ public static class HrzResults
     /// <summary>
     /// Returns a platform-backed SSE response with HyperRazor's default streaming headers.
     /// </summary>
+#if NET10_0_OR_GREATER
     public static IResult ServerSentEvents(
         IAsyncEnumerable<SseItem<string>> source,
         Action<HttpResponse>? configureResponse = null,
@@ -103,6 +108,7 @@ public static class HrzResults
     {
         return new HrzServerSentEventsResult<string>(source, options, configureResponse);
     }
+#endif
 
     /// <summary>
     /// Returns an explicit 204 response to tell SSE clients not to reconnect.
@@ -240,6 +246,7 @@ public static class HrzResults
         }
     }
 
+#if NET10_0_OR_GREATER
     private sealed class HrzServerSentEventsResult<T> : IResult
     {
         private readonly IAsyncEnumerable<SseItem<T>> _source;
@@ -382,4 +389,5 @@ public static class HrzResults
             response.Headers["Cache-Control"] = "no-cache,no-store";
         }
     }
+#endif
 }

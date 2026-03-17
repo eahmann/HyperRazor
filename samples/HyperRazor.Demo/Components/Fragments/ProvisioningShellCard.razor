@@ -1,0 +1,49 @@
+<section id="invite-provision-shell" class="surface-card">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow text-primary mb-2">Provisioning shell</p>
+            <h3 class="h4 mb-1">@Operation.DisplayName is provisioning</h3>
+            <p class="text-secondary mb-0">The invite form is replaced in place, then the main progress feed streams over SSE while secondary regions update out-of-band.</p>
+        </div>
+        <span class="badge rounded-pill text-bg-warning-subtle text-warning-emphasis border">@Operation.OperationId</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-5">
+            <div class="provision-summary">
+                <div class="summary-row">
+                    <span class="text-secondary">Workspace</span>
+                    <strong>@Operation.WorkspaceName</strong>
+                </div>
+                <div class="summary-row">
+                    <span class="text-secondary">Access tier</span>
+                    <strong>@Operation.AccessTier</strong>
+                </div>
+                <div class="summary-row">
+                    <span class="text-secondary">Manager</span>
+                    <strong>@Operation.Manager</strong>
+                </div>
+                <div class="summary-row">
+                    <span class="text-secondary">Start date</span>
+                    <strong>@Operation.StartDate.ToString("MMM d, yyyy")</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <section
+                class="stream-shell"
+                hx-ext="sse"
+                sse-connect="/streams/users/provision/@Operation.OperationId"
+                sse-close="@HrzSseEventNames.Done">
+                <div class="stream-shell__hint">Connecting to the provisioning stream...</div>
+                <div id="invite-progress-feed" class="d-grid gap-3" sse-swap="message" hx-swap="beforeend"></div>
+            </section>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProvisioningOperation Operation { get; set; } = default!;
+}

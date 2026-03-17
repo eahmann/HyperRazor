@@ -1,0 +1,76 @@
+@layout PortalLayout
+
+<div class="row g-4 g-xxl-5 align-items-start">
+    <div class="col-12 col-xl-7">
+        <section class="hero-card">
+            <p class="eyebrow text-primary mb-2">Portal to console story</p>
+            <h2 class="display-6 mb-3">Start in a minimal portal shell, then promote into the console after validation.</h2>
+            <p class="lead text-secondary mb-4">This fresh demo app centers one believable internal-tool flow: workspace entry, invite validation, and streamed provisioning with out-of-band UI updates.</p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="feature-card h-100">
+                        <h3 class="h6 mb-2">Full-shell promotion</h3>
+                        <p class="small text-secondary mb-0">Portal routes render a distinct shell; console routes replace the entire chrome on success.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="feature-card h-100">
+                        <h3 class="h6 mb-2">Server-authoritative validation</h3>
+                        <p class="small text-secondary mb-0">Invalid entries rerender inline with preserved values and actionable error summaries.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="feature-card h-100">
+                        <h3 class="h6 mb-2">Streaming completion</h3>
+                        <p class="small text-secondary mb-0">Provisioning steps arrive over SSE without polling or a background worker abstraction.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="feature-card h-100">
+                        <h3 class="h6 mb-2">Real-world framing</h3>
+                        <p class="small text-secondary mb-0">The UI is intentionally styled like a modern internal tool instead of a feature lab.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="surface-card mt-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div>
+                    <p class="eyebrow text-primary mb-2">Demo workspaces</p>
+                    <h3 class="h5 mb-0">Use any of the seeded environments below</h3>
+                </div>
+                <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis border">Bootstrap shell</span>
+            </div>
+
+            <div class="row g-3">
+                @foreach (var workspace in Model.Workspaces)
+                {
+                    <div class="col-12 col-md-6 col-xxl-4">
+                        <article class="workspace-card h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div>
+                                    <h4 class="h6 mb-1">@workspace.Name</h4>
+                                    <p class="small text-secondary mb-2">@workspace.Environment · @workspace.Region</p>
+                                </div>
+                                <span class="badge rounded-pill text-bg-light border">@workspace.SeedUserCount users</span>
+                            </div>
+                            <p class="small mb-3">@workspace.Summary</p>
+                            <div class="workspace-code">Access code: <code>@workspace.AccessCode</code></div>
+                        </article>
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12 col-xl-5">
+        <PortalEntryCard Form="Model.Form" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PortalPageModel Model { get; set; } = default!;
+}

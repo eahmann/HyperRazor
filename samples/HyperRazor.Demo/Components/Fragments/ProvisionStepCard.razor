@@ -1,0 +1,29 @@
+<article class="provision-step provision-step--@Tone">
+    <div class="d-flex align-items-start gap-3">
+        <div class="provision-step__number">@StepNumber</div>
+        <div class="flex-grow-1">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <h4 class="h6 mb-0">@Title</h4>
+                <span class="small text-secondary">@Stamp</span>
+            </div>
+            <p class="small mb-0">@Detail</p>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter]
+    public int StepNumber { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Detail { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Tone { get; set; } = "info";
+
+    [Parameter]
+    public string Stamp { get; set; } = string.Empty;
+}

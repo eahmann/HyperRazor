@@ -1,0 +1,37 @@
+<nav
+    class="nav flex-column gap-2"
+    aria-label="Workspace navigation"
+    hx-boost="true"
+    hx-target="#console-main"
+    hx-swap="innerHTML show:window:top"
+    hx-push-url="true">
+    <a class="@GetLinkClass("/users")" href="@BuildHref("/users")" aria-current="@GetAriaCurrent("/users")">Identity access</a>
+    <a class="@GetLinkClass("/settings/branding")" href="@BuildHref("/settings/branding")" aria-current="@GetAriaCurrent("/settings/branding")">Workspace settings</a>
+</nav>
+
+@code {
+    [Parameter]
+    public string ActivePath { get; set; } = "/users";
+
+    [Parameter]
+    public string WorkspaceKey { get; set; } = string.Empty;
+
+    private string BuildHref(string path)
+    {
+        return $"{path}?workspace={Uri.EscapeDataString(WorkspaceKey)}";
+    }
+
+    private string GetLinkClass(string path)
+    {
+        return string.Equals(ActivePath, path, StringComparison.OrdinalIgnoreCase)
+            ? "nav-link active"
+            : "nav-link";
+    }
+
+    private string? GetAriaCurrent(string path)
+    {
+        return string.Equals(ActivePath, path, StringComparison.OrdinalIgnoreCase)
+            ? "page"
+            : null;
+    }
+}

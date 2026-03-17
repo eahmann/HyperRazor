@@ -1,0 +1,14 @@
+<article class="activity-item activity-item--@Entry.Tone">
+    <div class="d-flex align-items-start justify-content-between gap-3">
+        <div>
+            <h4 class="h6 mb-1">@Entry.Title</h4>
+            <p class="small text-secondary mb-0">@Entry.Detail</p>
+        </div>
+        <span class="small text-secondary text-nowrap">@Entry.Stamp</span>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public ActivityEntry Entry { get; set; } = default!;
+}

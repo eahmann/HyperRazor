@@ -1,0 +1,48 @@
+<section class="surface-card">
+    <p class="eyebrow text-primary mb-2">Latest identity</p>
+    <h3 class="h5 mb-3">Most recent invite status</h3>
+
+    @if (Summary is null)
+    {
+        <div class="empty-directory-state">
+            <h4 class="h6 mb-2">Nothing provisioned yet</h4>
+            <p class="small text-secondary mb-0">Complete an invite in @WorkspaceName to populate this card.</p>
+        </div>
+    }
+    else
+    {
+        <div class="vstack gap-2">
+            <div>
+                <div class="d-flex align-items-center justify-content-between gap-3">
+                    <h4 class="h6 mb-0">@Summary.DisplayName</h4>
+                    <span class="badge rounded-pill @ToneClass(Summary.Tone)">@Summary.Status</span>
+                </div>
+                <p class="small text-secondary mb-0">@Summary.Email</p>
+            </div>
+            <div class="small">
+                <strong>@Summary.AccessTier</strong> · @Summary.Team
+            </div>
+            <div class="small text-secondary">Approver: @Summary.Manager</div>
+            <div class="small text-secondary">Updated @Summary.Stamp</div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public InviteSummary? Summary { get; set; }
+
+    [Parameter]
+    public string WorkspaceName { get; set; } = string.Empty;
+
+    private static string ToneClass(string tone)
+    {
+        return tone switch
+        {
+            "success" => "text-bg-success-subtle text-success-emphasis border",
+            "info" => "text-bg-info-subtle text-info-emphasis border",
+            "warning" => "text-bg-warning-subtle text-warning-emphasis border",
+            _ => "text-bg-light border"
+        };
+    }
+}

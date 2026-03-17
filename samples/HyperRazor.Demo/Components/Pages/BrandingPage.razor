@@ -1,0 +1,88 @@
+@layout ConsoleLayout
+
+<section class="surface-card">
+    <div class="row g-4 align-items-start">
+        <div class="col-12 col-lg-7">
+            <p class="eyebrow text-primary mb-2">Workspace settings</p>
+            <h2 class="h3 mb-2">Branding and environment markers</h2>
+            <p class="text-secondary mb-0">A secondary console page using the same shell, query-driven workspace context, and HyperRazor page routing.</p>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="settings-preview-card">
+                <p class="small text-secondary mb-2">Current environment</p>
+                <div class="d-flex align-items-center justify-content-between gap-3">
+                    <div>
+                        <h3 class="h5 mb-1">@Model.Workspace.Name</h3>
+                        <p class="small text-secondary mb-0">@Model.Workspace.Environment · @Model.Workspace.Region</p>
+                    </div>
+                    <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis border">@Model.Dashboard.UserCount active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-7">
+        <section class="surface-card h-100">
+            <h3 class="h5 mb-3">Console presentation rules</h3>
+            <div class="vstack gap-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked disabled />
+                    <label class="form-check-label">Show environment banner for non-production workspaces</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked disabled />
+                    <label class="form-check-label">Preserve workspace badge across boosted navigation</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" disabled />
+                    <label class="form-check-label">Allow ad-hoc branding overrides per queue</label>
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Primary shell label</label>
+                    <input class="form-control" value="Operations console" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Workspace owner</label>
+                    <input class="form-control" value="@Model.Workspace.OperationsOwner" readonly />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Brand note</label>
+                    <textarea class="form-control" rows="4" readonly>The shell keeps the visual system restrained so the invite workflow remains the primary story.</textarea>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12 col-xl-5">
+        <section class="surface-card h-100">
+            <h3 class="h5 mb-3">Operational conventions</h3>
+            <div class="vstack gap-3">
+                <div class="list-row">
+                    <strong>Shell model</strong>
+                    <span class="text-secondary">Portal and console live under the same HyperRazor root host.</span>
+                </div>
+                <div class="list-row">
+                    <strong>Navigation mode</strong>
+                    <span class="text-secondary">Console links stay in-shell; portal transitions swap the full outer chrome.</span>
+                </div>
+                <div class="list-row">
+                    <strong>Workflow emphasis</strong>
+                    <span class="text-secondary">Invite and provisioning remain the primary end-to-end demo path.</span>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public BrandingPageModel Model { get; set; } = default!;
+}

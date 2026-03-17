@@ -1,0 +1,113 @@
+@inject HtmxConfig HtmxConfig
+@inject WorkspaceCatalog Workspaces
+@inherits LayoutComponentBase
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" hx-preserve="true" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" hx-preserve="true" />
+    <title>HyperRazor Demo</title>
+    <HrzHtmxConfigMeta />
+    <HrzAntiforgeryMeta />
+    <script src="/_content/HyperRazor.Client/vendor/htmx/htmx-2.0.4.min.js" hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/vendor/htmx/head-support-2.0.2.js" hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/vendor/aspnet-client-validation/aspnet-validation.min.js" hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/vendor/htmx/sse-2.2.4.min.js" hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/hyperrazor.htmx.js" defer hx-preserve="true"></script>
+    <script src="/_content/HyperRazor.Client/hyperrazor.validation.js" defer hx-preserve="true"></script>
+    <link rel="stylesheet" href="/vendor/bootswatch/flatly.min.css" hx-preserve="true" />
+    <link rel="stylesheet" href="/_content/HyperRazor.Client/hyperrazor.css" hx-preserve="true" />
+    <link rel="stylesheet" href="/app.css" hx-preserve="true" />
+</head>
+<body
+    data-hrz-antiforgery-meta="@HtmxConfig.AntiforgeryMetaName"
+    data-hrz-antiforgery-header="@HtmxConfig.AntiforgeryHeaderName"
+    data-hrz-head-support="@(HtmxConfig.EnableHeadSupport ? "true" : "false")"
+    hx-ext="@(HtmxConfig.EnableHeadSupport ? "head-support" : null)">
+    @if (IsPortalShell)
+    {
+        <div id="hrz-app-shell" data-hrz-demo-shell="portal" class="portal-shell">
+            <div class="portal-shell__halo portal-shell__halo--left"></div>
+            <div class="portal-shell__halo portal-shell__halo--right"></div>
+            <main class="container-xxl py-5 py-lg-6">
+                <div class="portal-brand mb-4">
+                    <p class="eyebrow text-primary mb-2">HyperRazor Demo</p>
+                    <h1 class="h4 mb-1">Portal access shell</h1>
+                    <p class="text-secondary mb-0">Minimal entry experience before the console shell is promoted into view.</p>
+                </div>
+
+                @Body
+            </main>
+        </div>
+    }
+    else
+    {
+        <div id="hrz-app-shell" data-hrz-demo-shell="console" class="console-shell">
+            <div class="console-shell__frame container-fluid">
+                <div class="row g-4 g-xxl-5 align-items-start">
+                    <aside class="col-12 col-xl-3 col-xxl-2">
+                        <div class="sidebar-card position-xl-sticky top-xl-0">
+                            <div class="d-grid gap-3">
+                                <div>
+                                    <p class="eyebrow text-primary mb-2">HyperRazor Demo</p>
+                                    <h1 class="h4 mb-2">Operations console</h1>
+                                    <p class="text-secondary small mb-0">Server-rendered portal and console shells with HTMX-driven workflow transitions.</p>
+                                </div>
+
+                                <div class="workspace-meta-card">
+                                    <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis border">Current workspace</span>
+                                    <h2 class="h6 mt-3 mb-1">@CurrentWorkspace.Name</h2>
+                                    <p class="small text-secondary mb-2">@CurrentWorkspace.Environment · @CurrentWorkspace.Region</p>
+                                    <p class="small mb-0">@CurrentWorkspace.Summary</p>
+                                </div>
+
+                                <HrzRegion Name="@NavRegion">
+                                    <NavLinks WorkspaceKey="@CurrentWorkspace.Key" ActivePath="@CurrentPath" />
+                                </HrzRegion>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <div class="col-12 col-xl-9 col-xxl-10">
+                        <header class="topbar mb-4">
+                            <div>
+                                <p class="eyebrow text-primary mb-1">Workspace owner</p>
+                                <h2 class="h5 mb-1">@CurrentWorkspace.OperationsOwner</h2>
+                                <p class="small text-secondary mb-0">Promoted into the console after the portal entry form validates.</p>
+                            </div>
+
+                            <a
+                                class="btn btn-outline-secondary"
+                                href="@PortalHref"
+                                hx-get="@PortalHref"
+                                hx-target="#console-main"
+                                hx-swap="innerHTML show:window:top"
+                                hx-push-url="true">Switch workspace</a>
+                        </header>
+
+                        <main id="console-main" class="d-grid gap-4">
+                            @Body
+                        </main>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</body>
+</html>
+
+@code {
+    public const string NavRegion = "console-nav-region";
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    private string CurrentPath => HttpContext?.Request.Path.Value ?? "/portal";
+
+    private bool IsPortalShell => CurrentPath.StartsWith("/portal", StringComparison.OrdinalIgnoreCase);
+
+    private WorkspaceInfo CurrentWorkspace => Workspaces.Resolve(HttpContext?.Request.Query["workspace"]);
+
+    private string PortalHref => $"/portal?workspace={Uri.EscapeDataString(CurrentWorkspace.Key)}";
+}

@@ -1,0 +1,101 @@
+<section id="invite-form-card" class="surface-card">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow text-primary mb-2">Primary workflow</p>
+            <h3 class="h4 mb-1">Invite a new workspace identity</h3>
+            <p class="text-secondary mb-0">A successful submit swaps this panel into the provisioning shell and opens the SSE stream.</p>
+        </div>
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis border">@Form.Workspace.Name</span>
+    </div>
+
+    <HrzForm
+        Model="Input"
+        RootId="@AppValidationRoots.UserInvite"
+        Action="/fragments/users/invite"
+        HxPost="/fragments/users/invite"
+        SubmitTarget="#users-invite-region"
+        SubmitSwap="innerHTML"
+        Class="row g-3"
+        method="post">
+        <input type="hidden" name="workspace" value="@Form.Workspace.Key" />
+
+        <div class="col-12">
+            <HrzValidationSummary />
+        </div>
+
+        <HrzField For="() => Input.DisplayName" Label="Display name" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputText Class="form-control" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Email" Label="Work email" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputText Class="form-control" Type="email" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Team" Label="Team" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputSelect
+                Class="form-select"
+                Options="@TeamOptions"
+                Placeholder="Select team"
+                PlaceholderValue=""
+                PlaceholderDisabled="false" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.AccessTier" Label="Access tier" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputSelect
+                Class="form-select"
+                Options="@AccessTierOptions"
+                Placeholder="Select access tier"
+                PlaceholderValue=""
+                PlaceholderDisabled="false" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Manager" Label="Manager approver" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputText Class="form-control" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.StartDate" Label="Start date" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputText Class="form-control" Type="date" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Justification" Label="Business justification" Class="col-12">
+            <HrzLabel Class="form-label" />
+            <HrzInputTextArea Class="form-control" Rows="4" />
+            <div class="form-text">Privileged access requires a more specific justification.</div>
+            <HrzValidationMessage />
+        </HrzField>
+
+        <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2">
+            <p class="small text-secondary mb-0">This submit path is the canonical validated + streamed story for the new demo.</p>
+            <button class="btn btn-primary px-4" type="submit">Start provisioning</button>
+        </div>
+    </HrzForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public InviteFormViewModel Form { get; set; } = default!;
+
+    private InviteUserInput Input => Form.Input;
+
+    private IReadOnlyList<HrzInputSelectOption> TeamOptions =>
+        Form.Teams
+            .Select(team => new HrzInputSelectOption(team, team))
+            .ToArray();
+
+    private IReadOnlyList<HrzInputSelectOption> AccessTierOptions =>
+        Form.AccessTiers
+            .Select(accessTier => new HrzInputSelectOption(accessTier, accessTier))
+            .ToArray();
+}

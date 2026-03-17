@@ -1,0 +1,59 @@
+<div id="directory-results">
+    @if (Result.Entries.Count == 0)
+    {
+        <div class="empty-directory-state">
+            <h4 class="h6 mb-2">No identities matched</h4>
+            <p class="small text-secondary mb-0">Try a different name, team, or status filter.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Person</th>
+                        <th scope="col">Team</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Last seen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var person in Result.Entries)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@person.DisplayName</div>
+                                <div class="small text-secondary">@person.Email</div>
+                            </td>
+                            <td>@person.Team</td>
+                            <td>@person.Role</td>
+                            <td>
+                                <span class="badge rounded-pill @GetStatusClass(person.Status)">@person.Status</span>
+                            </td>
+                            <td class="text-secondary">@person.LastSeen</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DirectorySearchResult Result { get; set; } = default!;
+
+    private static string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Active" => "text-bg-success-subtle text-success-emphasis border",
+            "Invited" => "text-bg-info-subtle text-info-emphasis border",
+            "Needs Review" => "text-bg-warning-subtle text-warning-emphasis border",
+            "Suspended" => "text-bg-danger-subtle text-danger-emphasis border",
+            _ => "text-bg-light border"
+        };
+    }
+}

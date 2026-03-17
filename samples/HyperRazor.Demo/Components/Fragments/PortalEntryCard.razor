@@ -1,0 +1,59 @@
+<section id="portal-entry-card" class="surface-card portal-access-card">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow text-primary mb-2">Enter the console</p>
+            <h2 class="h4 mb-1">Workspace access</h2>
+            <p class="text-secondary mb-0">The portal validates inline and, on success, issues an `HX-Location` or `303` into `/users`.</p>
+        </div>
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis border">Portal shell</span>
+    </div>
+
+    <HrzForm
+        Model="Input"
+        RootId="@AppValidationRoots.PortalEntry"
+        Action="/portal/enter"
+        HxPost="/portal/enter"
+        SubmitTarget="#portal-entry-card"
+        SubmitSwap="outerHTML"
+        Class="row g-3"
+        method="post">
+        <div class="col-12">
+            <HrzValidationSummary />
+        </div>
+
+        <HrzField For="() => Input.Email" Label="Work email" Class="col-12">
+            <HrzLabel Class="form-label" />
+            <HrzInputText Class="form-control" Type="email" Placeholder="you@example.com" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.Workspace" Label="Workspace" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputSelect Class="form-select" Options="@WorkspaceOptions" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <HrzField For="() => Input.AccessCode" Label="Access code" Class="col-md-6">
+            <HrzLabel Class="form-label" />
+            <HrzInputText Class="form-control" Placeholder="Enter access code" Autocomplete="off" />
+            <HrzValidationMessage />
+        </HrzField>
+
+        <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2">
+            <p class="small text-secondary mb-0">Tip: each workspace card on the left lists the seeded access code for this demo flow.</p>
+            <button class="btn btn-primary px-4" type="submit">Enter workspace</button>
+        </div>
+    </HrzForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public PortalEntryViewModel Form { get; set; } = default!;
+
+    private PortalEntryInput Input => Form.Input;
+
+    private IReadOnlyList<HrzInputSelectOption> WorkspaceOptions =>
+        Form.Workspaces
+            .Select(workspace => new HrzInputSelectOption(workspace.Key, workspace.Name))
+            .ToArray();
+}

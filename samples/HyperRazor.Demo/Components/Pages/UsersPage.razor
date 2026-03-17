@@ -1,0 +1,110 @@
+@layout ConsoleLayout
+
+<section class="surface-card">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <p class="eyebrow text-primary mb-2">Identity access</p>
+            <h2 class="h3 mb-2">Invite and provision</h2>
+            <p class="text-secondary mb-0">A single workflow that validates an invite, swaps the panel into a provisioning shell, and streams a stable completed state into view.</p>
+        </div>
+
+        <div class="text-lg-end">
+            <p class="small text-secondary mb-2">@Model.Workspace.Name · @Model.Workspace.Environment</p>
+            <HrzRegion Name="@UserCountRegion" TagName="div">
+                <CountBadge Count="@Model.Dashboard.UserCount" Label="active identities" />
+            </HrzRegion>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-12 col-xxl-8">
+        <HrzRegion Name="@InviteRegion">
+            @if (Model.ActiveOperation is null)
+            {
+                <InviteFormCard Form="Model.Form" />
+            }
+            else
+            {
+                <ProvisioningShellCard Operation="Model.ActiveOperation" />
+            }
+        </HrzRegion>
+
+        <section class="surface-card">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div>
+                    <p class="eyebrow text-primary mb-2">Directory context</p>
+                    <h3 class="h5 mb-1">Search nearby identities</h3>
+                    <p class="text-secondary mb-0">Search stays supportive here: enough context to feel real without taking focus away from the invite workflow.</p>
+                </div>
+                <span class="badge rounded-pill text-bg-light border">@Model.Directory.TotalCount loaded</span>
+            </div>
+
+            <form
+                class="row g-3"
+                action="/fragments/users/search"
+                hx-get="/fragments/users/search"
+                hx-target="#directory-results"
+                hx-swap="outerHTML"
+                hx-trigger="submit, keyup changed delay:250ms from:#directory-query, change from:#directory-status">
+                <input type="hidden" name="workspace" value="@Model.Workspace.Key" />
+
+                <div class="col-md-7">
+                    <label class="form-label" for="directory-query">Search people or teams</label>
+                    <input id="directory-query" class="form-control" type="search" name="query" value="@Model.Directory.Query" placeholder="Search identities, teams, or roles..." />
+                </div>
+
+                <div class="col-md-5">
+                    <label class="form-label" for="directory-status">Status</label>
+                    <select id="directory-status" class="form-select" name="status">
+                        <option value="">All statuses</option>
+                        <option selected="@(Model.Directory.Status == "Active")" value="Active">Active</option>
+                        <option selected="@(Model.Directory.Status == "Invited")" value="Invited">Invited</option>
+                        <option selected="@(Model.Directory.Status == "Needs Review")" value="Needs Review">Needs review</option>
+                        <option selected="@(Model.Directory.Status == "Suspended")" value="Suspended">Suspended</option>
+                    </select>
+                </div>
+            </form>
+
+            <div class="mt-4">
+                <DirectoryResults Result="Model.Directory" />
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12 col-xxl-4">
+        <HrzRegion Name="@StatusRegion">
+            <StatusCard
+                Label="workflow"
+                Title="Ready for the next invite"
+                Detail="Submit a valid invite to swap this panel into a deterministic provisioning stream."
+                Tone="neutral" />
+        </HrzRegion>
+
+        <HrzRegion Name="@LatestInviteRegion">
+            <LatestInviteCard Summary="@Model.Dashboard.LatestInvite" WorkspaceName="@Model.Workspace.Name" />
+        </HrzRegion>
+
+        <section class="surface-card">
+            <p class="eyebrow text-primary mb-2">Operational feed</p>
+            <h3 class="h5 mb-3">Recent activity</h3>
+            <HrzRegion Name="@ActivityRegion" TagName="div" class="activity-feed">
+                @foreach (var entry in Model.Dashboard.Activity)
+                {
+                    <ActivityFeedItem Entry="entry" />
+                }
+            </HrzRegion>
+        </section>
+    </div>
+</div>
+
+@code {
+    public const string InviteRegion = "users-invite-region";
+    public const string UserCountRegion = "users-count-region";
+    public const string LatestInviteRegion = "users-latest-invite";
+    public const string ActivityRegion = "users-activity-region";
+    public const string StatusRegion = "users-status-region";
+
+    [Parameter, EditorRequired]
+    public UsersPageModel Model { get; set; } = default!;
+}

@@ -26,7 +26,7 @@ public sealed record HrzLiveValidationPolicy(
     bool ReplaceSummaryWhenDisabled,
     bool ImmediateRecheckWhenEnabled);
 
-public sealed record HrzValidationScope(
+public sealed record HrzLiveValidationRequest(
     HrzValidationRootId RootId,
     bool ValidateAll,
     IReadOnlyList<HrzFieldPath> Fields);

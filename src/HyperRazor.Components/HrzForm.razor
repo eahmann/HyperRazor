@@ -1,5 +1,6 @@
 @typeparam TModel
 @using Microsoft.AspNetCore.Http
+@implements IDisposable
 
 <CascadingValue Value="_formContext">
     <form
@@ -16,9 +17,8 @@
         @attributes="AdditionalAttributes">
         <HrzAntiforgeryInput />
         @ChildContent
+        <HrzLivePolicyRegion />
     </form>
-
-    <HrzValidationLivePolicyRegion />
 </CascadingValue>
 
 @code {
@@ -56,6 +56,9 @@
     public bool EnableClientValidation { get; set; } = true;
 
     [Parameter]
+    public HrzLiveValidationOptions? Live { get; set; }
+
+    [Parameter]
     public string? LiveValidationPath { get; set; }
 
     [Parameter]
@@ -80,45 +83,68 @@
     private HttpContext? HttpContext { get; set; }
 
     [Inject]
-    private IEnumerable<IHrzClientValidationMetadataProvider> ClientValidationMetadataProviders { get; set; } =
-        Array.Empty<IHrzClientValidationMetadataProvider>();
+    private IHrzForms HrzForms { get; set; } = default!;
 
-    private readonly HrzValidationFormContext _formContext = new();
+    private HrzValidationFormContext _formContext = default!;
+    private HrzFormView? _subscribedFormView;
     private bool _registrationRefreshPending;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
-
-    protected override void OnInitialized()
-    {
-        _formContext.RegistrationChanged = RequestRegistrationRefresh;
-    }
 
     protected override void OnParametersSet()
     {
         ArgumentNullException.ThrowIfNull(Model);
         ArgumentException.ThrowIfNullOrWhiteSpace(Action);
 
-        var resolvedRootId = RootId ?? ResolveRootId(FormName);
-        var idPrefix = string.IsNullOrWhiteSpace(IdPrefix)
-            ? resolvedRootId.Value
-            : IdPrefix;
+        DetachRegistrationHandler();
 
-        _formContext.Model = Model!;
-        _formContext.RootId = resolvedRootId;
-        _formContext.IdPrefix = idPrefix;
-        _formContext.ValidationState = HttpContext?.GetSubmitValidationState(resolvedRootId);
-        _formContext.EnableClientValidation = EnableClientValidation;
-        _formContext.ClientValidationMetadataProviders = ClientValidationMetadataProviders.ToArray();
-        _formContext.LiveValidationPath = LiveValidationPath;
-        _formContext.LiveTrigger = LiveTrigger;
-        _formContext.LiveInclude = LiveInclude;
-        _formContext.LiveSync = LiveSync;
+        var resolvedRootId = ResolveRequiredRootId();
+        var formView = string.IsNullOrWhiteSpace(IdPrefix)
+            ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
+            : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
+
+        formView.RegistrationChanged += RequestRegistrationRefresh;
+        _subscribedFormView = formView;
+        _formContext = HrzValidationFormContext.Create(formView);
     }
 
-    private static HrzValidationRootId ResolveRootId(string? formName)
+    public void Dispose()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(formName);
-        return new HrzValidationRootId(formName);
+        DetachRegistrationHandler();
+    }
+
+    private HrzValidationRootId ResolveRequiredRootId()
+    {
+        if (RootId is not null)
+        {
+            return RootId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(FormName))
+        {
+            return new HrzValidationRootId(FormName);
+        }
+
+        throw new InvalidOperationException(
+            $"{nameof(HrzForm<object>)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
+            $"{nameof(RootId)} takes precedence when both are supplied.");
+    }
+
+    private HrzLiveValidationOptions? ResolveLiveOptions()
+    {
+        var legacyPath = string.IsNullOrWhiteSpace(LiveValidationPath) ? null : LiveValidationPath;
+        if (Live is null && legacyPath is null)
+        {
+            return null;
+        }
+
+        return new HrzLiveValidationOptions
+        {
+            Path = !string.IsNullOrWhiteSpace(Live?.Path) ? Live.Path : legacyPath,
+            Trigger = Live?.Trigger ?? LiveTrigger,
+            Include = Live?.Include ?? LiveInclude,
+            Sync = Live?.Sync ?? LiveSync
+        };
     }
 
     private void RequestRegistrationRefresh()
@@ -134,5 +160,16 @@
             _registrationRefreshPending = false;
             StateHasChanged();
         });
+    }
+
+    private void DetachRegistrationHandler()
+    {
+        if (_subscribedFormView is null)
+        {
+            return;
+        }
+
+        _subscribedFormView.RegistrationChanged -= RequestRegistrationRefresh;
+        _subscribedFormView = null;
     }
 }

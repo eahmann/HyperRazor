@@ -1,61 +1,9 @@
-@inject IHrzLiveValidationPolicyResolver LiveValidationPolicyResolver
-
-@if (Policies.Count > 0)
-{
-    <div id="@ResolvedFormContext.LivePolicyRegionId" hidden data-hrz-live-policy-region>
-        @foreach (var field in ResolvedFormContext.RegisteredLiveFields)
-        {
-            if (Policies.TryGetValue(field.FieldPath, out var policy))
-            {
-                <HrzValidationLivePolicyCarrier
-                    Id="@field.LivePolicyId"
-                    Policy="@policy"
-                    SummarySlotId="@ResolvedFormContext.SummaryId" />
-            }
-        }
-    </div>
-}
+<HrzLivePolicyRegion Form="@Form" SwapOob="@SwapOob" />
 
 @code {
-    [CascadingParameter]
-    private HrzValidationFormContext? FormContext { get; set; }
+    [Parameter]
+    public HrzFormView? Form { get; set; }
 
-    private HrzValidationFormContext ResolvedFormContext => FormContext
-        ?? throw new InvalidOperationException($"{nameof(HrzValidationLivePolicyRegion)} requires a cascading {nameof(HrzForm<object>)}.");
-
-    private static readonly IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> EmptyAttemptedValues =
-        new Dictionary<HrzFieldPath, HrzAttemptedValue>();
-
-    private IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> Policies { get; set; } =
-        new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
-
-    protected override async Task OnParametersSetAsync()
-    {
-        _ = ResolvedFormContext;
-
-        if (ResolvedFormContext.RegisteredLiveFields.Count == 0)
-        {
-            Policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
-            return;
-        }
-
-        var attemptedValues = ResolvedFormContext.ValidationState?.AttemptedValues ?? EmptyAttemptedValues;
-        var fields = ResolvedFormContext.RegisteredLiveFields;
-
-        var tasks = fields.Select(field => LiveValidationPolicyResolver.ResolveAsync(
-            ResolvedFormContext.Model,
-            ResolvedFormContext.RootId,
-            field.FieldPath,
-            attemptedValues));
-
-        var results = await Task.WhenAll(tasks);
-
-        var policies = new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
-        for (var i = 0; i < fields.Count; i++)
-        {
-            policies[fields[i].FieldPath] = results[i];
-        }
-
-        Policies = policies;
-    }
+    [Parameter]
+    public bool SwapOob { get; set; }
 }

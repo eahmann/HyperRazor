@@ -8,7 +8,7 @@ namespace HyperRazor.Demo.Mvc.Endpoints;
 
 internal static class DemoValidationSupport
 {
-    public static HrzFieldPath? ResolveInvitePrimaryField(HrzValidationScope scope)
+    public static HrzFieldPath? ResolveInvitePrimaryField(HrzLiveValidationRequest scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
 
@@ -19,7 +19,7 @@ internal static class DemoValidationSupport
                 || field.Equals(UserInviteValidationForm.DisplayNamePath));
     }
 
-    public static HrzFieldPath? ResolveMixedPrimaryField(HrzValidationScope scope)
+    public static HrzFieldPath? ResolveMixedPrimaryField(HrzLiveValidationRequest scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
 
@@ -93,7 +93,7 @@ internal static class DemoValidationSupport
             validationState.AttemptedValues,
             cancellationToken);
         var livePatch = BuildMixedLiveValidationPatch(
-            new HrzValidationScope(rootId, ValidateAll: true, Fields: [primaryField]),
+            new HrzLiveValidationRequest(rootId, ValidateAll: true, Fields: [primaryField]),
             primaryField,
             formPostState.Model,
             resolvedPolicies);
@@ -102,7 +102,7 @@ internal static class DemoValidationSupport
     }
 
     public static HrzLiveValidationPatch BuildInviteLiveValidationPatch(
-        HrzValidationScope scope,
+        HrzLiveValidationRequest scope,
         HrzFieldPath primaryField,
         InviteUserInput input,
         IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> resolvedPolicies)
@@ -165,7 +165,7 @@ internal static class DemoValidationSupport
     }
 
     public static HrzLiveValidationPatch BuildMixedLiveValidationPatch(
-        HrzValidationScope scope,
+        HrzLiveValidationRequest scope,
         HrzFieldPath primaryField,
         MixedValidationInput input,
         IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> resolvedPolicies)

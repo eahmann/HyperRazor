@@ -1,0 +1,28 @@
+@if (RendersClientSlot)
+{
+    <div
+        id="@Field.ClientSlotId"
+        class="validation-slot validation-slot--client field-validation-valid"
+        data-hrz-client-validation-for="@Field.FieldPath.Value"
+        data-valmsg-for="@Field.Name"
+        data-valmsg-replace="true"></div>
+}
+
+<HrzValidationServerFieldSlot
+    Id="@Field.ServerSlotId"
+    FieldPath="@Field.FieldPath.Value"
+    Errors="@Field.Errors"
+    SwapOob="@SwapOob" />
+
+@code {
+    [Parameter, EditorRequired]
+    public HrzFieldView Field { get; set; } = default!;
+
+    [Parameter]
+    public bool SwapOob { get; set; }
+
+    [Parameter]
+    public bool IncludeClientSlot { get; set; } = true;
+
+    private bool RendersClientSlot => IncludeClientSlot && Field.EnableClientValidation;
+}

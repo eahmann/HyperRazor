@@ -1,0 +1,20 @@
+<HrzValidationServerSummarySlot
+    Id="@Form.SummaryId"
+    Errors="@(Form.ValidationState?.SummaryErrors ?? Array.Empty<string>())"
+    SwapOob="@SwapOob"
+    Class="@Class"
+    AdditionalAttributes="@AdditionalAttributes" />
+
+@code {
+    [Parameter, EditorRequired]
+    public HrzFormView Form { get; set; } = default!;
+
+    [Parameter]
+    public bool SwapOob { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
+}

@@ -1,5 +1,6 @@
 using HyperRazor.Components.Services;
 using HyperRazor.Components.Validation;
+using HyperRazor.Components;
 using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public static class HyperRazorServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
         services.AddRazorComponents();
+        services.AddHyperRazorComponentServices();
         services.AddOptions<HrzOptions>();
         services.AddOptions<HrzSseOptions>();
         if (configure is not null)
@@ -44,6 +46,8 @@ public static class HyperRazorServiceCollectionExtensions
         services.TryAddSingleton<IHrzModelValidator, HrzDataAnnotationsModelValidator>();
         services.TryAddSingleton<IHrzLiveValidationPolicyResolver, HrzDefaultLiveValidationPolicyResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
+        services.TryAddScoped<IHrzFormPostBinder, HrzFormPostBinder>();
+        services.TryAddScoped<IHrzLiveValidationRequestBinder, HrzLiveValidationRequestBinder>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzRenderService, HrzRenderService>();
         services.AddScoped<IHrzSseRenderer, HrzSseRenderer>();

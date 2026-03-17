@@ -1,12 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>HyperRazor</PackageId>
     <Description>Default onboarding package for full HyperRazor apps with server-rendered Razor components, rendering services, MVC helpers, and typed HTMX support.</Description>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <Compile Remove="Mvc/HrzSseOptions.cs" />
+    <Compile Remove="Mvc/HrzSseResultOptions.cs" />
+    <Compile Remove="Rendering/HrzDefaultSseReplayStrategy.cs" />
+    <Compile Remove="Rendering/HrzSse*.cs" />
+    <Compile Remove="Rendering/IHrzSseRenderer.cs" />
+    <Compile Remove="Rendering/IHrzSseReplayStrategy.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

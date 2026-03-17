@@ -59,9 +59,9 @@ Because demo and test projects are non-packable, the solution-level pack command
 HyperRazor uses a fast/slow split.
 
 - `CI` workflow runs the fast suites on pushes and pull requests:
-  - `HyperRazor.Htmx.Tests`
-  - `HyperRazor.Htmx.Core.Tests`
-  - `HyperRazor.Rendering.Tests`
+  - `HyperRazor.Htmx.AspNetCore.Tests`
+  - `HyperRazor.Htmx.Primitives.Tests`
+  - `HyperRazor.Tests`
   - `HyperRazor.Demo.Mvc.Tests`
 - `E2E` workflow runs the Playwright suite outside pull requests:
   - manual dispatch

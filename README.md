@@ -26,6 +26,7 @@ Internal-only projects:
 Advanced validation authoring stays in `HyperRazor.Components`, shared validation contracts import from `HyperRazor.Components.Validation`, and the `HyperRazor` package continues to expose the `HyperRazor.Mvc` and `HyperRazor.Rendering` namespaces for server/runtime APIs.
 
 Docs:
+- [Docs Index](docs/README.md)
 - [Quickstart](docs/quickstart.md)
 - [Adopting HyperRazor](docs/adopting-hyperrazor.md)
 - [Package Surface](docs/package-surface.md)

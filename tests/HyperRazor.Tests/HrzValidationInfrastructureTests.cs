@@ -171,6 +171,29 @@ public class HrzValidationInfrastructureTests
     }
 
     [Fact]
+    public void HrzFieldView_AsCheckbox_ReflectsCheckedState()
+    {
+        var services = CreateServices();
+        using var scope = services.CreateScope();
+        var forms = scope.ServiceProvider.GetRequiredService<IHrzForms>();
+
+        var checkedModel = new CheckboxModel
+        {
+            IsSelected = true
+        };
+        var uncheckedModel = new CheckboxModel
+        {
+            IsSelected = false
+        };
+
+        var checkedField = forms.For(checkedModel, formName: "checked").Field(() => checkedModel.IsSelected);
+        var uncheckedField = forms.For(uncheckedModel, formName: "unchecked").Field(() => uncheckedModel.IsSelected);
+
+        Assert.True(checkedField.AsCheckbox().ContainsKey("checked"));
+        Assert.False(uncheckedField.AsCheckbox().ContainsKey("checked"));
+    }
+
+    [Fact]
     public async Task DefaultLiveValidationPolicyResolver_PreservesAlwaysArmedBehavior()
     {
         var services = CreateServices();
@@ -250,5 +273,10 @@ public class HrzValidationInfrastructureTests
         {
             yield return new ValidationResult("Model-level rejection.");
         }
+    }
+
+    private sealed class CheckboxModel
+    {
+        public bool IsSelected { get; set; }
     }
 }

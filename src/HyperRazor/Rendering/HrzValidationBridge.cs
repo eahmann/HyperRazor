@@ -68,7 +68,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
-        if (_formView?.Live is null)
+        if (_formView is null)
         {
             return;
         }

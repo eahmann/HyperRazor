@@ -102,6 +102,7 @@ public class PackageStoryShapeTests
         Assert.DoesNotContain("HyperRazor.Components.csproj", projectText, StringComparison.Ordinal);
     }
 
+    [Fact]
     public void ComponentsProject_PreservesLegacyClientAssetBasePath()
     {
         var projectText = ReadFile("src/HyperRazor.Components/HyperRazor.Components.csproj");

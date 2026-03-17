@@ -324,6 +324,20 @@ public class HrzRenderServiceTests
     }
 
     [Fact]
+    public async Task PartialView_EditFormFieldLevelLiveOptions_RenderPolicyRegionWithoutBridgeLive()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.RenderService.Fragment<EditFormFieldLevelLiveComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("hx-post=\"/validation/email-live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PartialView_ValidationAuthoringSurface_EmitsLiveRuntimeContract()
     {
         await using var fixture = await CreateFixtureAsync();
@@ -813,6 +827,50 @@ public class HrzRenderServiceTests
                     fieldBuilder.CloseComponent();
 
                     fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class EditFormFieldLevelLiveComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new()
+        {
+            Email = "riley@example.com"
+        };
+
+        private EditContext? _editContext;
+
+        protected override void OnInitialized()
+        {
+            _editContext = new EditContext(_model);
+        }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<EditForm>(0);
+            builder.AddAttribute(1, nameof(EditForm.EditContext), _editContext);
+            builder.AddAttribute(2, "FormName", "users-invite");
+            builder.AddAttribute(3, "action", "/users/invite");
+            builder.AddAttribute(4, nameof(EditForm.ChildContent), (RenderFragment<EditContext>)(editContext => childBuilder =>
+            {
+                childBuilder.OpenComponent<HrzValidationBridge>(0);
+                childBuilder.AddAttribute(1, nameof(HrzValidationBridge.FormName), "users-invite");
+                childBuilder.CloseComponent();
+
+                childBuilder.OpenComponent<HrzField<string>>(2);
+                childBuilder.AddAttribute(3, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                childBuilder.AddAttribute(4, nameof(HrzField<string>.LiveOptions), new HrzFieldLiveOptions
+                {
+                    Path = "/validation/email-live"
+                });
+                childBuilder.AddAttribute(5, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<HrzInputText>(0);
+                    fieldBuilder.AddAttribute(1, nameof(HrzInputText.Type), "email");
                     fieldBuilder.CloseComponent();
                 }));
                 childBuilder.CloseComponent();

@@ -136,7 +136,8 @@ public abstract class HrzFieldView
         BuildControlAttributes(new Dictionary<string, object?>
         {
             ["type"] = "checkbox",
-            ["value"] = "true"
+            ["value"] = "true",
+            ["checked"] = IsChecked
         }, includeClientValidationSlot: includeClientValidationSlot);
 
     public IReadOnlyDictionary<string, object> AsSelect(

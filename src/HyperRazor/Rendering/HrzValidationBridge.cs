@@ -51,10 +51,14 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
             _messageStore = new ValidationMessageStore(CurrentEditContext);
         }
 
-        _resolvedRootId = ResolveRequiredRootId();
+        var address = HrzValidationFormAddress.CreateRequired(
+            RootId,
+            FormName,
+            nameof(HrzValidationBridge));
+        _resolvedRootId = address.ResolveRequired(nameof(HrzValidationBridge));
         _formScope = HrzForms.For(
             _currentEditContext.Model,
-            _resolvedRootId,
+            address,
             live: Live);
         SetFormScope(_currentEditContext, _formScope);
 
@@ -104,23 +108,6 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         }
 
         _currentEditContext.NotifyValidationStateChanged();
-    }
-
-    private HrzValidationRootId ResolveRequiredRootId()
-    {
-        if (RootId is not null)
-        {
-            return RootId;
-        }
-
-        if (!string.IsNullOrWhiteSpace(FormName))
-        {
-            return new HrzValidationRootId(FormName);
-        }
-
-        throw new InvalidOperationException(
-            $"{nameof(HrzValidationBridge)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
-            $"{nameof(RootId)} takes precedence when both are supplied.");
     }
 
     private static void SetFormScope(EditContext editContext, HrzFormScope formScope)

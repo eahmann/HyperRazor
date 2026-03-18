@@ -2,7 +2,6 @@ using HyperRazor.Components;
 using HyperRazor.Components.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Net.ServerSentEvents;
@@ -11,22 +10,20 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrzSseRenderer : IHrzSseRenderer
 {
-    private readonly IHrzHtmlRendererAdapter _renderer;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IHrzLayoutTypeResolver _layoutTypeResolver;
-    private readonly HrzOptions _options;
+    private readonly IHrzComponentHostRenderer _hostRenderer;
 
     public HrzSseRenderer(
-        IHrzHtmlRendererAdapter renderer,
         IHttpContextAccessor httpContextAccessor,
-        IServiceProvider services,
-        IOptions<HrzOptions> options)
+        IServiceProvider services)
     {
-        _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         ArgumentNullException.ThrowIfNull(services);
-        _layoutTypeResolver = services.GetRequiredService<IHrzLayoutTypeResolver>();
-        _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
+        _hostRenderer = services.GetService<IHrzComponentHostRenderer>()
+            ?? new HrzComponentHostRenderer(
+                services.GetRequiredService<IHrzHtmlRendererAdapter>(),
+                services.GetRequiredService<IHrzLayoutTypeResolver>(),
+                services.GetRequiredService<IOptions<HrzOptions>>());
     }
 
     public Task<SseItem<string>> RenderComponent<TComponent>(
@@ -147,22 +144,20 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
 
         try
         {
-            var hostParameters = new Dictionary<string, object?>
-            {
-                [nameof(HrzComponentHost.ComponentType)] = componentType,
-                [nameof(HrzComponentHost.ComponentParameters)] = componentParameters,
-                [nameof(HrzComponentHost.LayoutType)] = _layoutTypeResolver.ResolveForComponent(componentType),
-                [nameof(HrzComponentHost.RootComponentType)] = _options.RootComponent,
-                [nameof(HrzComponentHost.IsPartial)] = true,
-                [nameof(HrzComponentHost.IsHtmxRequest)] = false,
-                [nameof(HrzComponentHost.IsHistoryRestoreRequest)] = false,
-                [nameof(HrzComponentHost.HttpContext)] = context,
-                [nameof(HrzComponentHost.ModelState)] = ResolveModelState(context),
-                [nameof(HrzComponentHost.RenderHeadContent)] = false,
-                [nameof(HrzComponentHost.RenderSwapContent)] = true
-            };
-
-            var html = await _renderer.RenderIsolatedAsync(typeof(HrzComponentHost), hostParameters, cancellationToken);
+            var html = await _hostRenderer.RenderIsolatedAsync(
+                new HrzComponentHostRenderRequest(
+                    ComponentType: componentType,
+                    ComponentParameters: componentParameters,
+                    LayoutType: _hostRenderer.ResolveLayoutType(componentType),
+                    CurrentLayoutKey: null,
+                    HttpContext: context,
+                    ModelState: _hostRenderer.ResolveModelState(context),
+                    IsPartial: true,
+                    IsHtmxRequest: false,
+                    IsHistoryRestoreRequest: false,
+                    RenderHeadContent: false,
+                    RenderSwapContent: true),
+                cancellationToken);
             return new SseItem<string>(html, eventType)
             {
                 EventId = id,
@@ -181,16 +176,5 @@ public sealed class HrzSseRenderer : IHrzSseRenderer
     {
         return _httpContextAccessor.HttpContext
             ?? throw new InvalidOperationException("No active HttpContext is available for HyperRazor SSE rendering.");
-    }
-
-    private static ModelStateDictionary ResolveModelState(HttpContext context)
-    {
-        if (context.Items.TryGetValue(HrzContextItemKeys.ModelState, out var value)
-            && value is ModelStateDictionary modelState)
-        {
-            return modelState;
-        }
-
-        return new ModelStateDictionary();
     }
 }

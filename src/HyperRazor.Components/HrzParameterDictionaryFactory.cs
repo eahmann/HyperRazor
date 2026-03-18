@@ -1,9 +1,9 @@
 using System.Collections;
 using System.Reflection;
 
-namespace HyperRazor.Rendering;
+namespace HyperRazor.Components;
 
-internal static class HrzParameterDictionaryFactory
+public static class HrzParameterDictionaryFactory
 {
     public static IReadOnlyDictionary<string, object?> Create(object? data)
     {

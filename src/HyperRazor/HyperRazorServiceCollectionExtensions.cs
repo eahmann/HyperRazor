@@ -62,6 +62,7 @@ public static class HyperRazorServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.TryAddScoped<IHrzFormPostBinder, HrzFormPostBinder>();
         services.TryAddScoped<IHrzLiveValidationRequestBinder, HrzLiveValidationRequestBinder>();
+        services.AddScoped<IHrzComponentHostRenderer, HrzComponentHostRenderer>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzRenderService, HrzRenderService>();
 #if NET10_0_OR_GREATER

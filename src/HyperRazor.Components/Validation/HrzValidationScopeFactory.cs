@@ -140,7 +140,7 @@ internal sealed class HrzFieldDescriptorFactory
 
     private static PropertyInfo ResolveProperty(Expression expression)
     {
-        expression = Unwrap(expression);
+        expression = HrzFieldExpressionPath.Unwrap(expression);
         return expression switch
         {
             MemberExpression { Member: PropertyInfo property } => property,
@@ -152,14 +152,14 @@ internal sealed class HrzFieldDescriptorFactory
         LambdaExpression accessor,
         object model)
     {
-        var rawPath = BuildRawPath(Unwrap(accessor.Body));
+        var rawPath = HrzFieldExpressionPath.BuildRawPath(accessor.Body);
         if (string.IsNullOrWhiteSpace(rawPath))
         {
             throw new InvalidOperationException($"Expression '{accessor}' did not resolve to a field path.");
         }
 
         var segments = rawPath.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var boundaryIndex = FindModelBoundary(Unwrap(accessor.Body), model);
+        var boundaryIndex = FindModelBoundary(HrzFieldExpressionPath.Unwrap(accessor.Body), model);
         if (boundaryIndex >= 0 && boundaryIndex + 1 < segments.Length)
         {
             return HrzFieldPaths.FromFieldName(string.Join(".", segments[(boundaryIndex + 1)..]));
@@ -194,7 +194,7 @@ internal sealed class HrzFieldDescriptorFactory
         }
 
         return chain[0] is MemberExpression firstMember
-            ? EvaluateLeaf(Unwrap(firstMember.Expression!))
+            ? EvaluateLeaf(HrzFieldExpressionPath.Unwrap(firstMember.Expression!))
             : null;
     }
 
@@ -207,7 +207,7 @@ internal sealed class HrzFieldDescriptorFactory
 
         if (expression is MemberExpression member)
         {
-            var parent = EvaluateLeaf(Unwrap(member.Expression!));
+            var parent = EvaluateLeaf(HrzFieldExpressionPath.Unwrap(member.Expression!));
             return EvaluateMember(member.Member, parent);
         }
 
@@ -227,69 +227,15 @@ internal sealed class HrzFieldDescriptorFactory
     private static IReadOnlyList<Expression> GetMemberChain(Expression expression)
     {
         var chain = new List<Expression>();
-        expression = Unwrap(expression);
+        expression = HrzFieldExpressionPath.Unwrap(expression);
         while (expression is MemberExpression member)
         {
             chain.Add(member);
-            expression = Unwrap(member.Expression!);
+            expression = HrzFieldExpressionPath.Unwrap(member.Expression!);
         }
 
         chain.Reverse();
         return chain;
-    }
-
-    private static Expression Unwrap(Expression expression)
-    {
-        while (expression is UnaryExpression unary
-            && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
-        {
-            expression = unary.Operand;
-        }
-
-        return expression;
-    }
-
-    private static string BuildRawPath(Expression expression)
-    {
-        expression = Unwrap(expression);
-        return expression switch
-        {
-            MemberExpression member => BuildRawMemberPath(member),
-            MethodCallExpression call when IsIndexerCall(call) => BuildRawIndexerPath(call),
-            BinaryExpression binary when binary.NodeType == ExpressionType.ArrayIndex => BuildRawArrayIndexPath(binary),
-            ParameterExpression => string.Empty,
-            ConstantExpression => string.Empty,
-            _ => throw new NotSupportedException($"Expression '{expression}' cannot be converted into a field path.")
-        };
-    }
-
-    private static string BuildRawMemberPath(MemberExpression member)
-    {
-        var parent = BuildRawPath(member.Expression!);
-        return string.IsNullOrEmpty(parent) ? member.Member.Name : $"{parent}.{member.Member.Name}";
-    }
-
-    private static string BuildRawIndexerPath(MethodCallExpression call)
-    {
-        var parent = BuildRawPath(call.Object!);
-        var index = EvaluateIndex(call.Arguments[0]);
-        return $"{parent}[{index}]";
-    }
-
-    private static string BuildRawArrayIndexPath(BinaryExpression binary)
-    {
-        var parent = BuildRawPath(binary.Left);
-        var index = EvaluateIndex(binary.Right);
-        return $"{parent}[{index}]";
-    }
-
-    private static bool IsIndexerCall(MethodCallExpression call) =>
-        call.Method.Name == "get_Item" && call.Object is not null && call.Arguments.Count == 1;
-
-    private static int EvaluateIndex(Expression expression)
-    {
-        var lambda = Expression.Lambda<Func<int>>(Expression.Convert(Unwrap(expression), typeof(int)));
-        return lambda.Compile().Invoke();
     }
 
     private static string ResolveLabelText(PropertyInfo property)

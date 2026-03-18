@@ -36,6 +36,25 @@ public sealed class HrzForms : IHrzForms
 
     public HrzFormScope<TModel> For<TModel>(
         TModel model,
+        HrzValidationFormAddress address,
+        HrzSubmitValidationState? validationState = null,
+        HrzLiveValidationOptions? live = null,
+        string? idPrefix = null,
+        bool enableClientValidation = true)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        return For(
+            model,
+            address.ResolveRequired($"{nameof(IHrzForms)}.{nameof(For)}"),
+            validationState,
+            live,
+            idPrefix,
+            enableClientValidation);
+    }
+
+    public HrzFormScope<TModel> For<TModel>(
+        TModel model,
         string formName,
         HrzSubmitValidationState? validationState = null,
         HrzLiveValidationOptions? live = null,

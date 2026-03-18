@@ -191,19 +191,7 @@ public sealed class HrzHeadService : IHrzHeadService
 
     private HtmxRequest GetCurrentRequest()
     {
-        var context = _httpContextAccessor.HttpContext;
-        if (context is null)
-        {
-            return new HtmxRequest();
-        }
-
-        var headers = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var header in context.Request.Headers)
-        {
-            headers[header.Key] = header.Value.ToString();
-        }
-
-        return HtmxRequest.FromHeaders(headers);
+        return _httpContextAccessor.HttpContext?.HtmxRequest() ?? new HtmxRequest();
     }
 
     private void NotifyContentItemsUpdated()

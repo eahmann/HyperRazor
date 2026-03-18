@@ -8,7 +8,7 @@ internal static class HrzFieldPathOperations
     {
         ArgumentNullException.ThrowIfNull(accessor);
 
-        var raw = BuildPath(Unwrap(accessor.Body));
+        var raw = HrzFieldExpressionPath.BuildRawPath(accessor.Body);
         return FromFieldName(raw);
     }
 
@@ -37,26 +37,12 @@ internal static class HrzFieldPathOperations
 
     private static Expression Unwrap(Expression expression)
     {
-        while (expression is UnaryExpression unary
-            && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
-        {
-            expression = unary.Operand;
-        }
-
-        return expression;
+        return HrzFieldExpressionPath.Unwrap(expression);
     }
 
     private static string BuildPath(Expression expression)
     {
-        return expression switch
-        {
-            MemberExpression member => BuildMemberPath(member),
-            MethodCallExpression call when IsIndexerCall(call) => BuildIndexerPath(call),
-            BinaryExpression binary when binary.NodeType == ExpressionType.ArrayIndex => BuildArrayIndexPath(binary),
-            ParameterExpression => string.Empty,
-            ConstantExpression => string.Empty,
-            _ => throw new NotSupportedException($"Expression '{expression}' cannot be converted into a field path.")
-        };
+        return HrzFieldExpressionPath.BuildRawPath(expression);
     }
 
     private static string BuildMemberPath(MemberExpression member)
@@ -80,12 +66,11 @@ internal static class HrzFieldPathOperations
     }
 
     private static bool IsIndexerCall(MethodCallExpression call) =>
-        call.Method.Name == "get_Item" && call.Object is not null && call.Arguments.Count == 1;
+        HrzFieldExpressionPath.IsIndexerCall(call);
 
     private static int EvaluateIndex(Expression expression)
     {
-        var lambda = Expression.Lambda<Func<int>>(Expression.Convert(Unwrap(expression), typeof(int)));
-        return lambda.Compile().Invoke();
+        return HrzFieldExpressionPath.EvaluateIndex(expression);
     }
 
     private static string Normalize(string value)
@@ -97,11 +82,11 @@ internal static class HrzFieldPathOperations
             trimmed = trimmed[(trimmed.IndexOf('.') + 1)..];
         }
 
-        var segments = Parse(trimmed);
+        var segments = HrzFieldPathParser.ParseSegments(trimmed);
         return string.Join(".", segments.Select(FormatSegment));
     }
 
-    private static string FormatSegment(PathSegment segment)
+    private static string FormatSegment(HrzFieldPathSegment segment)
     {
         var name = string.IsNullOrEmpty(segment.PropertyName)
             ? string.Empty
@@ -119,50 +104,4 @@ internal static class HrzFieldPathOperations
 
         return char.ToUpperInvariant(value[0]) + value[1..];
     }
-
-    private static IReadOnlyList<PathSegment> Parse(string value)
-    {
-        var segments = new List<PathSegment>();
-        var parts = value.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var part in parts)
-        {
-            segments.Add(ParseSegment(part));
-        }
-
-        return segments;
-    }
-
-    private static PathSegment ParseSegment(string value)
-    {
-        var propertyName = value;
-        var indices = new List<int>();
-        var bracketIndex = value.IndexOf('[');
-        if (bracketIndex >= 0)
-        {
-            propertyName = bracketIndex == 0 ? string.Empty : value[..bracketIndex];
-            var cursor = bracketIndex;
-            while (cursor >= 0 && cursor < value.Length)
-            {
-                var open = value.IndexOf('[', cursor);
-                if (open < 0)
-                {
-                    break;
-                }
-
-                var close = value.IndexOf(']', open + 1);
-                if (close < 0)
-                {
-                    throw new InvalidOperationException($"Field path segment '{value}' contains an unterminated indexer.");
-                }
-
-                indices.Add(int.Parse(value[(open + 1)..close], System.Globalization.CultureInfo.InvariantCulture));
-                cursor = close + 1;
-            }
-        }
-
-        return new PathSegment(propertyName, indices);
-    }
-
-    private sealed record PathSegment(string PropertyName, IReadOnlyList<int> Indices);
 }

@@ -1,5 +1,6 @@
 using HyperRazor.Components;
 using HyperRazor.Components.Validation;
+using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 
 namespace HyperRazor.Tests;
@@ -105,15 +106,15 @@ public class PackageStoryShapeTests
     }
 
     [Fact]
-    public void ComponentsProject_PreservesLegacyClientAssetBasePath()
+    public void ComponentsProject_UsesComponentsAssetBasePath()
     {
         var projectText = ReadFile("src/HyperRazor.Components/HyperRazor.Components.csproj");
         var layoutText = ReadFile("src/HyperRazor.Components/Layouts/HrzAppLayout.razor");
         var sampleLayoutText = ReadFile("samples/HyperRazor.Demo.Mvc/Components/Layouts/AppLayout.razor");
 
-        Assert.Contains("<StaticWebAssetBasePath>_content/HyperRazor.Client</StaticWebAssetBasePath>", projectText, StringComparison.Ordinal);
-        Assert.Contains("/_content/HyperRazor.Client/hyperrazor.validation.js", layoutText, StringComparison.Ordinal);
-        Assert.Contains("/_content/HyperRazor.Client/hyperrazor.validation.js", sampleLayoutText, StringComparison.Ordinal);
+        Assert.Contains("<StaticWebAssetBasePath>_content/HyperRazor.Components</StaticWebAssetBasePath>", projectText, StringComparison.Ordinal);
+        Assert.Contains("/_content/HyperRazor.Components/hyperrazor.validation.js", layoutText, StringComparison.Ordinal);
+        Assert.Contains("/_content/HyperRazor.Components/hyperrazor.validation.js", sampleLayoutText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -417,6 +418,8 @@ public class PackageStoryShapeTests
         Assert.True(typeof(HrzFormScope<>).IsPublic);
         Assert.True(typeof(HrzFieldScope).IsPublic);
         Assert.True(typeof(HrzFieldScope<>).IsPublic);
+        Assert.True(typeof(HrzValidationFormAddress).IsPublic);
+        Assert.True(typeof(HrzFieldPathSegment).IsPublic);
 
         Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFormView", throwOnError: false, ignoreCase: false));
         Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFormView`1", throwOnError: false, ignoreCase: false));
@@ -429,6 +432,13 @@ public class PackageStoryShapeTests
         Assert.Equal(typeof(HrzFormScope), typeof(HrzLivePolicyRegion).GetProperty(nameof(HrzLivePolicyRegion.Form))!.PropertyType);
         Assert.Equal(typeof(HrzFormScope), typeof(HrzValidationLivePolicyRegion).GetProperty(nameof(HrzValidationLivePolicyRegion.Form))!.PropertyType);
         Assert.Same(typeof(HrzRenderService).Assembly, typeof(HrzValidationBridge).Assembly);
+    }
+
+    [Fact]
+    public void HyperRazorAssembly_ExposesDedicatedSseResultType()
+    {
+        Assert.True(typeof(HrzServerSentEventsResult).IsPublic);
+        Assert.Same(typeof(HrzRenderService).Assembly, typeof(HrzServerSentEventsResult).Assembly);
     }
 
     [Fact]

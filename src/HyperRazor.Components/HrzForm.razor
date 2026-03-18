@@ -1,6 +1,5 @@
 @typeparam TModel
 @using Microsoft.AspNetCore.Http
-@implements IDisposable
 
 <CascadingValue Value="_formScope">
     <form
@@ -86,8 +85,6 @@
     private IHrzForms HrzForms { get; set; } = default!;
 
     private HrzFormScope<TModel> _formScope = default!;
-    private HrzFormScope? _subscribedFormScope;
-    private bool _registrationRefreshPending;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
 
@@ -96,21 +93,10 @@
         ArgumentNullException.ThrowIfNull(Model);
         ArgumentException.ThrowIfNullOrWhiteSpace(Action);
 
-        DetachRegistrationHandler();
-
         var resolvedRootId = ResolveRequiredRootId();
-        var formScope = string.IsNullOrWhiteSpace(IdPrefix)
+        _formScope = string.IsNullOrWhiteSpace(IdPrefix)
             ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
             : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
-
-        formScope.RegistrationChanged += RequestRegistrationRefresh;
-        _subscribedFormScope = formScope;
-        _formScope = formScope;
-    }
-
-    public void Dispose()
-    {
-        DetachRegistrationHandler();
     }
 
     private HrzValidationRootId ResolveRequiredRootId()
@@ -145,31 +131,5 @@
             Include = Live?.Include ?? LiveInclude,
             Sync = Live?.Sync ?? LiveSync
         };
-    }
-
-    private void RequestRegistrationRefresh()
-    {
-        if (_registrationRefreshPending)
-        {
-            return;
-        }
-
-        _registrationRefreshPending = true;
-        _ = InvokeAsync(() =>
-        {
-            _registrationRefreshPending = false;
-            StateHasChanged();
-        });
-    }
-
-    private void DetachRegistrationHandler()
-    {
-        if (_subscribedFormScope is null)
-        {
-            return;
-        }
-
-        _subscribedFormScope.RegistrationChanged -= RequestRegistrationRefresh;
-        _subscribedFormScope = null;
     }
 }

@@ -28,7 +28,7 @@ This layer emits the DOM contract that the rest of the runtime consumes.
 It supports two authoring lanes that share the same runtime model:
 
 - component-first authoring through `HrzForm`, `HrzField`, and `HrzInput*`
-- advanced/raw authoring through `IHrzForms`, `HrzFormScope`, and `HrzFieldScope`
+- advanced/raw authoring by resolving `IHrzForms` and then working with `HrzFormScope` and `HrzFieldScope`
 
 Primary files:
 

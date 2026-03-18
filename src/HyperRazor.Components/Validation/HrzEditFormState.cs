@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components.Forms;
 
 namespace HyperRazor.Components.Validation;
 
-internal static class HrzEditFormState
+public static class HrzEditFormState
 {
     private static readonly object FormScopeKey = typeof(HrzFormScope);
 

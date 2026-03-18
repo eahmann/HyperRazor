@@ -12,9 +12,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
     private ValidationMessageStore? _messageStore;
     private EditContext? _currentEditContext;
     private HrzFormScope? _formScope;
-    private HrzFormScope? _subscribedFormScope;
     private HrzValidationRootId? _resolvedRootId;
-    private bool _registrationRefreshPending;
 
     [Inject]
     private IHrzFieldPathResolver FieldPathResolver { get; set; } = default!;
@@ -52,15 +50,11 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
             _messageStore = new ValidationMessageStore(CurrentEditContext);
         }
 
-        DetachRegistrationHandler();
-
         _resolvedRootId = ResolveRequiredRootId();
         _formScope = HrzForms.For(
             _currentEditContext.Model,
             _resolvedRootId,
             live: Live);
-        _formScope.RegistrationChanged += RequestRegistrationRefresh;
-        _subscribedFormScope = _formScope;
         HrzEditFormState.SetFormScope(_currentEditContext, _formScope);
 
         ApplySubmitValidationState();
@@ -80,7 +74,6 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
 
     public void Dispose()
     {
-        DetachRegistrationHandler();
         ClearMessages(notify: true);
         HrzEditFormState.ClearFormScope(_currentEditContext);
     }
@@ -128,22 +121,6 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
             $"{nameof(HrzValidationBridge)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
             $"{nameof(RootId)} takes precedence when both are supplied.");
     }
-
-    private void RequestRegistrationRefresh()
-    {
-        if (_registrationRefreshPending)
-        {
-            return;
-        }
-
-        _registrationRefreshPending = true;
-        _ = InvokeAsync(() =>
-        {
-            _registrationRefreshPending = false;
-            StateHasChanged();
-        });
-    }
-
     private void ClearMessages(bool notify)
     {
         if (_messageStore is null || _currentEditContext is null)
@@ -156,16 +133,5 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         {
             _currentEditContext.NotifyValidationStateChanged();
         }
-    }
-
-    private void DetachRegistrationHandler()
-    {
-        if (_subscribedFormScope is null)
-        {
-            return;
-        }
-
-        _subscribedFormScope.RegistrationChanged -= RequestRegistrationRefresh;
-        _subscribedFormScope = null;
     }
 }

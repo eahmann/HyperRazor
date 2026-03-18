@@ -128,6 +128,6 @@ Advanced but supported composition features remain available, but they are not p
 - SSE replay customization
 - validation policy overrides
 
-If you adopt the advanced validation surface later, import shared validation contracts from `HyperRazor.Components.Validation`. Validation authoring in `HyperRazor.Components` supports both `HrzForm` / `HrzField` / `HrzInput*` and the advanced `IHrzForms` / `HrzFormScope` / `HrzFieldScope` builder lane. The implementation APIs remain under the `HyperRazor.Rendering` namespace inside the `HyperRazor` package.
+If you adopt the advanced validation surface later, import shared validation contracts from `HyperRazor.Components.Validation`. Validation authoring in `HyperRazor.Components` supports both `HrzForm` / `HrzField` / `HrzInput*` and the advanced lane where you resolve `IHrzForms` to create `HrzFormScope` / `HrzFieldScope`. The implementation APIs remain under the `HyperRazor.Rendering` namespace inside the `HyperRazor` package.
 
 For CI and package/versioning expectations, see [release-policy.md](release-policy.md).

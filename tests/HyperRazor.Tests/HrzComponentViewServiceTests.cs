@@ -196,6 +196,28 @@ public class HrzRenderServiceTests
     }
 
     [Fact]
+    public async Task View_WithBoostedDifferentLayoutRequest_PreservesPathBaseAndQueryInPushUrl()
+    {
+        await using var fixture = await CreateFixtureAsync(
+            headers =>
+            {
+                headers[HtmxHeaderNames.Request] = "true";
+                headers[HtmxHeaderNames.Boosted] = "true";
+                headers[HtmxHeaderNames.CurrentUrl] = "https://localhost/app/main";
+                headers[HrzInternalHeaderNames.CurrentLayout] = HrzLayoutKey.None;
+            });
+        fixture.SetCurrentContext();
+        fixture.HttpContext.Request.PathBase = "/app";
+        fixture.HttpContext.Request.Path = "/side/detail";
+        fixture.HttpContext.Request.QueryString = new QueryString("?tab=details");
+
+        var result = await fixture.RenderService.Page<SideGreetingComponent>(new { Name = "Ava" });
+        _ = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Equal("/app/side/detail?tab=details", fixture.HttpContext.Response.Headers[HtmxHeaderNames.PushUrl].ToString());
+    }
+
+    [Fact]
     public async Task View_WithBoostedRequestAndMissingCurrentLayout_ReturnsHxLocation()
     {
         await using var fixture = await CreateFixtureAsync(headers =>

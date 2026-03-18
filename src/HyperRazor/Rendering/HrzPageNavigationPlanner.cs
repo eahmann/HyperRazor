@@ -130,22 +130,9 @@ internal static class HrzPageNavigationPlanner
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return string.Create(
-            request.Path.Value?.Length + request.QueryString.Value?.Length ?? 0,
-            (request.Path, request.QueryString),
-            static (span, state) =>
-            {
-                var written = 0;
-                if (state.Path.HasValue)
-                {
-                    state.Path.Value.AsSpan().CopyTo(span);
-                    written += state.Path.Value.Length;
-                }
-
-                if (state.QueryString.HasValue)
-                {
-                    state.QueryString.Value.AsSpan().CopyTo(span[written..]);
-                }
-            });
+        return string.Concat(
+            request.PathBase.Value,
+            request.Path.Value,
+            request.QueryString.Value);
     }
 }

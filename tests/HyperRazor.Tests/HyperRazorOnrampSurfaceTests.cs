@@ -111,41 +111,70 @@ public class HyperRazorOnrampSurfaceTests
     }
 
     [Fact]
-    public async Task UseHyperRazor_WithoutAddHtmx_ThrowsClearMessage()
-    {
-        var builder = WebApplication.CreateBuilder();
-        builder.Services.AddHyperRazor();
-
-        await using var app = builder.Build();
-        var exception = Assert.Throws<InvalidOperationException>(() => app.UseHyperRazor());
-
-        Assert.Contains("UseHyperRazor()", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("AddHtmx()", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task UseHyperRazor_WithManualHtmxConfigButWithoutAddHtmx_StillThrowsClearMessage()
-    {
-        var builder = WebApplication.CreateBuilder();
-        builder.Services.AddHyperRazor();
-        builder.Services.AddSingleton(new HtmxConfig
-        {
-            SelfRequestsOnly = false
-        });
-
-        await using var app = builder.Build();
-        var exception = Assert.Throws<InvalidOperationException>(() => app.UseHyperRazor());
-
-        Assert.Contains("UseHyperRazor()", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("AddHtmx()", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task HrzResultsPage_WithoutAddHtmx_ThrowsClearMessage()
+    public void AddHyperRazor_RegistersDefaultHtmxServices()
     {
         using var services = new ServiceCollection()
             .AddLogging()
             .AddHyperRazor()
+            .BuildServiceProvider();
+
+        var config = services.GetRequiredService<HtmxConfig>();
+
+        Assert.True(config.SelfRequestsOnly);
+        Assert.NotNull(services.GetRequiredService<IHtmxRegistrationMarker>());
+    }
+
+    [Fact]
+    public void AddHyperRazor_AppliesOptionalHtmxConfiguration()
+    {
+        using var services = new ServiceCollection()
+            .AddLogging()
+            .AddHyperRazor(configureHtmx: config =>
+            {
+                config.SelfRequestsOnly = false;
+                config.EnableHeadSupport = true;
+            })
+            .BuildServiceProvider();
+
+        var config = services.GetRequiredService<HtmxConfig>();
+
+        Assert.False(config.SelfRequestsOnly);
+        Assert.True(config.EnableHeadSupport);
+    }
+
+    [Fact]
+    public async Task UseHyperRazor_WithoutAddHyperRazor_ThrowsClearMessage()
+    {
+        var builder = WebApplication.CreateBuilder();
+
+        await using var app = builder.Build();
+        var exception = Assert.Throws<InvalidOperationException>(() => app.UseHyperRazor());
+
+        Assert.Contains("UseHyperRazor()", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AddHyperRazor()", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddHtmx()", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UseHyperRazor_WithStandaloneAddHtmxButWithoutAddHyperRazor_StillThrowsClearMessage()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddHtmx();
+
+        await using var app = builder.Build();
+        var exception = Assert.Throws<InvalidOperationException>(() => app.UseHyperRazor());
+
+        Assert.Contains("UseHyperRazor()", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AddHyperRazor()", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddHtmx()", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HrzResultsPage_WithoutAddHyperRazor_ThrowsClearMessage()
+    {
+        using var services = new ServiceCollection()
+            .AddLogging()
+            .AddHtmx()
             .BuildServiceProvider();
         var context = new DefaultHttpContext
         {
@@ -155,15 +184,16 @@ public class HyperRazorOnrampSurfaceTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => HrzResults.Page<TestPage>(context));
 
         Assert.Contains("Rendering a HyperRazor page or fragment", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("AddHtmx()", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AddHyperRazor()", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddHtmx()", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task HrControllerPage_WithoutAddHtmx_ThrowsClearMessage()
+    public async Task HrControllerPage_WithoutAddHyperRazor_ThrowsClearMessage()
     {
         using var services = new ServiceCollection()
             .AddLogging()
-            .AddHyperRazor()
+            .AddHtmx()
             .BuildServiceProvider();
         var context = new DefaultHttpContext
         {
@@ -180,7 +210,8 @@ public class HyperRazorOnrampSurfaceTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.RenderPage());
 
         Assert.Contains("Rendering a HyperRazor page or fragment", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("AddHtmx()", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AddHyperRazor()", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddHtmx()", exception.Message, StringComparison.Ordinal);
     }
 
     private static async Task<WebApplication> BuildAppAsync(Action<IEndpointRouteBuilder> mapEndpoints)
@@ -194,7 +225,6 @@ public class HyperRazorOnrampSurfaceTests
         builder.WebHost.UseTestServer();
         builder.Services.AddLogging();
         builder.Services.AddHyperRazor();
-        builder.Services.AddHtmx();
 
         var app = builder.Build();
         app.UseHyperRazor();

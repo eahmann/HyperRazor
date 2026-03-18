@@ -34,10 +34,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddAntiforgery();
 builder.Services.AddHyperRazor();
-builder.Services.AddHtmx();
 ```
 
-The startup contract stays explicit: `AddHyperRazor()` and `AddHtmx()` are both required.
+`AddHyperRazor()` is the full happy-path registration. It also registers the default HTMX configuration used by the top-level package.
+
+Call `AddHtmx(...)` separately only when you want to customize HTMX defaults after the main HyperRazor registration:
+
+```csharp
+builder.Services.AddHyperRazor();
+builder.Services.AddHtmx(htmx =>
+{
+    htmx.EnableHeadSupport = true;
+});
+```
 
 ## Middleware
 
@@ -55,7 +64,7 @@ app.MapControllers();
 app.Run();
 ```
 
-`UseHyperRazor()` enables HyperRazor diagnostics in Development and applies HTMX-aware `Vary` behavior. It also fails early if either required service registration is missing.
+`UseHyperRazor()` enables HyperRazor diagnostics in Development and applies HTMX-aware `Vary` behavior. It also fails early when `AddHyperRazor()` was not called during service registration.
 
 ## MVC controller pattern
 

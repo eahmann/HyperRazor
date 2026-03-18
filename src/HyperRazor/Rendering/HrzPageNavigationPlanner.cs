@@ -14,6 +14,8 @@ internal static class HrzPageNavigationPlanner
         bool rootSwapOverride)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetLayoutKey);
 
         var currentLayoutKey = TryReadCurrentLayoutKey(context.Request.Headers, out var layoutKey)
             ? layoutKey

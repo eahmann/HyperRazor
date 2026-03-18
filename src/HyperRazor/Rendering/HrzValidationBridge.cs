@@ -9,6 +9,7 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrzValidationBridge : ComponentBase, IDisposable
 {
+    private static readonly object EditFormScopeKey = typeof(HrzFormScope);
     private ValidationMessageStore? _messageStore;
     private EditContext? _currentEditContext;
     private HrzFormScope? _formScope;
@@ -45,7 +46,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         if (!ReferenceEquals(_currentEditContext, CurrentEditContext))
         {
             ClearMessages(notify: false);
-            HrzEditFormState.ClearFormScope(_currentEditContext);
+            ClearFormScope(_currentEditContext);
             _currentEditContext = CurrentEditContext;
             _messageStore = new ValidationMessageStore(CurrentEditContext);
         }
@@ -55,7 +56,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
             _currentEditContext.Model,
             _resolvedRootId,
             live: Live);
-        HrzEditFormState.SetFormScope(_currentEditContext, _formScope);
+        SetFormScope(_currentEditContext, _formScope);
 
         ApplySubmitValidationState();
     }
@@ -75,7 +76,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
     public void Dispose()
     {
         ClearMessages(notify: true);
-        HrzEditFormState.ClearFormScope(_currentEditContext);
+        ClearFormScope(_currentEditContext);
     }
 
     private void ApplySubmitValidationState()
@@ -121,6 +122,20 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
             $"{nameof(HrzValidationBridge)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
             $"{nameof(RootId)} takes precedence when both are supplied.");
     }
+
+    private static void SetFormScope(EditContext editContext, HrzFormScope formScope)
+    {
+        ArgumentNullException.ThrowIfNull(editContext);
+        ArgumentNullException.ThrowIfNull(formScope);
+
+        editContext.Properties[EditFormScopeKey] = formScope;
+    }
+
+    private static void ClearFormScope(EditContext? editContext)
+    {
+        _ = editContext?.Properties.Remove(EditFormScopeKey);
+    }
+
     private void ClearMessages(bool notify)
     {
         if (_messageStore is null || _currentEditContext is null)

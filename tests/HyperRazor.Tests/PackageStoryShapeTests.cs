@@ -353,6 +353,7 @@ public class PackageStoryShapeTests
         {
             Path.Combine(repoRoot, "src", "HyperRazor.Components", "HrzValidationFieldContext.cs"),
             Path.Combine(repoRoot, "src", "HyperRazor.Components", "HrzValidationFormContext.cs"),
+            Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzEditFormState.cs"),
             Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzFieldView.cs"),
             Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzFormView.cs"),
             Path.Combine(repoRoot, "src", "HyperRazor.Components", "Validation", "HrzValidationViewFactory.cs")
@@ -421,11 +422,13 @@ public class PackageStoryShapeTests
         Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFormView`1", throwOnError: false, ignoreCase: false));
         Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFieldView", throwOnError: false, ignoreCase: false));
         Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzFieldView`1", throwOnError: false, ignoreCase: false));
+        Assert.Null(assembly.GetType("HyperRazor.Components.Validation.HrzEditFormState", throwOnError: false, ignoreCase: false));
 
         Assert.Equal(typeof(HrzFormScope), typeof(HrzSummaryMessages).GetProperty(nameof(HrzSummaryMessages.Form))!.PropertyType);
         Assert.Equal(typeof(HrzFieldScope), typeof(HrzFieldMessages).GetProperty(nameof(HrzFieldMessages.Field))!.PropertyType);
         Assert.Equal(typeof(HrzFormScope), typeof(HrzLivePolicyRegion).GetProperty(nameof(HrzLivePolicyRegion.Form))!.PropertyType);
         Assert.Equal(typeof(HrzFormScope), typeof(HrzValidationLivePolicyRegion).GetProperty(nameof(HrzValidationLivePolicyRegion.Form))!.PropertyType);
+        Assert.Same(typeof(HrzRenderService).Assembly, typeof(HrzValidationBridge).Assembly);
     }
 
     [Fact]

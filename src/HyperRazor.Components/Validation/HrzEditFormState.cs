@@ -2,34 +2,34 @@ using Microsoft.AspNetCore.Components.Forms;
 
 namespace HyperRazor.Components.Validation;
 
-internal static class HrzEditFormState
+public static class HrzEditFormState
 {
-    private static readonly object FormViewKey = typeof(HrzFormView);
+    private static readonly object FormScopeKey = typeof(HrzFormScope);
 
-    public static void SetFormView(EditContext editContext, HrzFormView formView)
+    public static void SetFormScope(EditContext editContext, HrzFormScope formScope)
     {
         ArgumentNullException.ThrowIfNull(editContext);
-        ArgumentNullException.ThrowIfNull(formView);
+        ArgumentNullException.ThrowIfNull(formScope);
 
-        editContext.Properties[FormViewKey] = formView;
+        editContext.Properties[FormScopeKey] = formScope;
     }
 
-    public static bool TryGetFormView(EditContext? editContext, out HrzFormView? formView)
+    public static bool TryGetFormScope(EditContext? editContext, out HrzFormScope? formScope)
     {
         if (editContext is not null
-            && editContext.Properties.TryGetValue(FormViewKey, out var value)
-            && value is HrzFormView typedFormView)
+            && editContext.Properties.TryGetValue(FormScopeKey, out var value)
+            && value is HrzFormScope typedFormScope)
         {
-            formView = typedFormView;
+            formScope = typedFormScope;
             return true;
         }
 
-        formView = null;
+        formScope = null;
         return false;
     }
 
-    public static void ClearFormView(EditContext? editContext)
+    public static void ClearFormScope(EditContext? editContext)
     {
-        _ = editContext?.Properties.Remove(FormViewKey);
+        _ = editContext?.Properties.Remove(FormScopeKey);
     }
 }

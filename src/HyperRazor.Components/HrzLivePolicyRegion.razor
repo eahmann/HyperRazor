@@ -1,4 +1,5 @@
 @inject IHrzLiveValidationPolicyResolver LiveValidationPolicyResolver
+@implements IDisposable
 
 @if (Policies.Count > 0)
 {
@@ -19,13 +20,13 @@
 
 @code {
     [Parameter]
-    public HrzFormView? Form { get; set; }
+    public HrzFormScope? Form { get; set; }
 
     [Parameter]
     public bool SwapOob { get; set; }
 
     [CascadingParameter]
-    private HrzValidationFormContext? FormContext { get; set; }
+    private HrzFormScope? FormScope { get; set; }
 
     private static readonly IReadOnlyDictionary<HrzFieldPath, HrzAttemptedValue> EmptyAttemptedValues =
         new Dictionary<HrzFieldPath, HrzAttemptedValue>();
@@ -33,12 +34,16 @@
     private IReadOnlyDictionary<HrzFieldPath, HrzLiveValidationPolicy> Policies { get; set; } =
         new Dictionary<HrzFieldPath, HrzLiveValidationPolicy>();
 
-    private HrzFormView ResolvedForm => Form ?? FormContext?.View
-        ?? throw new InvalidOperationException($"{nameof(HrzLivePolicyRegion)} requires a form view.");
+    private HrzFormScope? _subscribedFormScope;
+    private bool _registrationRefreshPending;
+
+    private HrzFormScope ResolvedForm => Form ?? FormScope
+        ?? throw new InvalidOperationException($"{nameof(HrzLivePolicyRegion)} requires a {nameof(HrzFormScope)}.");
 
     protected override async Task OnParametersSetAsync()
     {
         _ = ResolvedForm;
+        AttachRegistrationHandler();
 
         if (ResolvedForm.RegisteredLiveFields.Count == 0)
         {
@@ -64,5 +69,48 @@
         }
 
         Policies = policies;
+    }
+
+    public void Dispose()
+    {
+        DetachRegistrationHandler();
+    }
+
+    private void AttachRegistrationHandler()
+    {
+        if (ReferenceEquals(_subscribedFormScope, ResolvedForm))
+        {
+            return;
+        }
+
+        DetachRegistrationHandler();
+        ResolvedForm.RegistrationChanged += RequestRegistrationRefresh;
+        _subscribedFormScope = ResolvedForm;
+    }
+
+    private void RequestRegistrationRefresh()
+    {
+        if (_registrationRefreshPending)
+        {
+            return;
+        }
+
+        _registrationRefreshPending = true;
+        _ = InvokeAsync(() =>
+        {
+            _registrationRefreshPending = false;
+            StateHasChanged();
+        });
+    }
+
+    private void DetachRegistrationHandler()
+    {
+        if (_subscribedFormScope is null)
+        {
+            return;
+        }
+
+        _subscribedFormScope.RegistrationChanged -= RequestRegistrationRefresh;
+        _subscribedFormScope = null;
     }
 }

@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 
 <div class="@FieldClass">
-    <CascadingValue Value="_fieldContext">
+    <CascadingValue Value="_fieldScope">
         @ChildContent
     </CascadingValue>
 </div>
@@ -45,12 +45,12 @@
     public RenderFragment? ChildContent { get; set; }
 
     [CascadingParameter]
-    private HrzValidationFormContext? FormContext { get; set; }
+    private HrzFormScope? FormScope { get; set; }
 
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
 
-    private HrzValidationFieldContext _fieldContext = default!;
+    private HrzFieldScope<TValue> _fieldScope = default!;
     private HrzFieldPath? _registeredFieldPath;
     private Expression<Func<TValue>>? _cachedFor;
     private Func<TValue>? _compiledAccessor;
@@ -60,14 +60,14 @@
         new[]
         {
             "validation-field",
-            _fieldContext.HasErrors ? "validation-field--invalid" : null,
+            _fieldScope.HasErrors ? "validation-field--invalid" : null,
             Class
         }.Where(static value => !string.IsNullOrWhiteSpace(value)));
 
     protected override void OnParametersSet()
     {
-        var resolvedFormContext = FormContext ?? HrzValidationFormContext.ResolveFrom(EditContext);
-        if (resolvedFormContext is null)
+        var resolvedFormScope = FormScope ?? ResolveFormScopeFromEditContext();
+        if (resolvedFormScope is null)
         {
             throw new InvalidOperationException(
                 $"{nameof(HrzField<object>)} requires a cascading {nameof(HrzForm<object>)} or an {nameof(EditForm)} validation bridge.");
@@ -81,42 +81,65 @@
             _cachedFor = For;
         }
 
-        _fieldContext = HrzValidationFieldContext.Create(
-            resolvedFormContext,
+        _fieldScope = resolvedFormScope.Field(
             For,
             compiledAccessor,
             Label,
             EnableClientValidation,
-            Live,
-            LiveValidationPath,
-            LiveTrigger,
-            LiveInclude,
-            LiveSync,
-            LiveOptions);
+            ResolveLiveOptions());
 
-        if (_registeredFieldPath is not null && !_registeredFieldPath.Equals(_fieldContext.FieldPath))
+        if (_registeredFieldPath is not null && !_registeredFieldPath.Equals(_fieldScope.FieldPath))
         {
-            resolvedFormContext.UnregisterField(_registeredFieldPath);
+            resolvedFormScope.UnregisterField(_registeredFieldPath);
         }
 
-        if (_fieldContext.HasLiveValidation)
+        if (_fieldScope.HasLiveValidation)
         {
-            _registeredFieldPath = _fieldContext.FieldPath;
+            _registeredFieldPath = _fieldScope.FieldPath;
         }
         else if (_registeredFieldPath is not null)
         {
-            resolvedFormContext.UnregisterField(_registeredFieldPath);
+            resolvedFormScope.UnregisterField(_registeredFieldPath);
             _registeredFieldPath = null;
         }
     }
 
     public void Dispose()
     {
-        var resolvedFormContext = FormContext ?? HrzValidationFormContext.ResolveFrom(EditContext);
-        if (resolvedFormContext is not null && _registeredFieldPath is not null)
+        var resolvedFormScope = FormScope ?? ResolveFormScopeFromEditContext();
+        if (resolvedFormScope is not null && _registeredFieldPath is not null)
         {
-            resolvedFormContext.UnregisterField(_registeredFieldPath);
+            resolvedFormScope.UnregisterField(_registeredFieldPath);
             _registeredFieldPath = null;
         }
+    }
+
+    private HrzFormScope? ResolveFormScopeFromEditContext()
+    {
+        return HrzEditFormState.TryGetFormScope(EditContext, out var formScope)
+            ? formScope
+            : null;
+    }
+
+    private HrzFieldLiveOptions? ResolveLiveOptions()
+    {
+        if (LiveOptions is null
+            && Live is null
+            && LiveValidationPath is null
+            && LiveTrigger is null
+            && LiveInclude is null
+            && LiveSync is null)
+        {
+            return null;
+        }
+
+        return new HrzFieldLiveOptions
+        {
+            Enabled = Live ?? LiveOptions?.Enabled,
+            Path = LiveValidationPath ?? LiveOptions?.Path,
+            Trigger = LiveTrigger ?? LiveOptions?.Trigger,
+            Include = LiveInclude ?? LiveOptions?.Include,
+            Sync = LiveSync ?? LiveOptions?.Sync
+        };
     }
 }

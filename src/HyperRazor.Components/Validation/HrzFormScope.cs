@@ -2,23 +2,23 @@ using System.Linq.Expressions;
 
 namespace HyperRazor.Components.Validation;
 
-public abstract class HrzFormView
+public abstract class HrzFormScope
 {
-    private readonly Dictionary<string, HrzFieldView> _registeredLiveFields = new(StringComparer.Ordinal);
-    private readonly IHrzValidationViewFactory _viewFactory;
+    private readonly Dictionary<string, HrzFieldScope> _registeredLiveFields = new(StringComparer.Ordinal);
+    private readonly IHrzValidationScopeFactory _scopeFactory;
 
-    internal HrzFormView(
+    internal HrzFormScope(
         object model,
         HrzValidationRootId rootId,
         string idPrefix,
         HrzSubmitValidationState? validationState,
         bool enableClientValidation,
         HrzLiveValidationOptions? live,
-        IHrzValidationViewFactory viewFactory)
+        IHrzValidationScopeFactory scopeFactory)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(rootId);
-        ArgumentNullException.ThrowIfNull(viewFactory);
+        ArgumentNullException.ThrowIfNull(scopeFactory);
 
         if (validationState is not null && validationState.RootId != rootId)
         {
@@ -32,7 +32,7 @@ public abstract class HrzFormView
         ValidationState = validationState;
         EnableClientValidation = enableClientValidation;
         Live = live;
-        _viewFactory = viewFactory;
+        _scopeFactory = scopeFactory;
     }
 
     public object Model { get; }
@@ -53,14 +53,14 @@ public abstract class HrzFormView
 
     public string LivePolicyRegionId => $"{IdPrefix}-live-policies";
 
-    public IReadOnlyList<HrzFieldView> RegisteredLiveFields =>
+    internal IReadOnlyList<HrzFieldScope> RegisteredLiveFields =>
         _registeredLiveFields.Values
             .OrderBy(static fieldView => fieldView.FieldPath.Value, StringComparer.Ordinal)
             .ToArray();
 
-    public event Action? RegistrationChanged;
+    internal event Action? RegistrationChanged;
 
-    public HrzFieldView<TValue> Field<TValue>(
+    public HrzFieldScope<TValue> Field<TValue>(
         Expression<Func<TValue>> accessor,
         string? label = null,
         bool? enableClientValidation = null,
@@ -122,7 +122,7 @@ public abstract class HrzFormView
         return attributes;
     }
 
-    internal HrzFieldView<TValue> Field<TValue>(
+    internal HrzFieldScope<TValue> Field<TValue>(
         Expression<Func<TValue>> accessor,
         Func<TValue> compiledAccessor,
         string? label,
@@ -132,7 +132,7 @@ public abstract class HrzFormView
         ArgumentNullException.ThrowIfNull(accessor);
         ArgumentNullException.ThrowIfNull(compiledAccessor);
 
-        var field = _viewFactory.CreateFieldView(this, accessor, compiledAccessor, label, enableClientValidation, live);
+        var field = _scopeFactory.CreateFieldScope(this, accessor, compiledAccessor, label, enableClientValidation, live);
         if (field.HasLiveValidation)
         {
             RegisterField(field);
@@ -155,7 +155,7 @@ public abstract class HrzFormView
         }
     }
 
-    private void RegisterField(HrzFieldView field)
+    private void RegisterField(HrzFieldScope field)
     {
         var key = field.FieldPath.Value;
         if (_registeredLiveFields.TryGetValue(key, out var existing)
@@ -235,17 +235,17 @@ public abstract class HrzFormView
     }
 }
 
-public sealed class HrzFormView<TModel> : HrzFormView
+public sealed class HrzFormScope<TModel> : HrzFormScope
 {
-    internal HrzFormView(
+    internal HrzFormScope(
         TModel model,
         HrzValidationRootId rootId,
         string idPrefix,
         HrzSubmitValidationState? validationState,
         bool enableClientValidation,
         HrzLiveValidationOptions? live,
-        IHrzValidationViewFactory viewFactory)
-        : base(model!, rootId, idPrefix, validationState, enableClientValidation, live, viewFactory)
+        IHrzValidationScopeFactory scopeFactory)
+        : base(model!, rootId, idPrefix, validationState, enableClientValidation, live, scopeFactory)
     {
         Model = model;
     }

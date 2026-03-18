@@ -21,7 +21,7 @@
     private IReadOnlyDictionary<string, object> InputAttributes => BuildControlAttributes(new Dictionary<string, object?>
     {
         ["type"] = "number",
-        ["value"] = ResolvedFieldContext.Value ?? string.Empty,
+        ["value"] = ResolvedField.Value ?? string.Empty,
         ["min"] = Min,
         ["max"] = Max,
         ["step"] = Step,

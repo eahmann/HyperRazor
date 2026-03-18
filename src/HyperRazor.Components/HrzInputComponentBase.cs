@@ -12,20 +12,20 @@ public abstract class HrzInputComponentBase : ComponentBase
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
 
     [CascadingParameter]
-    private HrzValidationFieldContext? FieldContext { get; set; }
+    private HrzFieldScope? FieldScope { get; set; }
 
-    private protected HrzValidationFieldContext ResolvedFieldContext => FieldContext
+    protected HrzFieldScope ResolvedField => FieldScope
         ?? throw new InvalidOperationException($"{GetType().Name} requires a cascading {nameof(HrzField<object>)}.");
 
     protected override void OnParametersSet()
     {
-        _ = ResolvedFieldContext;
+        _ = ResolvedField;
     }
 
     protected IReadOnlyDictionary<string, object> BuildControlAttributes(
         IReadOnlyDictionary<string, object?>? elementAttributes = null)
     {
-        return ResolvedFieldContext.View.BuildControlAttributes(
+        return ResolvedField.BuildControlAttributes(
             elementAttributes,
             Class,
             AdditionalAttributes);

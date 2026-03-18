@@ -17,29 +17,29 @@ else
     public IReadOnlyDictionary<string, object?>? AdditionalAttributes { get; set; }
 
     [CascadingParameter]
-    private HrzValidationFieldContext? FieldContext { get; set; }
+    private HrzFieldScope? Field { get; set; }
 
-    private HrzValidationFieldContext ResolvedFieldContext => FieldContext
+    private HrzFieldScope ResolvedField => Field
         ?? throw new InvalidOperationException($"{nameof(HrzValidationMessage)} requires a cascading {nameof(HrzField<object>)}.");
 
     private bool HasContainer => !string.IsNullOrWhiteSpace(Class) || (AdditionalAttributes?.Count ?? 0) > 0;
 
     private RenderFragment Slots => @<text>
         <div
-            id="@ResolvedFieldContext.ClientSlotId"
+            id="@ResolvedField.ClientSlotId"
             class="validation-slot validation-slot--client field-validation-valid"
-            data-hrz-client-validation-for="@ResolvedFieldContext.FieldPath.Value"
-            data-valmsg-for="@ResolvedFieldContext.Name"
+            data-hrz-client-validation-for="@ResolvedField.FieldPath.Value"
+            data-valmsg-for="@ResolvedField.Name"
             data-valmsg-replace="true"></div>
 
         <HrzValidationServerFieldSlot
-            Id="@ResolvedFieldContext.ServerSlotId"
-            FieldPath="@ResolvedFieldContext.FieldPath.Value"
-            Errors="@ResolvedFieldContext.Errors" />
+            Id="@ResolvedField.ServerSlotId"
+            FieldPath="@ResolvedField.FieldPath.Value"
+            Errors="@ResolvedField.Errors" />
     </text>;
 
     protected override void OnParametersSet()
     {
-        _ = ResolvedFieldContext;
+        _ = ResolvedField;
     }
 }

@@ -1,13 +1,12 @@
 @typeparam TModel
 @using Microsoft.AspNetCore.Http
-@implements IDisposable
 
-<CascadingValue Value="_formContext">
+<CascadingValue Value="_formScope">
     <form
-        id="@_formContext.FormId"
+        id="@_formScope.FormId"
         class="@Class"
         action="@Action"
-        data-hrz-validation-root="@_formContext.RootId.Value"
+        data-hrz-validation-root="@_formScope.RootId.Value"
         data-hrz-validation-region
         data-hrz-disabled-elt="@(Enhance ? DisabledElementSelector : null)"
         hx-post="@(Enhance ? ResolvedHxPost : null)"
@@ -85,9 +84,7 @@
     [Inject]
     private IHrzForms HrzForms { get; set; } = default!;
 
-    private HrzValidationFormContext _formContext = default!;
-    private HrzFormView? _subscribedFormView;
-    private bool _registrationRefreshPending;
+    private HrzFormScope<TModel> _formScope = default!;
 
     private string ResolvedHxPost => string.IsNullOrWhiteSpace(HxPost) ? Action : HxPost;
 
@@ -96,21 +93,10 @@
         ArgumentNullException.ThrowIfNull(Model);
         ArgumentException.ThrowIfNullOrWhiteSpace(Action);
 
-        DetachRegistrationHandler();
-
         var resolvedRootId = ResolveRequiredRootId();
-        var formView = string.IsNullOrWhiteSpace(IdPrefix)
+        _formScope = string.IsNullOrWhiteSpace(IdPrefix)
             ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
             : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
-
-        formView.RegistrationChanged += RequestRegistrationRefresh;
-        _subscribedFormView = formView;
-        _formContext = HrzValidationFormContext.Create(formView);
-    }
-
-    public void Dispose()
-    {
-        DetachRegistrationHandler();
     }
 
     private HrzValidationRootId ResolveRequiredRootId()
@@ -145,31 +131,5 @@
             Include = Live?.Include ?? LiveInclude,
             Sync = Live?.Sync ?? LiveSync
         };
-    }
-
-    private void RequestRegistrationRefresh()
-    {
-        if (_registrationRefreshPending)
-        {
-            return;
-        }
-
-        _registrationRefreshPending = true;
-        _ = InvokeAsync(() =>
-        {
-            _registrationRefreshPending = false;
-            StateHasChanged();
-        });
-    }
-
-    private void DetachRegistrationHandler()
-    {
-        if (_subscribedFormView is null)
-        {
-            return;
-        }
-
-        _subscribedFormView.RegistrationChanged -= RequestRegistrationRefresh;
-        _subscribedFormView = null;
     }
 }

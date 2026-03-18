@@ -2,7 +2,7 @@ namespace HyperRazor.Components.Validation;
 
 public interface IHrzForms
 {
-    HrzFormView<TModel> For<TModel>(
+    HrzFormScope<TModel> For<TModel>(
         TModel model,
         string formName,
         HrzSubmitValidationState? validationState = null,
@@ -10,7 +10,7 @@ public interface IHrzForms
         string? idPrefix = null,
         bool enableClientValidation = true);
 
-    HrzFormView<TModel> For<TModel>(
+    HrzFormScope<TModel> For<TModel>(
         TModel model,
         HrzValidationRootId rootId,
         HrzSubmitValidationState? validationState = null,

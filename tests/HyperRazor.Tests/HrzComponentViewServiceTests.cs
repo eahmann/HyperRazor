@@ -379,7 +379,7 @@ public class HrzRenderServiceTests
     }
 
     [Fact]
-    public async Task PartialView_RawValidationSurface_UsesSharedFormViews()
+    public async Task PartialView_RawValidationSurface_UsesSharedFormScopes()
     {
         await using var fixture = await CreateFixtureAsync();
         fixture.SetCurrentContext();
@@ -399,6 +399,26 @@ public class HrzRenderServiceTests
         Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-live-policies\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"users-invite-email-live\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PartialView_ValidationAuthoringSurface_AllowsCustomInputExtensionFromConsumerAssembly()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        fixture.SetCurrentContext();
+
+        var result = await fixture.RenderService.Fragment<ValidationCustomInputExtensionSurfaceComponent>();
+        var html = await ExecuteResultAsync(result, fixture.HttpContext);
+
+        Assert.Contains("id=\"custom-input-form\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"custom-input-email\"", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"email\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"consumer-input\"", html, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"name@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-consumer-field-path=\"Email\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-hrz-server-slot-id=\"custom-input-email-server\"", html, StringComparison.Ordinal);
+        Assert.Contains("hx-post=\"/validation/live\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"custom-input-email-server\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1031,6 +1051,43 @@ public class HrzRenderServiceTests
         }
     }
 
+    private sealed class ValidationCustomInputExtensionSurfaceComponent : ComponentBase
+    {
+        private readonly ValidationAuthoringModel _model = new()
+        {
+            Email = "riley@example.com"
+        };
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<HrzForm<ValidationAuthoringModel>>(0);
+            builder.AddAttribute(1, nameof(HrzForm<ValidationAuthoringModel>.Model), _model);
+            builder.AddAttribute(2, nameof(HrzForm<ValidationAuthoringModel>.Action), "/users/invite");
+            builder.AddAttribute(3, nameof(HrzForm<ValidationAuthoringModel>.FormName), "custom-input");
+            builder.AddAttribute(4, nameof(HrzForm<ValidationAuthoringModel>.Live), new HrzLiveValidationOptions
+            {
+                Path = "/validation/live"
+            });
+            builder.AddAttribute(5, nameof(HrzForm<ValidationAuthoringModel>.ChildContent), (RenderFragment)(formBuilder =>
+            {
+                formBuilder.OpenComponent<HrzField<string>>(0);
+                formBuilder.AddAttribute(1, nameof(HrzField<string>.For), (Expression<Func<string>>)(() => _model.Email));
+                formBuilder.AddAttribute(2, nameof(HrzField<string>.ChildContent), (RenderFragment)(fieldBuilder =>
+                {
+                    fieldBuilder.OpenComponent<ConsumerEmailInput>(0);
+                    fieldBuilder.AddAttribute(1, nameof(ConsumerEmailInput.Class), "consumer-input");
+                    fieldBuilder.AddAttribute(2, nameof(ConsumerEmailInput.Placeholder), "name@example.com");
+                    fieldBuilder.CloseComponent();
+
+                    fieldBuilder.OpenComponent<HrzValidationMessage>(3);
+                    fieldBuilder.CloseComponent();
+                }));
+                formBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
     private sealed class ValidationExpandedInputSurfaceComponent : ComponentBase
     {
         private static readonly IReadOnlyList<HrzInputSelectOption> RoleOptions =
@@ -1114,6 +1171,25 @@ public class HrzRenderServiceTests
                 formBuilder.CloseComponent();
             }));
             builder.CloseComponent();
+        }
+    }
+
+    private sealed class ConsumerEmailInput : HrzInputComponentBase
+    {
+        [Parameter]
+        public string? Placeholder { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "input");
+            builder.AddMultipleAttributes(1, BuildControlAttributes(new Dictionary<string, object?>
+            {
+                ["type"] = "email",
+                ["value"] = ResolvedField.Value ?? string.Empty,
+                ["placeholder"] = Placeholder,
+                ["data-consumer-field-path"] = ResolvedField.FieldPath.Value
+            }));
+            builder.CloseElement();
         }
     }
 

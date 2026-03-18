@@ -22,6 +22,7 @@ Primary entry-point packages:
 Advanced but supported composition package:
 
 - `HyperRazor.Components`
+  This package includes both the stock validation components and the advanced validation builder/scope API (`IHrzForms` as the DI entrypoint, plus `HrzFormScope` and `HrzFieldScope`).
 
 Internal-only projects:
 
@@ -56,9 +57,12 @@ Package Story Phase 3 retires the old advanced package IDs without introducing a
 
 Validation ownership from Phase 2 remains in place:
 
-- `HyperRazor.Components` owns the validation authoring surface.
+- `HyperRazor.Components` owns the validation authoring surface for both component-first and builder-first flows.
 - `HyperRazor.Components.Validation` is the shared validation contract namespace.
 - The implementation APIs remain public under the `HyperRazor.Rendering` namespace, but they now ship from the `HyperRazor` package.
+- Supported validation authoring lanes are:
+  - `HrzForm` / `HrzField` / `HrzInput*`
+  - resolve `IHrzForms`, then use `HrzFormScope` / `HrzFieldScope` for custom markup or custom components
 
 Migration guidance:
 

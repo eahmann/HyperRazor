@@ -23,32 +23,12 @@ public static class HyperRazorApplicationBuilderExtensions
 
     private static void EnsureConfigured(IServiceProvider services)
     {
-        List<string>? missingRegistrations = null;
-
         if (services.GetService<IHyperRazorRegistrationMarker>() is null)
         {
-            missingRegistrations = ["AddHyperRazor()"];
+            throw new InvalidOperationException(
+                "UseHyperRazor() requires AddHyperRazor() to be called on your IServiceCollection during startup. " +
+                "AddHyperRazor() registers the HTMX defaults used by the top-level HyperRazor package. " +
+                "Call services.AddHyperRazor() or builder.Services.AddHyperRazor() before building the app.");
         }
-
-        if (services.GetService<IHtmxRegistrationMarker>() is null)
-        {
-            missingRegistrations ??= [];
-            missingRegistrations.Add("AddHtmx()");
-        }
-
-        if (missingRegistrations is null)
-        {
-            return;
-        }
-
-        var callToAction = missingRegistrations.Count switch
-        {
-            1 => missingRegistrations[0],
-            2 => $"{missingRegistrations[0]} and {missingRegistrations[1]}",
-            _ => string.Join(" and ", missingRegistrations),
-        };
-
-        throw new InvalidOperationException(
-            $"UseHyperRazor() requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. Call {callToAction} on your IServiceCollection during startup (for example, services.AddHyperRazor(); services.AddHtmx(); or builder.Services.AddHyperRazor(); builder.Services.AddHtmx()).");
     }
 }

@@ -9,6 +9,7 @@ namespace HyperRazor.Rendering;
 
 public sealed class HrzValidationBridge : ComponentBase, IDisposable
 {
+    private static readonly object EditFormScopeKey = typeof(HrzFormScope);
     private ValidationMessageStore? _messageStore;
     private EditContext? _currentEditContext;
     private HrzFormScope? _formScope;
@@ -45,17 +46,21 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         if (!ReferenceEquals(_currentEditContext, CurrentEditContext))
         {
             ClearMessages(notify: false);
-            HrzEditFormState.ClearFormScope(_currentEditContext);
+            ClearFormScope(_currentEditContext);
             _currentEditContext = CurrentEditContext;
             _messageStore = new ValidationMessageStore(CurrentEditContext);
         }
 
-        _resolvedRootId = ResolveRequiredRootId();
+        var address = HrzValidationFormAddress.CreateRequired(
+            RootId,
+            FormName,
+            nameof(HrzValidationBridge));
+        _resolvedRootId = address.ResolveRequired(nameof(HrzValidationBridge));
         _formScope = HrzForms.For(
             _currentEditContext.Model,
-            _resolvedRootId,
+            address,
             live: Live);
-        HrzEditFormState.SetFormScope(_currentEditContext, _formScope);
+        SetFormScope(_currentEditContext, _formScope);
 
         ApplySubmitValidationState();
     }
@@ -75,7 +80,7 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
     public void Dispose()
     {
         ClearMessages(notify: true);
-        HrzEditFormState.ClearFormScope(_currentEditContext);
+        ClearFormScope(_currentEditContext);
     }
 
     private void ApplySubmitValidationState()
@@ -105,22 +110,19 @@ public sealed class HrzValidationBridge : ComponentBase, IDisposable
         _currentEditContext.NotifyValidationStateChanged();
     }
 
-    private HrzValidationRootId ResolveRequiredRootId()
+    private static void SetFormScope(EditContext editContext, HrzFormScope formScope)
     {
-        if (RootId is not null)
-        {
-            return RootId;
-        }
+        ArgumentNullException.ThrowIfNull(editContext);
+        ArgumentNullException.ThrowIfNull(formScope);
 
-        if (!string.IsNullOrWhiteSpace(FormName))
-        {
-            return new HrzValidationRootId(FormName);
-        }
-
-        throw new InvalidOperationException(
-            $"{nameof(HrzValidationBridge)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
-            $"{nameof(RootId)} takes precedence when both are supplied.");
+        editContext.Properties[EditFormScopeKey] = formScope;
     }
+
+    private static void ClearFormScope(EditContext? editContext)
+    {
+        _ = editContext?.Properties.Remove(EditFormScopeKey);
+    }
+
     private void ClearMessages(bool notify)
     {
         if (_messageStore is null || _currentEditContext is null)

@@ -19,6 +19,7 @@
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
 
+    private static readonly object EditFormScopeKey = typeof(HrzFormScope);
     private HrzFormScope ResolvedFormScope => FormScope
         ?? ResolveFormScopeFromEditContext()
         ?? throw new InvalidOperationException(
@@ -31,8 +32,10 @@
 
     private HrzFormScope? ResolveFormScopeFromEditContext()
     {
-        return HrzEditFormState.TryGetFormScope(EditContext, out var formScope)
-            ? formScope
-            : null;
+        return EditContext is not null
+            && EditContext.Properties.TryGetValue(EditFormScopeKey, out var value)
+            && value is HrzFormScope formScope
+                ? formScope
+                : null;
     }
 }

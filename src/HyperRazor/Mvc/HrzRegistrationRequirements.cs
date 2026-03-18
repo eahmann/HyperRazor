@@ -1,14 +1,11 @@
-using HyperRazor.Htmx;
 using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace HyperRazor.Mvc;
 
 internal static class HrzRegistrationRequirements
 {
     private const string HyperRazorRegistration = "AddHyperRazor()";
-    private const string HtmxRegistration = "AddHtmx()";
 
     public static IHrzRenderService ResolveRenderService(IServiceProvider services)
     {
@@ -23,29 +20,11 @@ internal static class HrzRegistrationRequirements
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(operation);
 
-        List<string>? missingRegistrations = null;
-
         if (services.GetService<IHyperRazorRegistrationMarker>() is null)
         {
-            missingRegistrations = [HyperRazorRegistration];
+            throw new InvalidOperationException(
+                $"{operation} requires explicit HyperRazor registration. Call services.{HyperRazorRegistration} during startup. " +
+                $"{HyperRazorRegistration} also registers the HTMX defaults used by the top-level HyperRazor package.");
         }
-
-        if (services.GetService<IHtmxRegistrationMarker>() is null)
-        {
-            missingRegistrations ??= [];
-            missingRegistrations.Add(HtmxRegistration);
-        }
-
-        if (missingRegistrations is null)
-        {
-            return;
-        }
-
-        string registrationGuidance = missingRegistrations.Count == 1
-            ? $"Call services.{missingRegistrations[0]} during startup."
-            : $"Call services.{missingRegistrations[0]} and services.{missingRegistrations[1]} during startup.";
-
-        throw new InvalidOperationException(
-            $"{operation} requires explicit HyperRazor registration. Missing required registration(s): {string.Join(", ", missingRegistrations)}. {registrationGuidance}");
     }
 }

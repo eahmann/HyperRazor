@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>HyperRazor.Components</PackageId>
     <Description>Supported advanced composition package for HyperRazor Razor components, layouts, validation authoring/contracts, and client assets.</Description>
-    <StaticWebAssetBasePath>_content/HyperRazor.Client</StaticWebAssetBasePath>
+    <StaticWebAssetBasePath>_content/HyperRazor.Components</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>

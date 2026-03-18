@@ -42,6 +42,19 @@ public class HrzValidationContractsTests
     }
 
     [Fact]
+    public void HrzFieldPathSegment_CopiesIndices_AndNormalizesNullToEmpty()
+    {
+        var source = new List<int> { 1, 2 };
+        var segment = new HrzFieldPathSegment("Items", source);
+
+        source[0] = 99;
+
+        Assert.Equal([1, 2], segment.Indices);
+        Assert.Empty(new HrzFieldPathSegment("Items", null).Indices);
+        Assert.Throws<ArgumentNullException>(() => new HrzFieldPathSegment(null!, source));
+    }
+
+    [Fact]
     public void Resolve_ReturnsNestedFieldIdentifier()
     {
         var model = new ValidationModel

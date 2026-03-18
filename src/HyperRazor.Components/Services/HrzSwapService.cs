@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace HyperRazor.Components.Services;
 
@@ -12,9 +11,6 @@ namespace HyperRazor.Components.Services;
 
 public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
 {
-    private static readonly IReadOnlyDictionary<string, object?> EmptyParameters =
-        new Dictionary<string, object?>(0, StringComparer.Ordinal);
-
     private readonly List<HrzSwapItem> _items = [];
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IServiceProvider? _services;
@@ -54,7 +50,7 @@ public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
     {
         Replace(
             target,
-            BuildComponentFragment<TComponent>(CreateParameterDictionary(parameters)),
+            BuildComponentFragment<TComponent>(HrzParameterDictionaryFactory.Create(parameters)),
             options);
     }
 
@@ -82,7 +78,7 @@ public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
         Append(
             target,
             itemId,
-            BuildComponentFragment<TComponent>(CreateParameterDictionary(parameters)),
+            BuildComponentFragment<TComponent>(HrzParameterDictionaryFactory.Create(parameters)),
             options);
     }
 
@@ -111,7 +107,7 @@ public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
         Prepend(
             target,
             itemId,
-            BuildComponentFragment<TComponent>(CreateParameterDictionary(parameters)),
+            BuildComponentFragment<TComponent>(HrzParameterDictionaryFactory.Create(parameters)),
             options);
     }
 
@@ -230,19 +226,7 @@ public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
 
     private HtmxRequest GetCurrentRequest()
     {
-        var context = _httpContextAccessor.HttpContext;
-        if (context is null)
-        {
-            return new HtmxRequest();
-        }
-
-        var headers = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var header in context.Request.Headers)
-        {
-            headers[header.Key] = header.Value.ToString();
-        }
-
-        return HtmxRequest.FromHeaders(headers);
+        return _httpContextAccessor.HttpContext?.HtmxRequest() ?? new HtmxRequest();
     }
 
     private static RenderFragment BuildComponentFragment<TComponent>(IReadOnlyDictionary<string, object?> parameters)
@@ -260,47 +244,6 @@ public sealed class HrzSwapService : IHrzSwapService, IHrzSwapBuffer
 
             builder.CloseComponent();
         };
-    }
-
-    private static IReadOnlyDictionary<string, object?> CreateParameterDictionary(object? parameters)
-    {
-        if (parameters is null)
-        {
-            return EmptyParameters;
-        }
-
-        if (parameters is IReadOnlyDictionary<string, object?> typedReadOnly)
-        {
-            return typedReadOnly;
-        }
-
-        if (parameters is IReadOnlyDictionary<string, object> readOnlyObject)
-        {
-            return readOnlyObject.ToDictionary(pair => pair.Key, pair => (object?)pair.Value, StringComparer.Ordinal);
-        }
-
-        if (parameters is IDictionary<string, object?> typedDictionary)
-        {
-            return new Dictionary<string, object?>(typedDictionary, StringComparer.Ordinal);
-        }
-
-        if (parameters is IDictionary<string, object> dictionary)
-        {
-            return dictionary.ToDictionary(pair => pair.Key, pair => (object?)pair.Value, StringComparer.Ordinal);
-        }
-
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
-        var properties = parameters
-            .GetType()
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.CanRead && property.GetIndexParameters().Length == 0);
-
-        foreach (var property in properties)
-        {
-            result[property.Name] = property.GetValue(parameters);
-        }
-
-        return result;
     }
 
     private static void EnsureTarget(string target)

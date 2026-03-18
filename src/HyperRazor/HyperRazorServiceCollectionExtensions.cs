@@ -1,6 +1,7 @@
 using HyperRazor.Components.Services;
 using HyperRazor.Components.Validation;
 using HyperRazor.Components;
+using HyperRazor.Htmx;
 using HyperRazor.Mvc;
 using HyperRazor.Rendering;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ public static class HyperRazorServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection being configured.</param>
     /// <param name="configure">Optional HyperRazor rendering and layout options.</param>
+    /// <param name="configureHtmx">Optional HTMX configuration applied as part of the default HyperRazor registration.</param>
 #if NET10_0_OR_GREATER
     /// <param name="configureSse">Optional global SSE defaults for heartbeat and transport headers.</param>
 #endif
@@ -22,6 +24,8 @@ public static class HyperRazorServiceCollectionExtensions
     public static IServiceCollection AddHyperRazor(
         this IServiceCollection services,
         Action<HrzOptions>? configure = null
+        ,
+        Action<HtmxConfig>? configureHtmx = null
 #if NET10_0_OR_GREATER
         ,
         Action<HrzSseOptions>? configureSse = null
@@ -31,6 +35,7 @@ public static class HyperRazorServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddHttpContextAccessor();
+        services.AddHtmx(configureHtmx);
         services.AddRazorComponents();
         services.AddHyperRazorComponentServices();
         services.AddOptions<HrzOptions>();
@@ -57,6 +62,7 @@ public static class HyperRazorServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHrzClientValidationMetadataProvider, HrzDataAnnotationsClientValidationMetadataProvider>());
         services.TryAddScoped<IHrzFormPostBinder, HrzFormPostBinder>();
         services.TryAddScoped<IHrzLiveValidationRequestBinder, HrzLiveValidationRequestBinder>();
+        services.AddScoped<IHrzComponentHostRenderer, HrzComponentHostRenderer>();
         services.AddScoped<IHrzHtmlRendererAdapter, HrzHtmlRendererAdapter>();
         services.AddScoped<IHrzRenderService, HrzRenderService>();
 #if NET10_0_OR_GREATER

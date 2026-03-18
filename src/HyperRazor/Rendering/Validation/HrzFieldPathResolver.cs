@@ -30,7 +30,7 @@ public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(path);
 
-        var segments = Parse(path.Value);
+        var segments = HrzFieldPaths.ParseSegments(path);
         if (segments.Count == 0)
         {
             throw new InvalidOperationException($"Unable to resolve field path '{path.Value}'.");
@@ -62,51 +62,7 @@ public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
         var property = FindProperty(current!.GetType(), finalSegment.PropertyName, path.Value);
         return new FieldIdentifier(current, property.Name);
     }
-    private static IReadOnlyList<PathSegment> Parse(string value)
-    {
-        var segments = new List<PathSegment>();
-        var parts = value.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var part in parts)
-        {
-            segments.Add(ParseSegment(part));
-        }
-
-        return segments;
-    }
-
-    private static PathSegment ParseSegment(string value)
-    {
-        var propertyName = value;
-        var indices = new List<int>();
-        var bracketIndex = value.IndexOf('[');
-        if (bracketIndex >= 0)
-        {
-            propertyName = bracketIndex == 0 ? string.Empty : value[..bracketIndex];
-            var cursor = bracketIndex;
-            while (cursor >= 0 && cursor < value.Length)
-            {
-                var open = value.IndexOf('[', cursor);
-                if (open < 0)
-                {
-                    break;
-                }
-
-                var close = value.IndexOf(']', open + 1);
-                if (close < 0)
-                {
-                    throw new InvalidOperationException($"Field path segment '{value}' contains an unterminated indexer.");
-                }
-
-                indices.Add(int.Parse(value[(open + 1)..close], System.Globalization.CultureInfo.InvariantCulture));
-                cursor = close + 1;
-            }
-        }
-
-        return new PathSegment(propertyName, indices);
-    }
-
-    private static object? ResolveSegmentValue(object? current, PathSegment segment, string originalPath)
+    private static object? ResolveSegmentValue(object? current, HrzFieldPathSegment segment, string originalPath)
     {
         if (current is null)
         {
@@ -168,6 +124,4 @@ public sealed class HrzFieldPathResolver : IHrzFieldPathResolver
 
         throw new InvalidOperationException($"Unable to resolve index {index} while resolving '{originalPath}'.");
     }
-
-    private sealed record PathSegment(string PropertyName, IReadOnlyList<int> Indices);
 }

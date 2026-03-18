@@ -15,4 +15,13 @@ public static class HrzFieldPaths
 
     public static HrzFieldPath Index(HrzFieldPath collection, int index) =>
         HrzFieldPathOperations.Index(collection, index);
+
+    public static IReadOnlyList<HrzFieldPathSegment> ParseSegments(HrzFieldPath path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return HrzFieldPathParser.ParseSegments(path.Value);
+    }
+
+    public static IReadOnlyList<HrzFieldPathSegment> ParseSegments(string value) =>
+        HrzFieldPathParser.ParseSegments(value);
 }

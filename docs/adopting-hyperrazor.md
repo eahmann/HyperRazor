@@ -28,14 +28,23 @@ The adoption path is intentionally explicit:
 builder.Services.AddControllersWithViews();
 builder.Services.AddAntiforgery();
 builder.Services.AddHyperRazor();
-builder.Services.AddHtmx();
 
 var app = builder.Build();
 
 app.UseHyperRazor();
 ```
 
-There is no wrapper registration method in the public story. `AddHyperRazor()` and `AddHtmx()` are both required, and `UseHyperRazor()` fails early when either registration is missing.
+`AddHyperRazor()` is the wrapper registration method for the full package path. It brings in the default HTMX registration used by the top-level package, so `UseHyperRazor()` only requires `AddHyperRazor()` to have been called first.
+
+Keep `AddHtmx(...)` available as an optional follow-up seam when you want to customize HTMX behavior explicitly:
+
+```csharp
+builder.Services.AddHyperRazor();
+builder.Services.AddHtmx(htmx =>
+{
+    htmx.EnableHeadSupport = true;
+});
+```
 
 ## Endpoint vocabulary
 

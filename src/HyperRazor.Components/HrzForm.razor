@@ -93,27 +93,13 @@
         ArgumentNullException.ThrowIfNull(Model);
         ArgumentException.ThrowIfNullOrWhiteSpace(Action);
 
-        var resolvedRootId = ResolveRequiredRootId();
+        var address = HrzValidationFormAddress.CreateRequired(
+            RootId,
+            FormName,
+            $"{nameof(HrzForm<object>)}");
         _formScope = string.IsNullOrWhiteSpace(IdPrefix)
-            ? HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
-            : HrzForms.For(Model!, resolvedRootId, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
-    }
-
-    private HrzValidationRootId ResolveRequiredRootId()
-    {
-        if (RootId is not null)
-        {
-            return RootId;
-        }
-
-        if (!string.IsNullOrWhiteSpace(FormName))
-        {
-            return new HrzValidationRootId(FormName);
-        }
-
-        throw new InvalidOperationException(
-            $"{nameof(HrzForm<object>)} requires either {nameof(RootId)} or {nameof(FormName)}. " +
-            $"{nameof(RootId)} takes precedence when both are supplied.");
+            ? HrzForms.For(Model!, address, live: ResolveLiveOptions(), enableClientValidation: EnableClientValidation)
+            : HrzForms.For(Model!, address, live: ResolveLiveOptions(), idPrefix: IdPrefix, enableClientValidation: EnableClientValidation);
     }
 
     private HrzLiveValidationOptions? ResolveLiveOptions()

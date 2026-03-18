@@ -23,35 +23,36 @@ public static class DemoServiceCollectionExtensions
         {
             options.HeaderName = "RequestVerificationToken";
         });
-        services.AddHyperRazor(options =>
-        {
-            options.RootComponent = typeof(HrzApp<AppLayout>);
-        });
+        services.AddHyperRazor(
+            options =>
+            {
+                options.RootComponent = typeof(HrzApp<AppLayout>);
+            },
+            configureHtmx: htmx =>
+            {
+                htmx.AllowNestedOobSwaps = false;
+                htmx.EnableHeadSupport = true;
+                htmx.ResponseHandling =
+                [
+                    new HtmxResponseHandlingRule
+                    {
+                        Code = "204",
+                        Swap = false
+                    },
+                    new HtmxResponseHandlingRule
+                    {
+                        Code = "[23]..",
+                        Swap = true
+                    },
+                    new HtmxResponseHandlingRule
+                    {
+                        Code = "[45]..",
+                        Swap = true,
+                        Error = false
+                    }
+                ];
+            });
         services.AddScoped<IHrzSseReplayStrategy, DemoSseReplayStrategy>();
-        services.AddHtmx(htmx =>
-        {
-            htmx.AllowNestedOobSwaps = false;
-            htmx.EnableHeadSupport = true;
-            htmx.ResponseHandling =
-            [
-                new HtmxResponseHandlingRule
-                {
-                    Code = "204",
-                    Swap = false
-                },
-                new HtmxResponseHandlingRule
-                {
-                    Code = "[23]..",
-                    Swap = true
-                },
-                new HtmxResponseHandlingRule
-                {
-                    Code = "[45]..",
-                    Swap = true,
-                    Error = false
-                }
-            ];
-        });
         services.AddSingleton<IInviteValidationBackend, DemoInviteValidationBackend>();
         services.AddSingleton<IHrzLiveValidationPolicyResolver, DemoValidationLivePolicyResolver>();
 
